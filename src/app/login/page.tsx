@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { FaArrowLeft } from "react-icons/fa"; // importando um ícone de seta
+import { FaArrowLeft } from "react-icons/fa"; // Importando o ícone de seta
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -13,18 +13,22 @@ export default function LoginPage() {
     e.preventDefault(); // Impede o recarregamento da página
   };
 
+  const handleGoBack = () => {
+    window.history.back(); // Volta para a página anterior
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-6">
       {/* Título */}
       <header className="w-full max-w-md mt-10 mb-6">
         <div className="flex items-center justify-start mb-4">
           {/* Botão de Voltar */}
-          <Link
-            href="#"
+          <button
+            onClick={handleGoBack}
             className="text-gray-800 hover:text-gray-600 transition"
           >
             <FaArrowLeft className="text-2xl" />
-          </Link>
+          </button>
         </div>
         {/* Logo do app */}
         <Image
@@ -41,7 +45,7 @@ export default function LoginPage() {
         <p className="text-lg text-gray-600 mt-2">Faça login em sua conta</p>
       </header>
 
-      {/* container centralizado com uma animação */}
+      {/* Container centralizado com uma animação */}
       <div className="w-full max-w-md bg-white p-6 mt-14 rounded-2xl shadow-lg">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -86,7 +90,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* links de recuperação de senha e ainda não possuo conta */}
+        {/* Links de recuperação de senha e registro */}
         <div className="mt-4 flex justify-between text-sm">
           <a href="#" className="text-teal-500 hover:underline">
             Esqueci minha senha
