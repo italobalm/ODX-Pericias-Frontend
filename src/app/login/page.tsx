@@ -92,7 +92,7 @@ export default function LoginPage() {
 
         {/* Links de recuperação de senha e registro */}
         <div className="mt-4 flex justify-between text-sm">
-          <a href="#" className="text-teal-500 hover:underline">
+          <a href="/forgotPassword" className="text-teal-500 hover:underline">
             Esqueci minha senha
           </a>
           <Link href="/register" className="text-teal-500 hover:underline">

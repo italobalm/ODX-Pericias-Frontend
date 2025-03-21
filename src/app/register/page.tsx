@@ -4,9 +4,9 @@ import { useState, FormEvent, ChangeEvent } from "react";
 import { motion } from "framer-motion";
 
 //importando especificamente um icone de seta
-import { FaArrowLeft } from "react-icons/fa"; 
+import { FaArrowLeft } from "react-icons/fa";
 
-//definindo os tipos 
+//definindo os tipos
 export default function RegisterPage() {
   const [step, setStep] = useState<number>(1); // Tipo para o estado de etapa
   const [password, setPassword] = useState<string>(""); // Tipo para a senha
