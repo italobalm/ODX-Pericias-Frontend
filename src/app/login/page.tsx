@@ -61,7 +61,7 @@ export default function LoginPage() {
               placeholder="Digite seu email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 border rounded-xl focus:ring focus:ring-blue-300"
+              className="w-full p-3 border-2 border-gray-300 rounded-xl focus:ring focus:ring-blue-300"
               required
             />
           </div>
@@ -78,12 +78,13 @@ export default function LoginPage() {
               placeholder="Digite sua senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 border rounded-xl focus:ring focus:ring-blue-300"
+              className="w-full p-3 border-2 border-gray-300 rounded-xl focus:ring focus:ring-blue-300"
               required
             />
           </div>
           <button
             type="submit"
+            onClick={() => (window.location.href = "/initialScreen")}
             className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-600 transition"
           >
             Entrar
