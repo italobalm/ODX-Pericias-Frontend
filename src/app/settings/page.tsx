@@ -99,7 +99,7 @@ export default function ConfiguracoesPage() {
       {/* Ações adicionais */}
       <div className="w-full max-w-md mt-8 space-y-4">
         <button
-          onClick={() => router.push("/alterar-senha")}
+          onClick={() => router.push("/changePassword")}
           className="w-full bg-white p-4 flex items-center space-x-3 rounded-xl shadow hover:bg-gray-100 border border-gray-300"
         >
           <FaKey className="text-teal-500 text-xl" />
