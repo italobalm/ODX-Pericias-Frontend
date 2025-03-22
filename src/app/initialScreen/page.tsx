@@ -11,9 +11,9 @@ export default function HomePage() {
   // const [croNumber, setCroNumber] = useState("");
 
   const menuItems = [
-    { title: "Nova Ocorrência", icon: <FaFileAlt />, path: "/nova-ocorrencia" },
+    { title: "Nova perícia", icon: <FaFileAlt />, path: "/nova-pericia" },
     { title: "Laudos", icon: <FaClipboardList />, path: "/laudos" },
-    { title: "Conectar Casos", icon: <FaLink />, path: "/conectar-casos" },
+    { title: "Comparar Laudos", icon: <FaLink />, path: "/comparar-laudos" },
     { title: "Minhas Perícias", icon: <FaFileMedical  />, path: "/minhas-pericias" }, // Novo item
   ];
   
