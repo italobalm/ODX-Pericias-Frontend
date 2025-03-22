@@ -42,7 +42,7 @@ export default function HomePage() {
         {/* Botão de configurações */}
         <div
           className="p-2  transition cursor-pointer"
-          onClick={() => router.push("/configuracoes")}
+          onClick={() => router.push("/settings")}
         >
           <FaCog className="text-black text-2xl" />
         </div>
