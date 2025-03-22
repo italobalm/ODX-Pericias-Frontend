@@ -30,6 +30,7 @@ export default function LoginPage() {
             <FaArrowLeft className="text-2xl" />
           </button>
         </div>
+
         {/* Logo do app */}
         <Image
           src="../logo.png"
@@ -39,13 +40,14 @@ export default function LoginPage() {
           className="mt-10"
           unoptimized
         />
+
         <h1 className="text-3xl font-bold text-gray-800 text-left mt-6">
           Bem-vindo
         </h1>
         <p className="text-lg text-gray-600 mt-2">Faça login em sua conta</p>
       </header>
 
-      {/* Container centralizado com uma animação */}
+      {/* Formulário de login */}
       <div className="w-full max-w-md bg-white p-6 mt-14 rounded-2xl shadow-lg">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -61,7 +63,7 @@ export default function LoginPage() {
               placeholder="Digite seu email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 border-2 border-gray-300 rounded-xl focus:ring focus:ring-blue-300"
+              className="w-full p-3 border-2 border-gray-300 rounded-xl focus:ring focus:ring-blue-300 text-gray-800 placeholder-gray-500"
               required
             />
           </div>
@@ -78,7 +80,7 @@ export default function LoginPage() {
               placeholder="Digite sua senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 border-2 border-gray-300 rounded-xl focus:ring focus:ring-blue-300"
+              className="w-full p-3 border-2 border-gray-300 rounded-xl focus:ring focus:ring-blue-300 text-gray-800 placeholder-gray-500"
               required
             />
           </div>
