@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FaArrowLeft, FaLock } from "react-icons/fa";
+import { FaArrowLeft } from "react-icons/fa";
 
 export default function AlterarSenhaPage() {
   const router = useRouter();
@@ -61,7 +61,10 @@ export default function AlterarSenhaPage() {
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-6">
       {/* Cabeçalho com botão de voltar */}
       <header className="w-full max-w-md flex items-center justify-between py-4">
-        <button onClick={handleGoBack} className="text-gray-800 hover:text-gray-600">
+        <button
+          onClick={handleGoBack}
+          className="text-gray-800 hover:text-gray-600"
+        >
           <FaArrowLeft className="text-2xl" />
         </button>
         <h1 className="text-2xl font-bold text-gray-800">Alterar Senha</h1>
@@ -71,7 +74,9 @@ export default function AlterarSenhaPage() {
       <div className="bg-white p-6 mt-4 w-full max-w-md rounded-2xl shadow-md space-y-4">
         <form onSubmit={handleChangePassword} className="space-y-4">
           <div>
-            <label className="text-sm text-gray-500 block mb-1">Senha atual</label>
+            <label className="text-sm text-gray-500 block mb-1">
+              Senha atual
+            </label>
             <input
               type="password"
               value={currentPassword}
@@ -81,7 +86,9 @@ export default function AlterarSenhaPage() {
             />
           </div>
           <div>
-            <label className="text-sm text-gray-500 block mb-1">Nova senha</label>
+            <label className="text-sm text-gray-500 block mb-1">
+              Nova senha
+            </label>
             <input
               type="password"
               value={newPassword}

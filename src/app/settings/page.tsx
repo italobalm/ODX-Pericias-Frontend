@@ -1,13 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import {
-  FaArrowLeft,
-  FaKey,
-  FaUserShield,
-  FaSignOutAlt,
-} from "react-icons/fa";
+import { useState } from "react";
+import { FaArrowLeft, FaKey, FaUserShield, FaSignOutAlt } from "react-icons/fa";
 
 export default function ConfiguracoesPage() {
   const router = useRouter();
@@ -16,7 +11,6 @@ export default function ConfiguracoesPage() {
   const [userName, setUserName] = useState("Italo Melo");
   const [email, setEmail] = useState("italo@email.com");
   const [phone, setPhone] = useState("(81) 91234-5678");
-  const [role, setRole] = useState("perito");
   const [saved, setSaved] = useState(false);
 
   const handleGoBack = () => {
@@ -31,8 +25,12 @@ export default function ConfiguracoesPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-6">
+      {/* Cabeçalho com botão de voltar */}
       <header className="w-full max-w-md flex items-center justify-between py-4">
-        <button onClick={handleGoBack} className="text-gray-800 hover:text-gray-600">
+        <button
+          onClick={handleGoBack}
+          className="text-gray-800 hover:text-gray-600"
+        >
           <FaArrowLeft className="text-2xl" />
         </button>
         <h1 className="text-2xl font-bold text-gray-800">Configurações</h1>
@@ -45,7 +43,7 @@ export default function ConfiguracoesPage() {
           <FaUserShield className="text-teal-500 text-xl" />
           <div>
             <p className="text-sm text-gray-500">Perfil</p>
-            <p className="font-semibold text-gray-800 capitalize">{role}</p>
+            <p className="font-semibold text-gray-800 capitalize">perito</p>
           </div>
         </div>
 
