@@ -17,10 +17,10 @@ export default function HomePage() {
   const croNumber = "123456";
 
   const menuItems = [
-    { title: "Nova perícia", icon: FaFileAlt, path: "/nova-pericia" },
+    { title: "Nova perícia", icon: FaFileAlt, path: "/novaPericia" },
+    { title: "Minhas Perícias", icon: FaFileMedical, path: "/minhas-pericias" },
     { title: "Laudos", icon: FaClipboardList, path: "/laudos" },
     { title: "Comparar Laudos", icon: FaLink, path: "/comparar-laudos" },
-    { title: "Minhas Perícias", icon: FaFileMedical, path: "/minhas-pericias" },
   ];
 
   return (
