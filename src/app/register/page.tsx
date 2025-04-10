@@ -5,17 +5,17 @@ import { motion } from "framer-motion";
 import { FaArrowLeft } from "react-icons/fa";
 
 export default function RegisterPage() {
-  const [step, setStep] = useState<number>(1);
-  const [password, setPassword] = useState<string>("");
-  const [confirmPassword, setConfirmPassword] = useState<string>("");
-  const [name, setName] = useState<string>("");
-  const [dob, setDob] = useState<string>("");
-  const [cro, setCro] = useState<string>("");
-  const [rg, setRg] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [phone, setPhone] = useState<string>("");
-  const [role, setRole] = useState<string>("");
-  const [error, setError] = useState<string>("");
+  const [step, setStep] = useState(1);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
+  const [dob, setDob] = useState("");
+  const [cro, setCro] = useState("");
+  const [rg, setRg] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [role, setRole] = useState("");
+  const [error, setError] = useState("");
 
   const handleGoBack = () => {
     if (step === 1) {
@@ -25,9 +25,8 @@ export default function RegisterPage() {
     }
   };
 
-  const validatePassword = (password: string): boolean => {
-    const regex =
-      /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{6,}$/;
+  const validatePassword = (password: string) => {
+    const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{6,}$/;
     return regex.test(password);
   };
 
@@ -81,209 +80,227 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-6">
-      <header className="w-full max-w-md mt-10 mb-6">
-        <div className="flex items-center justify-start mb-4">
-          <button
-            onClick={handleGoBack}
-            className="text-gray-800 hover:text-gray-600 transition"
-          >
-            <FaArrowLeft className="text-2xl" />
-          </button>
+    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-teal-100 flex items-center justify-center p-6 sm:p-12">
+      <div className="flex flex-col lg:flex-row w-full max-w-5xl bg-white shadow-2xl rounded-3xl overflow-hidden">
+        {/* Lado esquerdo com texto (desktop) */}
+        <div className="hidden lg:flex flex-col justify-center items-start bg-teal-600 text-white p-10 w-1/2">
+          <h1 className="text-4xl font-bold">Cadastro</h1>
+          <p className="text-lg mt-2">Crie sua conta para começar</p>
         </div>
-        <h1 className="text-3xl font-bold text-gray-800 text-left">Cadastro</h1>
-        <div className="flex justify-center mt-14 space-x-2">
-          {[1, 2, 3].map((s) => (
-            <span
-              key={s}
-              className={`text-lg font-semibold px-4 py-2 rounded-full ${
-                step === s ? "bg-teal-500 text-white" : "bg-gray-300 text-gray-600"
-              }`}
+
+        {/* Lado direito com formulário */}
+        <div className="w-full lg:w-1/2 p-6 sm:p-10">
+          {/* Cabeçalho (mobile e desktop) */}
+          <div className="flex items-center justify-start mb-4 lg:hidden">
+            <button
+              onClick={handleGoBack}
+              className="text-gray-700 hover:text-gray-500 transition"
             >
-              {s}
-            </span>
-          ))}
-        </div>
-        <p className="text-lg text-gray-600 mt-2">
-          {step === 1
-            ? "Dados pessoais"
-            : step === 2
-            ? "Dados de contato"
-            : "Função"}
-        </p>
-      </header>
+              <FaArrowLeft className="text-2xl" />
+            </button>
+          </div>
 
-      <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-lg">
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, x: step === 1 ? -50 : 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: step === 1 ? 50 : -50 }}
-          transition={{ duration: 0.4 }}
-        >
-          {step === 1 && (
-            <form className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Nome completo
-                </label>
-                <input
-                  type="text"
+          <h1 className="text-3xl font-bold text-gray-800 lg:hidden">Cadastro</h1>
+          <p className="text-md text-gray-600 mb-6 lg:hidden">Crie sua conta para começar</p>
+
+          {/* Etapas */}
+          <div className="flex justify-center mb-4 space-x-2">
+            {[1, 2, 3].map((s) => (
+              <span
+                key={s}
+                className={`text-lg font-semibold px-4 py-2 rounded-full ${
+                  step === s ? "bg-teal-500 text-white" : "bg-gray-300 text-gray-600"
+                }`}
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+          <p className="text-sm text-gray-600 text-center mb-6">
+            {step === 1
+              ? "Dados pessoais"
+              : step === 2
+              ? "Dados de contato"
+              : "Função"}
+          </p>
+
+          {/* Formulário com animação */}
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, x: step === 1 ? -50 : 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: step === 1 ? 50 : -50 }}
+            transition={{ duration: 0.4 }}
+          >
+            {/* Etapa 1 */}
+            {step === 1 && (
+              <form className="space-y-4">
+                <Input
+                  label="Nome completo"
                   value={name}
-                  onChange={(e) => handleChange(e, setName)}
-                  className="w-full p-3 border-2 border-gray-300 text-gray-800 placeholder-gray-500 rounded-xl focus:ring focus:ring-blue-300"
                   placeholder="Digite seu nome"
+                  onChange={(e) => handleChange(e, setName)}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Data de nascimento
-                </label>
-                <input
-                  type="date"
+                <Input
+                  label="Data de nascimento"
                   value={dob}
+                  type="date"
                   onChange={(e) => handleChange(e, setDob)}
-                  className="w-full p-3 border-2 border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-blue-300"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  RG
-                </label>
-                <input
-                  type="number"
+                <Input
+                  label="RG"
                   value={rg}
-                  onChange={(e) => handleChange(e, setRg)}
-                  className="w-full p-3 border-2 border-gray-300 text-gray-800 placeholder-gray-500 rounded-xl focus:ring focus:ring-blue-300"
+                  type="number"
                   placeholder="Digite seu RG"
+                  onChange={(e) => handleChange(e, setRg)}
                 />
-              </div>
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                disabled={!isStep1Valid}
-                className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-blue-700 transition disabled:opacity-50"
-              >
-                Próximo
-              </button>
-            </form>
-          )}
+                <PrimaryButton
+                  text="Próximo"
+                  onClick={() => setStep(2)}
+                  disabled={!isStep1Valid}
+                />
+              </form>
+            )}
 
-          {step === 2 && (
-            <form className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  E-mail
-                </label>
-                <input
-                  type="email"
+            {/* Etapa 2 */}
+            {step === 2 && (
+              <form className="space-y-4">
+                <Input
+                  label="E-mail"
                   value={email}
-                  onChange={(e) => handleChange(e, setEmail)}
-                  className="w-full p-3 border text-gray-800 placeholder-gray-500 rounded-xl focus:ring focus:ring-blue-300"
+                  type="email"
                   placeholder="Digite seu email"
+                  onChange={(e) => handleChange(e, setEmail)}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Telefone
-                </label>
-                <input
-                  type="tel"
+                <Input
+                  label="Telefone"
                   value={phone}
-                  onChange={(e) => handleChange(e, setPhone)}
-                  className="w-full p-3 border text-gray-800 placeholder-gray-500 rounded-xl focus:ring focus:ring-blue-300"
+                  type="tel"
                   placeholder="Digite seu telefone"
+                  onChange={(e) => handleChange(e, setPhone)}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Senha
-                </label>
-                <input
-                  type="password"
+                <Input
+                  label="Senha"
                   value={password}
-                  onChange={(e) => handleChange(e, setPassword)}
-                  className="w-full p-3 border text-gray-800 placeholder-gray-500 rounded-xl focus:ring focus:ring-blue-300"
-                  placeholder="Digite sua senha"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Confirme sua senha
-                </label>
-                <input
                   type="password"
-                  value={confirmPassword}
-                  onChange={(e) => handleChange(e, setConfirmPassword)}
-                  className="w-full p-3 border text-gray-800 placeholder-gray-500 rounded-xl focus:ring focus:ring-blue-300"
-                  placeholder="Confirme sua senha"
+                  placeholder="Digite sua senha"
+                  onChange={(e) => handleChange(e, setPassword)}
                 />
-              </div>
-              <button
-                type="button"
-                onClick={() => setStep(3)}
-                disabled={!isStep2Valid}
-                className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition disabled:opacity-50"
-              >
-                Próximo
-              </button>
-            </form>
-          )}
+                <Input
+                  label="Confirme sua senha"
+                  value={confirmPassword}
+                  type="password"
+                  placeholder="Confirme sua senha"
+                  onChange={(e) => handleChange(e, setConfirmPassword)}
+                />
+                <PrimaryButton
+                  text="Próximo"
+                  onClick={() => setStep(3)}
+                  disabled={!isStep2Valid}
+                />
+              </form>
+            )}
 
-          {step === 3 && (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Função
-                </label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full p-3 border text-gray-800 rounded-xl focus:ring focus:ring-blue-300"
-                >
-                  <option value="">Selecione uma função</option>
-                  <option value="administrador">Administrador</option>
-                  <option value="perito">Perito</option>
-                  <option value="assistente">Assistente</option>
-                </select>
-              </div>
-
-              {role === "perito" && (
+            {/* Etapa 3 */}
+            {step === 3 && (
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    CRO
+                    Função
                   </label>
-                  <input
-                    type="number"
-                    value={cro}
-                    onChange={(e) => handleChange(e, setCro)}
-                    className="w-full p-3 border text-gray-800 placeholder-gray-500 rounded-xl focus:ring focus:ring-blue-300"
-                    placeholder="Digite seu CRO"
-                  />
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    className="w-full p-3 border text-gray-800 rounded-xl focus:ring focus:ring-blue-300"
+                  >
+                    <option value="">Selecione uma função</option>
+                    <option value="administrador">Administrador</option>
+                    <option value="perito">Perito</option>
+                    <option value="assistente">Assistente</option>
+                  </select>
                 </div>
-              )}
 
-              {error && <p className="text-red-500 text-sm">{error}</p>}
-              <div className="flex justify-between">
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  className="bg-gray-400 text-white p-3 rounded-xl hover:bg-gray-500 transition"
-                >
-                  Voltar
-                </button>
-                <button
-                  type="submit"
-                  disabled={!isStep3Valid}
-                  className="bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition disabled:opacity-50"
-                >
-                  Finalizar Cadastro
-                </button>
-              </div>
-            </form>
-          )}
-        </motion.div>
+                {role === "perito" && (
+                  <Input
+                    label="CRO"
+                    value={cro}
+                    type="number"
+                    placeholder="Digite seu CRO"
+                    onChange={(e) => handleChange(e, setCro)}
+                  />
+                )}
+
+                {error && <p className="text-red-500 text-sm">{error}</p>}
+                <div className="flex justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="bg-gray-400 text-white p-3 rounded-xl hover:bg-gray-500 transition"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!isStep3Valid}
+                    className="bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition disabled:opacity-50"
+                  >
+                    Finalizar Cadastro
+                  </button>
+                </div>
+              </form>
+            )}
+          </motion.div>
+        </div>
       </div>
     </div>
+  );
+}
+
+// Componentes auxiliares
+function Input({
+  label,
+  value,
+  placeholder,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  type?: string;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-blue-300 placeholder-gray-500"
+      />
+    </div>
+  );
+}
+
+function PrimaryButton({
+  text,
+  onClick,
+  disabled,
+}: {
+  text: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition disabled:opacity-50"
+    >
+      {text}
+    </button>
   );
 }
