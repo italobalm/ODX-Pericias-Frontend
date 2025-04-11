@@ -47,7 +47,7 @@ export default function LoginPage() {
             height={120}
             unoptimized
           />
-          <h2 className="text-3xl font-bold mt-6">Bem-vindo de volta</h2>
+          <h2 className="text-3xl font-bold mt-6">Bem vindo!</h2>
           <p className="text-lg">Faça login para acessar suas perícias.</p>
         </div>
 

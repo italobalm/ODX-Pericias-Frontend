@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { FaBars } from "react-icons/fa";
 import { useState } from "react";
 import Image from "next/image";
@@ -12,7 +12,13 @@ interface NavbarProps {
 
 export default function Navbar({ userFullName, croNumber }: NavbarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Oculta navbar nas rotas '/' e '/login'
+  if (pathname === "/" || pathname === "/login") {
+    return null;
+  }
 
   const menuItems = [
     { label: "Início", path: "/initialScreen" },
