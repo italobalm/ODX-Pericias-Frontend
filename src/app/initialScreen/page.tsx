@@ -6,15 +6,12 @@ import {
   FaFileMedical,
   FaClipboardList,
   FaLink,
-  FaCog,
   FaSignOutAlt,
 } from "react-icons/fa";
 import React from "react";
 
 export default function HomePage() {
   const router = useRouter();
-  const userFullName = "Italo Melo";
-  const croNumber = "123456";
 
   const menuItems = [
     { title: "Nova perícia", icon: FaFileAlt, path: "/novaPericia" },
@@ -25,23 +22,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center">
-      <header className="w-full fixed top-0 left-0 right-0 z-10 bg-teal-500 text-white px-6 py-4 shadow-md flex items-center justify-between md:justify-center">
-        <div className="w-full max-w-4xl flex items-center justify-between">
-          <div className="flex flex-col leading-tight">
-            <span className="text-sm text-gray-200">Olá,</span>
-            <span className="text-lg font-semibold">{userFullName}</span>
-            <span className="text-xs text-gray-200">{`CRO: ${croNumber}`}</span>
-          </div>
-
-          <button
-            onClick={() => router.push("/settings")}
-            className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition"
-          >
-            <FaCog className="text-white text-xl" />
-          </button>
-        </div>
-      </header>
-
       <main className="flex flex-col items-center justify-center w-full max-w-4xl flex-grow pt-36 pb-20 px-6 md:px-12">
         <h1 className="text-lg font-semibold text-gray-800 mb-6 text-center">
           O que deseja fazer?
