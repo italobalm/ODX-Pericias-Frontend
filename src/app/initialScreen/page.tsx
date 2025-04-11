@@ -21,7 +21,7 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center">
+    <div className="flex flex-col items-center min-h-screen">
       <main className="flex flex-col items-center justify-center w-full max-w-4xl flex-grow pt-36 pb-20 px-6 md:px-12">
         <h1 className="text-lg font-semibold text-gray-800 mb-6 text-center">
           O que deseja fazer?

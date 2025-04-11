@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { FaArrowLeft } from "react-icons/fa";
 
 export default function LoginPage() {
@@ -18,10 +17,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md md:max-w-5xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
-        {/* MOBILE HEADER - Logo + Voltar */}
-        <div className="md:hidden flex flex-col w-full items-start p-6">
+    <div className="flex min-h-screen items-center justify-center px-4 py-8">
+      <div className="w-full max-w-4xl flex flex-col md:flex-row shadow-2xl rounded-2xl overflow-hidden bg-white">
+        {/* MOBILE HEADER */}
+        <div className="md:hidden flex flex-col w-full p-6">
           <button
             onClick={handleGoBack}
             className="text-gray-800 hover:text-gray-600 transition mb-4"
@@ -35,14 +34,12 @@ export default function LoginPage() {
             height={100}
             unoptimized
           />
-          <h1 className="text-3xl font-bold text-gray-800 mt-6">
-            Bem-vindo
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-800 mt-6">Bem-vindo</h1>
           <p className="text-lg text-gray-600 mt-2">Faça login em sua conta</p>
         </div>
 
-        {/* DESKTOP - Lado esquerdo com imagem e mensagem alinhados à esquerda */}
-        <div className="hidden md:flex md:flex-col md:justify-center md:items-start bg-teal-500 text-white px-16 py-12 w-1/2 space-y-4">
+        {/* LADO ESQUERDO (desktop) */}
+        <div className="hidden md:flex flex-col justify-center items-start bg-teal-500 text-white px-16 py-12 w-1/2 space-y-4">
           <Image
             src="/logo.png"
             alt="Logo"
@@ -51,12 +48,10 @@ export default function LoginPage() {
             unoptimized
           />
           <h2 className="text-3xl font-bold mt-6">Bem-vindo de volta</h2>
-          <p className="text-lg">
-            Faça login para acessar suas perícias.
-          </p>
+          <p className="text-lg">Faça login para acessar suas perícias.</p>
         </div>
 
-        {/* Formulário */}
+        {/* FORMULÁRIO */}
         <div className="w-full md:w-1/2 p-6 sm:p-10">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -102,13 +97,10 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-4 flex flex-col sm:flex-row justify-between text-sm gap-2 sm:gap-0">
+          <div className="mt-4 flex justify-end text-sm">
             <a href="/forgotPassword" className="text-teal-500 hover:underline">
               Esqueci minha senha
             </a>
-            <Link href="/register" className="text-teal-500 hover:underline">
-              Não possuo conta
-            </Link>
           </div>
         </div>
       </div>
