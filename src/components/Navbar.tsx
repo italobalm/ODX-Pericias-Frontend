@@ -8,14 +8,18 @@ import Image from "next/image";
 interface NavbarProps {
   userFullName: string;
   croNumber: string;
+  userId: "admin" | "perito" | "assistente";
 }
 
-export default function Navbar({ userFullName, croNumber }: NavbarProps) {
+export default function Navbar({
+  userFullName,
+  croNumber,
+  userId,
+}: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
-  // Oculta navbar nas rotas '/' e '/login'
   if (
     pathname === "/" ||
     pathname === "/login" ||
@@ -25,13 +29,49 @@ export default function Navbar({ userFullName, croNumber }: NavbarProps) {
   }
 
   const menuItems = [
-    { label: "Início", path: "/initialScreen" },
-    { label: "Minhas Perícias", path: "/minhas-pericias" },
-    { label: "Nova Perícia", path: "/novaPericia" },
-    { label: "Laudos", path: "/laudos" },
-    { label: "Comparar Laudos", path: "/comparar-laudos" },
-    { label: "Configurações", path: "/settings" },
+    {
+      label: "Início",
+      path: "/initialScreen",
+      allowed: ["admin", "perito", "assistente"],
+    },
+    { label: "Novo caso", path: "/novo-caso", allowed: ["admin", "perito"] },
+    {
+      label: "Gestão de Usuários",
+      path: "/gestao-usuarios",
+      allowed: ["admin"],
+    },
+    {
+      label: "Gestão de Casos",
+      path: "/gestao-casos",
+      allowed: ["admin", "perito", "assistente"],
+    },
+    { label: "Solicitações", path: "/solicitacoes", allowed: ["admin"] },
+    {
+      label: "Relatórios",
+      path: "/relatorios",
+      allowed: ["admin", "perito", "assistente"],
+    },
+    {
+      label: "Gestão de Evidências",
+      path: "/gestao-evidencias",
+      allowed: ["admin", "perito", "assistente"],
+    },
+    {
+      label: "Visão Geral",
+      path: "/visao-geral",
+      allowed: ["admin", "perito", "assistente"],
+    },
+    {
+      label: "Configurações",
+      path: "/settings",
+      allowed: ["admin", "perito", "assistente"],
+    },
+    { label: "Sair", path: "/", allowed: ["admin", "perito", "assistente"] },
   ];
+
+  const filteredItems = menuItems.filter((item) =>
+    item.allowed.includes(userId)
+  );
 
   return (
     <header className="w-full fixed top-0 left-0 right-0 z-10 bg-teal-500 text-white px-6 py-4 shadow-md">
@@ -65,7 +105,7 @@ export default function Navbar({ userFullName, croNumber }: NavbarProps) {
 
           {isOpen && (
             <ul className="absolute right-0 mt-2 bg-white text-gray-800 rounded-md shadow-lg w-48 overflow-hidden z-20">
-              {menuItems.map((item) => (
+              {filteredItems.map((item) => (
                 <li
                   key={item.path}
                   onClick={() => {
