@@ -16,7 +16,11 @@ export default function Navbar({ userFullName, croNumber }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   // Oculta navbar nas rotas '/' e '/login'
-  if (pathname === "/" || pathname === "/login") {
+  if (
+    pathname === "/" ||
+    pathname === "/login" ||
+    pathname === "/forgotPassword"
+  ) {
     return null;
   }
 
