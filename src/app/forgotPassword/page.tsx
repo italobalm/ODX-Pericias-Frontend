@@ -19,25 +19,35 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-teal-100 flex items-center justify-center p-6 sm:p-12">
-      <div className="flex flex-col lg:flex-row w-full max-w-4xl bg-white shadow-2xl rounded-3xl overflow-hidden">
+    <div className="fixed inset-0 bg-gradient-to-b from-teal-100 to-teal-300 flex items-center justify-center overflow-hidden">
+      {/* Bolinhas no fundo */}
+      <div className="absolute inset-0 z-0 animate-[pulseDots_2s_ease-in-out_infinite] opacity-30 bg-[radial-gradient(circle,_white_2px,transparent_1px)] bg-[size:24px_24px]" />
+
+      {/* Botão de voltar */}
+      <button
+        onClick={handleGoBack}
+        className="absolute top-6 left-6 z-10 text-gray-800 hover:text-teal-100 transition"
+      >
+        <FaArrowLeft className="text-3xl" />
+      </button>
+
+      {/* Container principal da página */}
+      <div className="relative z-10 w-full max-w-4xl flex flex-col lg:flex-row shadow-2xl rounded-3xl overflow-hidden bg-white mx-4 lg:mx-0">
         {/* Lado esquerdo (desktop) */}
         <div className="hidden lg:flex flex-col justify-center items-start bg-teal-600 text-white p-10 w-1/2">
           <h1 className="text-4xl font-bold">Recuperar Senha</h1>
-          <p className="text-lg mt-2">Enviaremos um link para redefinir sua senha</p>
+          <p className="text-lg mt-2">
+            Enviaremos um link para redefinir sua senha
+          </p>
         </div>
 
         {/* Lado direito com conteúdo */}
         <div className="w-full lg:w-1/2 p-6 sm:p-10">
           {/* Cabeçalho (mobile) */}
           <div className="lg:hidden mb-6">
-            <button
-              onClick={handleGoBack}
-              className="text-gray-700 hover:text-gray-500 transition"
-            >
-              <FaArrowLeft className="text-2xl" />
-            </button>
-            <h1 className="text-3xl font-bold text-gray-800 mt-4">Recuperar Senha</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mt-4">
+              Recuperar Senha
+            </h1>
             <p className="text-md text-gray-600 mt-1">
               Enviaremos um link para redefinir sua senha
             </p>
@@ -49,7 +59,9 @@ export default function ForgotPasswordPage() {
               <span
                 key={s}
                 className={`text-lg font-semibold px-4 py-2 rounded-full ${
-                  step === s ? "bg-teal-500 text-white" : "bg-gray-300 text-gray-600"
+                  step === s
+                    ? "bg-teal-500 text-white"
+                    : "bg-gray-300 text-gray-600"
                 }`}
               >
                 {s}
