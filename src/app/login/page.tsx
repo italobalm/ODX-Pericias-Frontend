@@ -17,16 +17,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-8">
-      <div className="w-full max-w-4xl flex flex-col md:flex-row shadow-2xl rounded-2xl overflow-hidden bg-white">
+    <div className="fixed inset-0 bg-gradient-to-b from-teal-100 to-teal-300 flex items-center justify-center overflow-hidden">
+      {/* Bolinhas no fundo */}
+      <div className="absolute inset-0 z-0 animate-[pulseDots_2s_ease-in-out_infinite] opacity-30 bg-[radial-gradient(circle,_white_2px,transparent_1px)] bg-[size:24px_24px]" />
+
+      {/* Botão de voltar */}
+      <button
+        onClick={handleGoBack}
+        className="absolute top-6 left-6 z-10 text-gray-800 hover:text-teal-100 transition"
+      >
+        <FaArrowLeft className="text-3xl" />
+      </button>
+
+      {/* Container principal do login */}
+      <div className="relative z-10 w-full max-w-4xl flex flex-col md:flex-row shadow-2xl rounded-2xl overflow-hidden bg-white mx-4 md:mx-0">
         {/* MOBILE HEADER */}
         <div className="md:hidden flex flex-col w-full p-6">
-          <button
-            onClick={handleGoBack}
-            className="text-gray-800 hover:text-gray-600 transition mb-4"
-          >
-            <FaArrowLeft className="text-2xl" />
-          </button>
           <Image
             src="/logo.png"
             alt="Logo"
@@ -104,6 +110,19 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Custom keyframe animation para as bolinhas */}
+      <style jsx>{`
+        @keyframes pulseDots {
+          0%,
+          100% {
+            opacity: 0.2;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+      `}</style>
     </div>
   );
 }
