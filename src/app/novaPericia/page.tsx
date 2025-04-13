@@ -1,27 +1,18 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, ChangeEvent } from "react";
 import { motion } from "framer-motion";
 import { FaArrowLeft } from "react-icons/fa";
+import axios from "axios";
 
-const BACKEND_URL = "https://seu-backend.com/api/endpoint"; // Substitua pela URL real do seu servidor
-
-export default function RegisterPage() {
-  const [step, setStep] = useState<number>(1);
-  const [responsavel, setResponsavel] = useState<string>("");
-  const [dataCriacao, setDataCriacao] = useState<string>("");
-  const [titulo, setTitulo] = useState<string>("");
-  const [descricao, setDescricao] = useState<string>("");
-  const [vitima, setVitima] = useState<string>("identificada");
-  const [sexo, setSexo] = useState<string>("masculino");
-  const [estadoCorpo, setEstadoCorpo] = useState<string>("inteiro");
-  const [lesoes, setLesoes] = useState<string>("");
-  const [evidencias, setEvidencias] = useState<File | null>(null);
-  const [tipo, setTipo] = useState<string>("");
-  const [dataUpload, setDataUpload] = useState<string>("");
-  const [status, setStatus] = useState<string>("Em andamento");
-  const [error, setError] = useState<string>("");
-  const [loading, setLoading] = useState(false);
+export default function NewCasePage() {
+  const [step, setStep] = useState(1);
+  const [titulo, setTitulo] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [status, setStatus] = useState("");
+  const [responsavel, setResponsavel] = useState("");
+  const [error, setError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   const handleGoBack = () => {
     if (step === 1) {
@@ -31,371 +22,289 @@ export default function RegisterPage() {
     }
   };
 
+  const isStep1Valid = titulo && descricao;
+  const isStep2Valid = status && responsavel;
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-
-    setLoading(true); // Adiciona o carregamento
-
-    // Verificar se todos os campos obrigatórios foram preenchidos
-    if (
-      !responsavel ||
-      !dataCriacao ||
-      !titulo ||
-      !descricao ||
-      !lesoes ||
-      !evidencias ||
-      !dataUpload ||
-      !tipo
-    ) {
-      setError("Todos os campos obrigatórios devem ser preenchidos.");
-      setLoading(false); // Finaliza o carregamento em caso de erro
-      return;
-    }
-
-    setError("");
-
-    // Criando um objeto FormData para enviar os dados do formulário
-    const formData = new FormData();
-    formData.append("responsavel", responsavel);
-    formData.append("dataCriacao", dataCriacao);
-    formData.append("titulo", titulo);
-    formData.append("descricao", descricao);
-    formData.append("vitima", vitima);
-    formData.append("sexo", sexo);
-    formData.append("estadoCorpo", estadoCorpo);
-    formData.append("lesoes", lesoes);
-    formData.append("evidencias", evidencias!); // Campo de upload de arquivo
-    formData.append("tipo", tipo);
-    formData.append("dataUpload", dataUpload);
-    formData.append("status", status);
+    const newCase = {
+      titulo,
+      descricao,
+      status,
+      responsavel,
+    };
 
     try {
-      // Enviando os dados para o backend
-      const response = await fetch(BACKEND_URL, {
-        method: "POST", // Método POST para enviar dados
-        body: formData, // Corpo da requisição com os dados do formulário
-      });
-
-      // Verificando se a resposta foi bem-sucedida
-      if (!response.ok) {
-        throw new Error("Erro ao registrar a perícia.");
-      }
-
-      // Caso o envio tenha sido bem-sucedido
-      alert("Perícia registrada com sucesso!");
-      // Aqui você pode limpar os campos ou redirecionar para outra página, se necessário
-    } catch (error) {
-      setError("Erro ao registrar a perícia. Tente novamente.");
-      console.error(error);
-    } finally {
-      setLoading(false); // Finaliza o carregamento após a requisição
+      await axios.post("/api/cases", newCase);
+      setSubmitted(true);
+    } catch (err) {
+      console.error(err);
+      setError("Erro ao enviar os dados para o servidor.");
     }
   };
 
-  const isStep1Valid = responsavel && dataCriacao;
-  const isStep2Valid = titulo && descricao;
-  const isStep5Valid = status;
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+    setter: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    setter(e.target.value);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-6">
-      <header className="w-full max-w-md mt-10 mb-6">
-        <div className="flex items-center justify-start mb-4">
-          <button
-            onClick={handleGoBack}
-            className="text-gray-800 hover:text-gray-600 transition"
-          >
-            <FaArrowLeft className="text-2xl" />
-          </button>
-        </div>
-        <h1 className="text-3xl font-bold text-gray-800 text-left">
-          Nova Perícia
-        </h1>
-        <div className="flex justify-center mt-14 space-x-2">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <span
-              key={s}
-              className={`text-lg font-semibold px-4 py-2 rounded-full ${
-                step === s
-                  ? "bg-teal-500 text-white"
-                  : "bg-gray-300 text-gray-600"
-              }`}
-            >
-              {s}
-            </span>
-          ))}
-        </div>
-        <p className="text-lg text-gray-600 mt-2">
-          {step === 1
-            ? "Perito e Data"
-            : step === 2
-            ? "Detalhes do Caso"
-            : step === 3
-            ? "Lesões"
-            : step === 4
-            ? "Evidências"
-            : "Status"}
-        </p>
+    <div className="min-h-screen bg-white p-6 sm:p-12">
+      {/* Header: seta e título no topo, alinhados à esquerda */}
+      <header className="w-full flex items-center justify-start mb-6">
+        <button
+          onClick={handleGoBack}
+          className="text-gray-700 hover:text-gray-500 transition mr-3"
+        >
+          <FaArrowLeft className="text-2xl" />
+        </button>
+        <h1 className="text-3xl font-bold text-gray-800">Novo Caso</h1>
       </header>
 
-      <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-lg">
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, x: step === 1 ? -50 : 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: step === 1 ? 50 : -50 }}
-          transition={{ duration: 0.4 }}
-        >
-          {step === 1 && (
-            <form className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Perito Responsável
-                </label>
-                <input
-                  type="text"
-                  value={responsavel}
-                  onChange={(e) => setResponsavel(e.target.value)}
-                  className="w-full p-3 border-2 border-gray-300 text-gray-800 placeholder-gray-500 rounded-xl focus:ring focus:ring-blue-300"
-                  placeholder="Digite o nome do perito"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Data de Criação
-                </label>
-                <input
-                  type="date"
-                  value={dataCriacao}
-                  onChange={(e) => setDataCriacao(e.target.value)}
-                  className="w-full p-3 border-2 border-gray-300 text-gray-800 placeholder-gray-500 rounded-xl focus:ring focus:ring-blue-300"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                disabled={!isStep1Valid}
-                className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition disabled:opacity-50"
+      {/* Corpo do formulário centralizado */}
+      <div className="flex justify-center">
+        <div className="w-full max-w-3xl">
+          {/* Indicador de etapas */}
+          <div className="flex justify-center mb-6 mt-10 space-x-3">
+            {[1, 2, 3].map((s) => (
+              <span
+                key={s}
+                className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold border-2 ${
+                  step === s
+                    ? "bg-teal-500 text-white border-teal-500"
+                    : "text-gray-500 border-gray-300"
+                }`}
               >
-                Próximo
-              </button>
-            </form>
-          )}
+                {s}
+              </span>
+            ))}
+          </div>
 
-          {step === 2 && (
-            <form className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Título
-                </label>
-                <input
-                  type="text"
+          <p className="text-md text-gray-700 text-center mb-4">
+            {step === 1
+              ? "Informações iniciais do caso"
+              : step === 2
+              ? "Atribuição e status"
+              : "Revisão final"}
+          </p>
+
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, x: step === 1 ? -50 : 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: step === 1 ? 50 : -50 }}
+            transition={{ duration: 0.4 }}
+          >
+            {step === 1 && (
+              <form className="space-y-4">
+                <Input
+                  label="Título"
                   value={titulo}
-                  onChange={(e) => setTitulo(e.target.value)}
-                  className="w-full p-3 border text-gray-800 placeholder-gray-500 rounded-xl focus:ring focus:ring-blue-300"
-                  placeholder="Título do caso"
+                  placeholder="Digite o título do caso"
+                  onChange={(e) => handleChange(e, setTitulo)}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Descrição
-                </label>
-                <textarea
+                <Textarea
+                  label="Descrição"
                   value={descricao}
-                  onChange={(e) => setDescricao(e.target.value)}
-                  className="w-full p-3 border text-gray-800 placeholder-gray-500 rounded-xl focus:ring focus:ring-blue-300"
-                  placeholder="Descrição do caso"
+                  placeholder="Descreva o caso"
+                  onChange={(e) => handleChange(e, setDescricao)}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Vítima
-                </label>
-                <select
-                  value={vitima}
-                  onChange={(e) => setVitima(e.target.value)}
-                  className="w-full p-3 border text-gray-800 rounded-xl focus:ring focus:ring-blue-300"
-                >
-                  <option value="identificada">Identificada</option>
-                  <option value="nao_identificada">Não Identificada</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Sexo
-                </label>
-                <select
-                  value={sexo}
-                  onChange={(e) => setSexo(e.target.value)}
-                  className="w-full p-3 border text-gray-800 rounded-xl focus:ring focus:ring-blue-300"
-                >
-                  <option value="masculino">Masculino</option>
-                  <option value="feminino">Feminino</option>
-                  <option value="outros">Outros</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Estado do Corpo
-                </label>
-                <select
-                  value={estadoCorpo}
-                  onChange={(e) => setEstadoCorpo(e.target.value)}
-                  className="w-full p-3 border text-gray-800 rounded-xl focus:ring focus:ring-blue-300"
-                >
-                  <option value="inteiro">Inteiro</option>
-                  <option value="carbonizado">Carbonizado</option>
-                  <option value="putrefacto">Putrefacto</option>
-                  <option value="fragmentado">Fragmentado</option>
-                </select>
-              </div>
-              <div className="flex justify-between">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="bg-gray-400 text-white p-3 rounded-xl hover:bg-gray-500 transition"
-                >
-                  Voltar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep(3)}
-                  disabled={!isStep2Valid}
-                  className="bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition disabled:opacity-50"
-                >
-                  Próximo
-                </button>
-              </div>
-            </form>
-          )}
-
-          {step === 3 && (
-            <form className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Lesões Encontradas
-                </label>
-                <textarea
-                  value={lesoes}
-                  onChange={(e) => setLesoes(e.target.value)}
-                  className="w-full p-3 border text-gray-800 placeholder-gray-500 rounded-xl focus:ring focus:ring-blue-300"
-                  placeholder="Descreva as lesões encontradas"
-                />
-              </div>
-              <div className="flex justify-between">
-                <button
-                  type="button"
+                <PrimaryButton
+                  text="Próximo"
                   onClick={() => setStep(2)}
-                  className="bg-gray-400 text-white p-3 rounded-xl hover:bg-gray-500 transition"
-                >
-                  Voltar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep(4)}
-                  className="bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition disabled:opacity-50"
-                >
-                  Próximo
-                </button>
-              </div>
-            </form>
-          )}
+                  disabled={!isStep1Valid}
+                />
+              </form>
+            )}
 
-          {step === 4 && (
-            <form className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Tipo de Evidência
-                </label>
-                <input
-                  type="text"
-                  value={tipo}
-                  onChange={(e) => setTipo(e.target.value)}
-                  className="w-full p-3 border text-gray-800 placeholder-gray-500 rounded-xl focus:ring focus:ring-blue-300"
-                  placeholder="Digite o tipo de evidência"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Anexar Evidências
-                </label>
-                <input
-                  type="file"
-                  onChange={(e) =>
-                    setEvidencias(e.target.files ? e.target.files[0] : null)
-                  }
-                  className="w-full p-3 border text-gray-800 rounded-xl focus:ring focus:ring-blue-300"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Data de Upload
-                </label>
-                <input
-                  type="date"
-                  value={dataUpload}
-                  onChange={(e) => setDataUpload(e.target.value)}
-                  className="w-full p-3 border text-gray-800 rounded-xl focus:ring focus:ring-blue-300"
-                />
-              </div>
-              <div className="flex justify-between">
-                <button
-                  type="button"
-                  onClick={() => setStep(3)}
-                  className="bg-gray-400 text-white p-3 rounded-xl hover:bg-gray-500 transition"
-                >
-                  Voltar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep(5)}
-                  disabled={!evidencias || !dataUpload}
-                  className="bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition disabled:opacity-50"
-                >
-                  Próximo
-                </button>
-              </div>
-            </form>
-          )}
-
-          {step === 5 && (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {" "}
-              {/* Aqui, 'handleSubmit' é chamado */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Status do Caso
-                </label>
-                <select
+            {step === 2 && (
+              <form className="space-y-4">
+                <Select
+                  label="Status"
                   value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="w-full p-3 border text-gray-800 rounded-xl focus:ring focus:ring-blue-300"
-                >
-                  <option value="Em andamento">Em andamento</option>
-                  <option value="Concluído">Concluído</option>
-                  <option value="Arquivado">Arquivado</option>
-                </select>
-              </div>
-              {error && <div className="text-red-600 text-sm">{error}</div>}
-              <div className="flex justify-between">
-                <button
-                  type="button"
-                  onClick={() => setStep(4)}
-                  className="bg-gray-400 text-white p-3 rounded-xl hover:bg-gray-500 transition"
-                >
-                  Voltar
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading || !isStep5Valid} // Desativa o botão enquanto está carregando
-                  className="bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
-                >
-                  {loading ? "Criando perícia..." : "Finalizar"}
-                </button>
-              </div>
-            </form>
-          )}
-        </motion.div>
+                  onChange={(e) => handleChange(e, setStatus)}
+                  options={["Em andamento", "Finalizado", "Arquivado"]}
+                />
+                <Input
+                  label="Responsável"
+                  value={responsavel}
+                  placeholder="Digite o nome ou ID do responsável"
+                  onChange={(e) => handleChange(e, setResponsavel)}
+                />
+                <div className="flex justify-between gap-4 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="bg-gray-400 text-white p-3 rounded-xl hover:bg-gray-500 transition"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStep(3)}
+                    disabled={!isStep2Valid}
+                    className="bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition disabled:opacity-50"
+                  >
+                    Próximo
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {step === 3 && (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="bg-teal-50 p-4 rounded-xl border border-teal-200 space-y-2">
+                  <p>
+                    <strong>Título:</strong> {titulo}
+                  </p>
+                  <p>
+                    <strong>Descrição:</strong> {descricao}
+                  </p>
+                  <p>
+                    <strong>Status:</strong> {status}
+                  </p>
+                  <p>
+                    <strong>Responsável:</strong> {responsavel}
+                  </p>
+                </div>
+
+                {error && <p className="text-red-500 text-sm">{error}</p>}
+                {submitted && (
+                  <p className="text-green-600 text-sm">
+                    Caso cadastrado com sucesso!
+                  </p>
+                )}
+                <div className="flex justify-between gap-4 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="bg-gray-400 text-white p-3 rounded-xl hover:bg-gray-500 transition"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
+                  >
+                    Finalizar Cadastro
+                  </button>
+                </div>
+              </form>
+            )}
+          </motion.div>
+        </div>
       </div>
     </div>
+  );
+}
+
+function Input({
+  label,
+  value,
+  placeholder,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  type?: string;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label}
+      </label>
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-teal-300 placeholder-gray-500"
+      />
+    </div>
+  );
+}
+
+function Textarea({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label}
+      </label>
+      <textarea
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-teal-300 placeholder-gray-500"
+        rows={4}
+      ></textarea>
+    </div>
+  );
+}
+
+function Select({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
+  options: string[];
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label}
+      </label>
+      <select
+        value={value}
+        onChange={onChange}
+        className="w-full p-3 border text-gray-800 rounded-xl focus:ring focus:ring-teal-300"
+      >
+        <option value="">Selecione uma opção</option>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function PrimaryButton({
+  text,
+  onClick,
+  disabled,
+}: {
+  text: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition disabled:opacity-50"
+    >
+      {text}
+    </button>
   );
 }
