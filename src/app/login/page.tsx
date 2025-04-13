@@ -3,13 +3,34 @@
 import { useState } from "react";
 import Image from "next/image";
 import { FaArrowLeft } from "react-icons/fa";
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    try {
+      // Substitua a URL abaixo pela URL real da sua API de autenticação
+      const response = await axios.post("/api/login", { email, password });
+
+      if (response.status === 200) {
+        // Autenticação bem-sucedida
+        router.push("/initialScreen");
+      } else {
+        // Qualquer status diferente de 200 pode ser tratado como erro
+        setErrorMessage("Email ou senha incorretos.");
+      }
+    } catch (error: any) {
+      setErrorMessage(
+        error.response?.data?.message || "Erro ao tentar fazer login."
+      );
+    }
   };
 
   const handleGoBack = () => {
@@ -94,9 +115,13 @@ export default function LoginPage() {
                 required
               />
             </div>
+
+            {errorMessage && (
+              <div className="text-red-600 text-sm">{errorMessage}</div>
+            )}
+
             <button
               type="submit"
-              onClick={() => (window.location.href = "/initialScreen")}
               className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-600 transition"
             >
               Entrar
