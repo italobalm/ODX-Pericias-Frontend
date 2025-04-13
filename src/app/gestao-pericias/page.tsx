@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { FaEdit, FaTrash } from "react-icons/fa";
+import { useRouter } from "next/navigation";
+import { FaArrowLeft, FaEdit, FaTrash } from "react-icons/fa";
 import axios from "axios";
 
 type CaseStatus = "arquivado" | "em andamento" | "concluido";
@@ -16,6 +17,8 @@ interface Case {
 }
 
 export default function CaseListPage() {
+  const router = useRouter();
+
   // Estado para armazenar os casos obtidos do backend
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -58,7 +61,9 @@ export default function CaseListPage() {
 
   // Função para excluir um caso
   const handleDelete = (id: string) => {
-    const confirmDelete = confirm("Você tem certeza que deseja excluir este caso?");
+    const confirmDelete = confirm(
+      "Você tem certeza que deseja excluir este caso?"
+    );
     if (confirmDelete) {
       axios
         .delete(`/api/cases/${id}`)
@@ -91,7 +96,11 @@ export default function CaseListPage() {
   // Confirma a edição e envia a atualização para o backend
   const confirmEdit = () => {
     if (editingCase) {
-      const updatedCase = { ...editingCase, titulo: editTitulo, descricao: editDescricao };
+      const updatedCase = {
+        ...editingCase,
+        titulo: editTitulo,
+        descricao: editDescricao,
+      };
       axios
         .put(`/api/cases/${editingCase.id}`, updatedCase)
         .then((response) => {
@@ -163,13 +172,22 @@ export default function CaseListPage() {
 
   return (
     <div className="max-w-6xl mx-auto pt-28 p-4 md:p-8 relative">
-      <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8 text-center md:text-left">
-        Lista de Casos
-      </h1>
+      {/* Cabeçalho com seta de voltar e título */}
+      <div className="flex items-center gap-4 mb-8">
+        <button
+          onClick={() => router.back()}
+          className="text-gray-600 hover:text-gray-800 transition p-2"
+        >
+          <FaArrowLeft size={20} />
+        </button>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+          Gestão de perícias
+        </h1>
+      </div>
 
       {loading && <p className="text-gray-700">Carregando casos...</p>}
       {error && <p className="text-red-500">{error}</p>}
-      
+
       {!loading && !error && (
         <>
           {renderCaseGroup("Casos em Andamento", inProgressCases)}
