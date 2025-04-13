@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import axios from "axios";
 import {
   FaUsers,
   FaFolderOpen,
-  FaClipboardList,
   FaFileAlt,
   FaChartBar,
   FaMicroscope,
@@ -19,14 +19,14 @@ export default function HomePage() {
     id: string;
     nome: string;
     cro: string;
+    tipo: "admin" | "perito" | "assistente";
   } | null>(null);
 
   useEffect(() => {
     const fetchUsuario = async () => {
       try {
-        const response = await fetch("/api/usuario-logado");
-        const data = await response.json();
-        setUsuario(data);
+        const response = await axios.get("/api/usuario-logado");
+        setUsuario(response.data);
       } catch (error) {
         console.error("Erro ao buscar dados do usuário:", error);
       }
@@ -53,46 +53,33 @@ export default function HomePage() {
       allowed: ["admin", "perito", "assistente"],
     },
     {
-      title: "Solicitações",
-      icon: FaClipboardList,
-      path: "/solicitacoes",
-      allowed: ["admin"],
-    },
-    {
-      title: "Relatórios",
+      title: "Elaborar Relatório",
       icon: FaChartBar,
       path: "/relatorios",
       allowed: ["admin", "perito", "assistente"],
     },
     {
-      title: "Gestão de Evidências",
+      title: "Cadastrar Evidências",
       icon: FaMicroscope,
       path: "/gestao-evidencias",
       allowed: ["admin", "perito", "assistente"],
     },
     {
-      title: "Visão Geral",
+      title: "Dashboard",
       icon: FaEye,
-      path: "/visao-geral",
+      path: "/dashboard",
       allowed: ["admin", "perito", "assistente"],
     },
     {
       title: "Novo Caso",
       icon: FaFileAlt,
-      path: "/novo-caso",
+      path: "/cadastrarCaso",
       allowed: ["admin", "perito"],
     },
   ];
 
   return (
     <div className="flex flex-col items-center min-h-screen">
-      <header className="w-full max-w-4xl px-6 md:px-12 pt-6 flex flex-col items-start">
-        <h2 className="text-xl font-semibold text-gray-800">
-          Bem-vindo, {usuario.nome}
-        </h2>
-        <p className="text-sm text-gray-600">CRO: {usuario.cro}</p>
-      </header>
-
       <main className="flex flex-col items-center justify-center w-full max-w-4xl flex-grow pt-20 pb-20 px-6 md:px-12">
         <h1 className="text-lg font-semibold text-gray-800 mb-6 text-center">
           O que deseja fazer?
@@ -100,7 +87,7 @@ export default function HomePage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
           {menuItems
-            .filter((item) => item.allowed.includes(usuario.id))
+            .filter((item) => item.allowed.includes(usuario.tipo))
             .map((item, index) => (
               <button
                 key={index}
