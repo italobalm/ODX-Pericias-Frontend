@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
-import { FaTrashAlt } from "react-icons/fa";
+import { FaTrashAlt, FaArrowLeft } from "react-icons/fa";
 
 export type Perfil = "Admin" | "Perito" | "Assistente";
 
@@ -17,6 +18,8 @@ export interface User {
 }
 
 export default function UserManagementPage() {
+  const router = useRouter();
+
   // Estados para listagem e para os campos do formulário
   const [users, setUsers] = useState<User[]>([]);
   const [nome, setNome] = useState("");
@@ -93,9 +96,19 @@ export default function UserManagementPage() {
 
   return (
     <div className="max-w-5xl mx-auto pt-28 p-4 md:p-8">
-      <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6 text-center md:text-left">
-        Gestão de Usuários
-      </h1>
+      {/* Cabeçalho com seta de voltar e título */}
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={() => router.back()}
+          className="text-gray-600 hover:text-gray-800 transition p-2"
+          title="Voltar"
+        >
+          <FaArrowLeft size={20} />
+        </button>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+          Gestão de Usuários
+        </h1>
+      </div>
 
       {/* Formulário para adicionar um novo usuário */}
       <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-10 space-y-6">
