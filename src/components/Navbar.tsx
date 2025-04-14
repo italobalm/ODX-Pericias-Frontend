@@ -4,22 +4,20 @@ import { useRouter, usePathname } from "next/navigation";
 import { FaBars } from "react-icons/fa";
 import { useState } from "react";
 import Image from "next/image";
+import { useAuth } from "../app/layout"; // Importa o hook criado no layout
 
-interface NavbarProps {
-  userFullName: string;
-  croNumber: string;
-  userId: "admin" | "perito" | "assistente";
-}
-
-export default function Navbar({
-  userFullName,
-  croNumber,
-  userId,
-}: NavbarProps) {
+export default function Navbar() {
+  const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
+  // Se os dados do usuário ainda não foram carregados, não renderiza a navbar
+  if (!user) return null;
+
+  const { userFullName, croNumber, userId } = user;
+
+  // Não exibe a Navbar em rotas específicas (ex.: login, esqueci senha, etc.)
   if (
     pathname === "/" ||
     pathname === "/login" ||
@@ -29,43 +27,15 @@ export default function Navbar({
   }
 
   const menuItems = [
-    {
-      label: "Início",
-      path: "/initialScreen",
-      allowed: ["admin", "perito", "assistente"],
-    },
+    { label: "Início", path: "/initialScreen", allowed: ["admin", "perito", "assistente"] },
     { label: "Novo caso", path: "/novo-caso", allowed: ["admin", "perito"] },
-    {
-      label: "Gestão de Usuários",
-      path: "/gestao-usuarios",
-      allowed: ["admin"],
-    },
-    {
-      label: "Gestão de Casos",
-      path: "/gestao-casos",
-      allowed: ["admin", "perito", "assistente"],
-    },
+    { label: "Gestão de Usuários", path: "/gestao-usuarios", allowed: ["admin"] },
+    { label: "Gestão de Casos", path: "/gestao-casos", allowed: ["admin", "perito", "assistente"] },
     { label: "Solicitações", path: "/solicitacoes", allowed: ["admin"] },
-    {
-      label: "Relatórios",
-      path: "/relatorios",
-      allowed: ["admin", "perito", "assistente"],
-    },
-    {
-      label: "Gestão de Evidências",
-      path: "/gestao-evidencias",
-      allowed: ["admin", "perito", "assistente"],
-    },
-    {
-      label: "Visão Geral",
-      path: "/visao-geral",
-      allowed: ["admin", "perito", "assistente"],
-    },
-    {
-      label: "Configurações",
-      path: "/settings",
-      allowed: ["admin", "perito", "assistente"],
-    },
+    { label: "Relatórios", path: "/relatorios", allowed: ["admin", "perito", "assistente"] },
+    { label: "Gestão de Evidências", path: "/gestao-evidencias", allowed: ["admin", "perito", "assistente"] },
+    { label: "Visão Geral", path: "/visao-geral", allowed: ["admin", "perito", "assistente"] },
+    { label: "Configurações", path: "/settings", allowed: ["admin", "perito", "assistente"] },
     { label: "Sair", path: "/", allowed: ["admin", "perito", "assistente"] },
   ];
 
@@ -76,7 +46,7 @@ export default function Navbar({
   return (
     <header className="w-full fixed top-0 left-0 right-0 z-10 bg-teal-500 text-white px-6 py-4 shadow-md">
       <div className="relative max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
-        {/* Logo central no desktop */}
+        {/* Logo central (apenas no desktop) */}
         <div className="absolute left-1/2 transform -translate-x-1/2 hidden md:block">
           <Image
             src="/logo.png"
@@ -94,7 +64,7 @@ export default function Navbar({
           <span className="text-xs text-gray-200">{`CRO: ${croNumber}`}</span>
         </div>
 
-        {/* Menu hambúrguer sempre à direita */}
+        {/* Botão do menu hambúrguer */}
         <div className="relative">
           <button
             onClick={() => setIsOpen(!isOpen)}
