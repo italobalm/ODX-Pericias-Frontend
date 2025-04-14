@@ -10,6 +10,24 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+// Definindo os tipos para os dados
+type FiltroKey = "vitima" | "sexo" | "estado" | "lesoes" | "cidade";
+
+interface DadosItem {
+  categoria: string;
+  quantidade: number;
+}
+
+interface DashboardData {
+  totalCasos: number;
+  // Os demais campos são opcionais, pois podem vir ausentes até que o fetch seja concluído.
+  vitima?: DadosItem[];
+  sexo?: DadosItem[];
+  estado?: DadosItem[];
+  lesoes?: DadosItem[];
+  cidade?: DadosItem[];
+}
+
 const filtros = [
   { label: "Vítima", key: "vitima" },
   { label: "Sexo", key: "sexo" },
@@ -19,8 +37,8 @@ const filtros = [
 ];
 
 export default function VisaoGeral() {
-  const [filtroSelecionado, setFiltroSelecionado] = useState("vitima");
-  const [dados, setDados] = useState({});
+  const [filtroSelecionado, setFiltroSelecionado] = useState<FiltroKey>("vitima");
+  const [dados, setDados] = useState<DashboardData>({ totalCasos: 0 });
 
   useEffect(() => {
     const fetchDados = async () => {
@@ -36,8 +54,9 @@ export default function VisaoGeral() {
     fetchDados();
   }, []);
 
-  const dadosAtuais = dados[filtroSelecionado] || [];
-  const totalCasos = dados.totalCasos || 0;
+  // Garante que, se não houver dados para o filtro selecionado, use um array vazio.
+  const dadosAtuais: DadosItem[] = (dados[filtroSelecionado] as DadosItem[]) || [];
+  const totalCasos: number = dados.totalCasos || 0;
 
   return (
     <div className="p-4 space-y-6">
@@ -57,7 +76,7 @@ export default function VisaoGeral() {
         {filtros.map((filtro) => (
           <button
             key={filtro.key}
-            onClick={() => setFiltroSelecionado(filtro.key)}
+            onClick={() => setFiltroSelecionado(filtro.key as FiltroKey)}
             className={`px-4 py-2 rounded-md border text-sm transition 
               ${
                 filtroSelecionado === filtro.key
@@ -101,7 +120,7 @@ export default function VisaoGeral() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {dadosAtuais.map((item, index) => (
+              {dadosAtuais.map((item: DadosItem, index: number) => (
                 <tr key={index} className="hover:bg-gray-50">
                   <td className="px-4 py-2 whitespace-nowrap">
                     {item.categoria}
