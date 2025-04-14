@@ -32,11 +32,6 @@ export default function ReportRegisterPage() {
   const isStep1Valid = caso && titulo && descricao;
   const isStep2Valid =
     objetoPericia && analiseTecnica && metodoUtilizado && destinatario;
-  const isStep3Valid =
-    materiaisUtilizados &&
-    examesRealizados &&
-    consideracoesTecnicoPericiais &&
-    conclusaoTecnica;
 
   const handleGoBack = () => {
     if (step === 1) window.history.back();

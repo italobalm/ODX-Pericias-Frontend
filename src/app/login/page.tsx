@@ -26,13 +26,14 @@ export default function LoginPage() {
         // Qualquer status diferente de 200 pode ser tratado como erro
         setErrorMessage("Email ou senha incorretos.");
       }
-    } catch (error: any) {
-      setErrorMessage(
-        error.response?.data?.message || "Erro ao tentar fazer login."
-      );
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        setErrorMessage(error.response?.data?.message || "Erro ao tentar fazer login.");
+      } else {
+        setErrorMessage("Erro inesperado ao tentar fazer login.");
+      }
     }
-  };
-
+    
   const handleGoBack = () => {
     window.history.back();
   };
