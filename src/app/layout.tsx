@@ -35,10 +35,6 @@ export default function RootLayout({
         <meta charSet="UTF-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
       </Head>
-      <body className={`${geistSans.variable} antialiased bg-gray-100`}>
-        <Navbar userFullName="Dr. João Perito" croNumber="CRO-12345" />
-        <main className="pt-28 px-4 max-w-6xl mx-auto">{children}</main>
-      </body>
     </html>
   );
 }
