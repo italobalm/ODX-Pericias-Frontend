@@ -48,7 +48,7 @@ export default function EvidenceManagementPage() {
       try {
         const response = await axios.get<Evidence[]>("/api/evidences");
         setEvidences(response.data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Erro ao buscar evidências:", err);
         setError("Erro ao carregar as evidências.");
       } finally {
@@ -75,7 +75,7 @@ export default function EvidenceManagementPage() {
       try {
         await axios.delete(`/api/evidences/${id}`);
         setEvidences((prev) => prev.filter((item) => item.id !== id));
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Erro ao excluir evidência:", err);
         alert("Não foi possível excluir a evidência.");
       }
@@ -126,7 +126,7 @@ export default function EvidenceManagementPage() {
           )
         );
         setEditingEvidence(null);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Erro ao atualizar evidência:", err);
         alert("Não foi possível atualizar a evidência.");
       }

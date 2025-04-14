@@ -36,7 +36,7 @@ export default function UserManagementPage() {
       try {
         const res = await axios.get<User[]>("/api/users");
         setUsers(res.data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Erro ao buscar usuários:", err);
         setError("Erro ao carregar os usuários.");
       }

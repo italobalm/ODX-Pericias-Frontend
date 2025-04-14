@@ -54,7 +54,7 @@ export default function ReportManagementPage() {
       try {
         const response = await axios.get<Report[]>("/api/reports");
         setReports(response.data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Erro ao buscar relatórios:", err);
         setError("Erro ao carregar os relatórios.");
       } finally {
@@ -71,7 +71,7 @@ export default function ReportManagementPage() {
       try {
         await axios.delete(`/api/reports/${id}`);
         setReports((prev) => prev.filter((report) => report.id !== id));
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Erro ao excluir relatório:", err);
         alert("Não foi possível excluir o relatório.");
       }
@@ -127,7 +127,7 @@ export default function ReportManagementPage() {
           )
         );
         setEditingReport(null);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Erro ao atualizar relatório:", err);
         alert("Não foi possível atualizar o relatório.");
       }
