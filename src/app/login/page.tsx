@@ -33,10 +33,12 @@ export default function LoginPage() {
         setErrorMessage("Erro inesperado ao tentar fazer login.");
       }
     }
-    
+  };
+
   const handleGoBack = () => {
     window.history.back();
   };
+
 
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-teal-100 to-teal-300 flex items-center justify-center overflow-hidden">
