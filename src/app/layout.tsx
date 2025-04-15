@@ -18,7 +18,7 @@ interface User {
   userFullName: string;
   croNumber: string;
   userId: "admin" | "perito" | "assistente";
-  perfil: "Admin" | "Perito" | "Assistente"; // Aqui foi adicionado o perfil
+  perfil: "Admin" | "Perito" | "Assistente";
 }
 
 // Contexto e Provider
@@ -29,9 +29,11 @@ interface AuthContextProps {
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
+// Componente do Provider de Autenticação
 function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
+  // Efeito para buscar o usuário ao carregar o layout
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -61,7 +63,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Hook para usar auth
+// Hook para usar o contexto de autenticação
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -76,7 +78,7 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-// Layout
+// Layout principal
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
