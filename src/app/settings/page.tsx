@@ -158,7 +158,23 @@ export default function ConfiguracoesPage() {
 }
 
 // Componente reutilizável de campo
-function Field({ label, icon, value, setValue, placeholder, type = "text" }) {
+interface FieldProps {
+  label: string;
+  icon: React.ReactNode;
+  value: string;
+  setValue: React.Dispatch<React.SetStateAction<string>>;
+  placeholder: string;
+  type?: string;
+}
+
+function Field({
+  label,
+  icon,
+  value,
+  setValue,
+  placeholder,
+  type = "text",
+}: FieldProps) {
   return (
     <div>
       <label className="text-sm text-gray-500 block mb-1">{label}</label>
