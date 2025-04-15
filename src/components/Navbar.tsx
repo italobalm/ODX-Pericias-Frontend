@@ -32,13 +32,12 @@ export default function Navbar() {
 
   const menuItems = [
     { label: "Início", path: "/initialScreen", allowed: ["Admin", "Perito", "Assistente"] },
-    { label: "Novo caso", path: "/novo-caso", allowed: ["Admin", "Perito"] },
+    { label: "Novo caso", path: "/cadastrarCaso", allowed: ["Admin", "Perito"] },
     { label: "Gestão de Usuários", path: "/gestao-usuarios", allowed: ["Admin"] },
     { label: "Gestão de Casos", path: "/gestao-casos", allowed: ["Admin", "Perito", "Assistente"] },
-    { label: "Solicitações", path: "/solicitacoes", allowed: ["Admin"] },
-    { label: "Relatórios", path: "/relatorios", allowed: ["Admin", "Perito", "Assistente"] },
-    { label: "Gestão de Evidências", path: "/gestao-evidencias", allowed: ["Admin", "Perito", "Assistente"] },
-    { label: "Visão Geral", path: "/visao-geral", allowed: ["Admin", "Perito", "Assistente"] },
+    { label: "Cadastrar Evidência", path: "/cadastrarEvidencia", allowed: ["Admin"] },
+    { label: "Elaborar Relatório", path: "/gestao-relatorios", allowed: ["Admin", "Perito", "Assistente"] },
+    { label: "Dashboard", path: "/dashboard", allowed: ["Admin", "Perito", "Assistente"] },
     { label: "Configurações", path: "/settings", allowed: ["Admin", "Perito", "Assistente"] },
     { label: "Sair", path: "/", allowed: ["Admin", "Perito", "Assistente"] },
   ];
