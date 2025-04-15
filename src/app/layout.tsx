@@ -1,44 +1,56 @@
 "use client";
 
-import type { Metadata } from "next";
 import Head from "next/head";
 import "./globals.css";
 import Navbar from "../components/Navbar";
 import { Geist } from "next/font/google";
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import axios from "axios";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 
-// Define a interface para os dados do usuário
+// Tipagem do usuário, incluindo o perfil
 interface User {
   userFullName: string;
   croNumber: string;
   userId: "admin" | "perito" | "assistente";
+  perfil: "Admin" | "Perito" | "Assistente"; // Aqui foi adicionado o perfil
 }
 
-// Define a interface do contexto
+// Contexto e Provider
 interface AuthContextProps {
   user: User | null;
   setUser: (user: User) => void;
 }
 
-// Cria o contexto de autenticação
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
-// Provider para o contexto de autenticação
 function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Aqui você faria a chamada ao backend para obter os dados do usuário logado.
-    // Neste exemplo, simulamos essa chamada com um valor fixo.
     const fetchUser = async () => {
-      // Simulação de resposta do backend
-      const simulatedUser: User = {
-        userFullName: "Dr. João Perito",
-        croNumber: "CRO-12345",
-        userId: "admin",
-      };
-      setUser(simulatedUser);
+      try {
+        const response = await axios.get("/api/auth/me"); // Altere o endpoint conforme sua API
+        const { nome, cro, perfil } = response.data;
+
+        const formattedUser: User = {
+          userFullName: nome,
+          croNumber: cro ?? "N/A",
+          userId: perfil.toLowerCase() as "admin" | "perito" | "assistente",
+          perfil: perfil as "Admin" | "Perito" | "Assistente", // Ajuste para o perfil
+        };
+
+        setUser(formattedUser);
+      } catch (error) {
+        console.error("Erro ao buscar usuário:", error);
+      }
     };
+
     fetchUser();
   }, []);
 
@@ -49,7 +61,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Hook para utilizar o AuthContext em qualquer componente
+// Hook para usar auth
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -58,31 +70,28 @@ export function useAuth() {
   return context;
 }
 
-export const metadata: Metadata = {
-  title: "ODX Perícias",
-  description: "A solução ideal para laudos rápidos e confiáveis",
-  icons: { icon: "/logo.png" },
-};
-
+// Fonte
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
+// Layout
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt">
       <Head>
-        <link rel="icon" href="/logo.png" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>ODX Perícias</title>
         <meta
           name="description"
           content="A solução ideal para laudos rápidos e confiáveis"
         />
         <meta charSet="UTF-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/logo.png" />
       </Head>
       <body className={`${geistSans.variable} antialiased bg-gray-100`}>
         <AuthProvider>

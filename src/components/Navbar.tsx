@@ -1,23 +1,83 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { FaBars } from "react-icons/fa";
-import { useState } from "react";
 import Image from "next/image";
-import { useAuth } from "../app/layout"; // Importa o hook criado no layout
+import { FaBars } from "react-icons/fa";
+import axios from "axios";
+import { useAuth } from "../app/layout";
 
 export default function Navbar() {
   const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [userData, setUserData] = useState<{
+    nome: string;
+    cro?: string;
+  } | null>(null);
 
-  // Se os dados do usuário ainda não foram carregados, não renderiza a navbar
-  if (!user) return null;
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!user) return;
+      try {
+        const response = await axios.get(`/api/usuarios/${user.userId}`);
+        setUserData(response.data);
+      } catch (error) {
+        console.error("Erro ao buscar dados do usuário:", error);
+      }
+    };
 
-  const { userFullName, croNumber, userId } = user;
+    fetchUserData();
+  }, [user]);
 
-  // Não exibe a Navbar em rotas específicas (ex.: login, esqueci senha, etc.)
+  if (!user || !userData) return null;
+
+  const menuItems = [
+    {
+      label: "Início",
+      path: "/initialScreen",
+      allowed: ["Admin", "Perito", "Assistente"],
+    },
+    { label: "Novo caso", path: "/novo-caso", allowed: ["Admin", "Perito"] },
+    {
+      label: "Gestão de Usuários",
+      path: "/gestao-usuarios",
+      allowed: ["Admin"],
+    },
+    {
+      label: "Gestão de Casos",
+      path: "/gestao-casos",
+      allowed: ["Admin", "Perito", "Assistente"],
+    },
+    { label: "Solicitações", path: "/solicitacoes", allowed: ["Admin"] },
+    {
+      label: "Relatórios",
+      path: "/relatorios",
+      allowed: ["Admin", "Perito", "Assistente"],
+    },
+    {
+      label: "Gestão de Evidências",
+      path: "/gestao-evidencias",
+      allowed: ["Admin", "Perito", "Assistente"],
+    },
+    {
+      label: "Visão Geral",
+      path: "/visao-geral",
+      allowed: ["Admin", "Perito", "Assistente"],
+    },
+    {
+      label: "Configurações",
+      path: "/settings",
+      allowed: ["Admin", "Perito", "Assistente"],
+    },
+    { label: "Sair", path: "/", allowed: ["Admin", "Perito", "Assistente"] },
+  ];
+
+  const filteredItems = menuItems.filter((item) =>
+    item.allowed.includes(user.perfil)
+  );
+
   if (
     pathname === "/" ||
     pathname === "/login" ||
@@ -26,27 +86,10 @@ export default function Navbar() {
     return null;
   }
 
-  const menuItems = [
-    { label: "Início", path: "/initialScreen", allowed: ["admin", "perito", "assistente"] },
-    { label: "Novo caso", path: "/novo-caso", allowed: ["admin", "perito"] },
-    { label: "Gestão de Usuários", path: "/gestao-usuarios", allowed: ["admin"] },
-    { label: "Gestão de Casos", path: "/gestao-casos", allowed: ["admin", "perito", "assistente"] },
-    { label: "Solicitações", path: "/solicitacoes", allowed: ["admin"] },
-    { label: "Relatórios", path: "/relatorios", allowed: ["admin", "perito", "assistente"] },
-    { label: "Gestão de Evidências", path: "/gestao-evidencias", allowed: ["admin", "perito", "assistente"] },
-    { label: "Visão Geral", path: "/visao-geral", allowed: ["admin", "perito", "assistente"] },
-    { label: "Configurações", path: "/settings", allowed: ["admin", "perito", "assistente"] },
-    { label: "Sair", path: "/", allowed: ["admin", "perito", "assistente"] },
-  ];
-
-  const filteredItems = menuItems.filter((item) =>
-    item.allowed.includes(userId)
-  );
-
   return (
     <header className="w-full fixed top-0 left-0 right-0 z-10 bg-teal-500 text-white px-6 py-4 shadow-md">
       <div className="relative max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
-        {/* Logo central (apenas no desktop) */}
+        {/* Logo central (desktop) */}
         <div className="absolute left-1/2 transform -translate-x-1/2 hidden md:block">
           <Image
             src="/logo.png"
@@ -60,11 +103,13 @@ export default function Navbar() {
         {/* Saudação */}
         <div className="flex flex-col leading-tight">
           <span className="text-sm text-gray-200">Olá,</span>
-          <span className="text-lg font-semibold">{userFullName}</span>
-          <span className="text-xs text-gray-200">{`CRO: ${croNumber}`}</span>
+          <span className="text-lg font-semibold">{userData.nome}</span>
+          {userData.cro && (
+            <span className="text-xs text-gray-200">{`CRO: ${userData.cro}`}</span>
+          )}
         </div>
 
-        {/* Botão do menu hambúrguer */}
+        {/* Botão menu hambúrguer */}
         <div className="relative">
           <button
             onClick={() => setIsOpen(!isOpen)}
