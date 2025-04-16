@@ -1,33 +1,51 @@
-// src/hooks/useAuth.ts
 import { useState, useEffect } from 'react';
 import api from '../lib/axiosConfig';
 
+interface User {
+  _id: string;
+  nome: string;
+  email: string;
+  perfil: 'Admin' | 'Perito' | 'Assistente';
+  rg: string;
+  cro?: string;
+}
+
+interface AuthResponse {
+  token: string;
+  user: User;
+}
+
+// Definindo um tipo para o erro
+interface ApiError {
+  response?: {
+    data: {
+      message: string;
+    };
+  };
+}
+
 const useAuth = () => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, senha: string) => {
     try {
       setLoading(true);
-      console.log('Tentando login com:', { email, senha: password }); // Depuração
-      const response = await api.post('/api/auth/login', { // Ajustado para '/api/auth/login'
-        email,
-        senha: password, // Corrigido para 'senha'
-      });
-      const { token, usuario } = response.data;
-      if (token && usuario) {
-        localStorage.setItem('token', token);
-        setUser(usuario);
-        await fetchLoggedUser();
-        setError(null);
-      } else {
-        throw new Error('Token ou usuário não recebidos do servidor');
-      }
-    } catch (err: any) {
-      console.error('Erro no login:', err.response?.data || err.message);
-      setError(err.response?.data?.msg || 'Erro ao fazer login. Verifique o endpoint ou credenciais.');
-      throw err;
+      const response = await api.post<AuthResponse>('/auth/login', { email, senha });
+      
+      const { token, user: userData } = response.data;
+      localStorage.setItem('token', token);
+      setUser(userData);
+      setError(null);
+      
+      return userData;
+    } catch (err) {
+      // Tipando o erro de forma mais segura
+      const error = err as ApiError; // Fazendo o casting do erro
+      const errorMessage = error.response?.data?.message || 'Erro ao fazer login';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -42,34 +60,36 @@ const useAuth = () => {
     }
 
     try {
-      const response = await api.get('/api/auth/logged-user', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.get<User>('/auth/logged-user');
       setUser(response.data);
     } catch (err) {
-      setUser(null);
-      localStorage.removeItem('token');
+      logout();
     } finally {
       setLoading(false);
     }
   };
 
   const logout = async () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      await api.post('/api/auth/logout', {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    try {
+      await api.post('/auth/logout');
+    } finally {
+      localStorage.removeItem('token');
+      setUser(null);
     }
-    localStorage.removeItem('token');
-    setUser(null);
   };
 
   useEffect(() => {
     fetchLoggedUser();
   }, []);
 
-  return { user, loading, error, login, logout, fetchLoggedUser };
+  return {
+    user,
+    loading,
+    error,
+    login,
+    logout,
+    fetchLoggedUser
+  };
 };
 
 export default useAuth;

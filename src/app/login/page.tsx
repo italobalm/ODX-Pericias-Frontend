@@ -6,32 +6,47 @@ import useAuth from "../hooks/useAuth";
 import Image from "next/image";
 import { FaArrowLeft } from "react-icons/fa";
 
+// Definindo a tipagem para o erro no catch
+interface ApiError {
+  response?: {
+    data: {
+      message: string;
+    };
+  };
+}
+
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
   const { login, user, loading, error } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage(null);
+    setErrorMessage(null); // Resetando a mensagem de erro
     try {
       await login(email, password);
+      // Direciona para a tela inicial apenas se o login for bem-sucedido
       if (user) {
         router.push("/initialScreen");
       }
     } catch (err) {
-      setErrorMessage(error || "Erro ao fazer login.");
+      const error = err as ApiError; // Tipando o erro
+      setErrorMessage(error?.response?.data?.message || "Erro ao fazer login.");
     }
   };
 
   const handleGoBack = () => {
-    window.history.back();
+    window.history.back(); // Volta para a página anterior
   };
 
-  if (loading) return <div>Carregando...</div>;
-  if (user) router.push("/initialScreen");
+  if (loading) return <div>Carregando...</div>; // Exibe enquanto carrega
+  if (user) {
+    // Já redireciona se o usuário já estiver logado
+    router.push("/initialScreen");
+    return null; // Evita múltiplas renderizações do mesmo componente
+  }
 
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-teal-100 to-teal-300 flex items-center justify-center overflow-hidden">
@@ -58,7 +73,7 @@ export default function LoginPage() {
         {/* Lado Esquerdo (Desktop) */}
         <div className="hidden md:flex flex-col justify-center items-start bg-teal-500 text-white px-16 py-12 w-1/2 space-y-4">
           <Image src="/logo.png" alt="Logo" width={100} height={120} unoptimized />
-          <h2 className="text-3xl font-bold mt-6">Bem vindo!</h2>
+          <h2 className="text-3xl font-bold mt-6">Bem-vindo!</h2>
           <p className="text-lg">Faça login para acessar suas perícias.</p>
         </div>
 
