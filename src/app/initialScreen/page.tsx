@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import axios from "axios";
+import { useEffect } from "react";
+import useAuth from "../hooks/useAuth";
 import {
   FaUsers,
   FaFolderOpen,
@@ -13,30 +13,28 @@ import {
 } from "react-icons/fa";
 import React from "react";
 
+
 export default function HomePage() {
   const router = useRouter();
-  const [usuario, setUsuario] = useState<{
-    id: string;
-    nome: string;
-    cro: string;
-    tipo: "admin" | "perito" | "assistente";
-  } | null>(null);
+  const { user, fetchLoggedUser, loading } = useAuth();
 
   useEffect(() => {
-    const fetchUsuario = async () => {
-      try {
-        const response = await axios.get("/api/usuario-logado");
-        setUsuario(response.data);
-      } catch (error) {
-        console.error("Erro ao buscar dados do usuário:", error);
-      }
-    };
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
 
-    fetchUsuario();
-  }, []);
+    fetchLoggedUser();
+  }, [fetchLoggedUser, router]);
 
-  if (!usuario) {
+  if (loading) {
     return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
+  }
+
+  if (!user) {
+    router.push("/login");
+    return null;
   }
 
   const menuItems = [
@@ -44,37 +42,37 @@ export default function HomePage() {
       title: "Gestão de Usuários",
       icon: FaUsers,
       path: "/gestao-usuarios",
-      allowed: ["admin"],
+      allowed: ["Admin"],
     },
     {
       title: "Gestão de Casos",
       icon: FaFolderOpen,
       path: "/gestao-casos",
-      allowed: ["admin", "perito", "assistente"],
+      allowed: ["Admin", "Perito", "Assistente"],
     },
     {
       title: "Elaborar Relatório",
       icon: FaChartBar,
       path: "/relatorios",
-      allowed: ["admin", "perito", "assistente"],
+      allowed: ["Admin", "Perito", "Assistente"],
     },
     {
       title: "Cadastrar Evidências",
       icon: FaMicroscope,
       path: "/gestao-evidencias",
-      allowed: ["admin", "perito", "assistente"],
+      allowed: ["Admin", "Perito", "Assistente"],
     },
     {
       title: "Dashboard",
       icon: FaEye,
       path: "/dashboard",
-      allowed: ["admin", "perito", "assistente"],
+      allowed: ["Admin", "Perito", "Assistente"],
     },
     {
       title: "Novo Caso",
       icon: FaFileAlt,
       path: "/cadastrarCaso",
-      allowed: ["admin", "perito"],
+      allowed: ["Admin", "Perito"],
     },
   ];
 
@@ -87,7 +85,7 @@ export default function HomePage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
           {menuItems
-            .filter((item) => item.allowed.includes(usuario.tipo))
+            .filter((item) => item.allowed.includes(user.perfil))
             .map((item, index) => (
               <button
                 key={index}

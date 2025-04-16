@@ -1,38 +1,28 @@
-"use client";
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import useAuth from "../hooks/useAuth";
 import Image from "next/image";
 import { FaArrowLeft } from "react-icons/fa";
-
-// Definindo a tipagem para o erro no catch
-interface ApiError {
-  response?: {
-    data: {
-      message: string;
-    };
-  };
-}
+import { ApiError } from "../types";
 
 export default function LoginPage() {
   const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
+  const [senha, setSenha] = useState<string>(""); // Alterado de 'password' para 'senha'
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
-  const { login, user, loading } = useAuth(); // Removed 'error' from destructuring
+  const { login, user, loading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null); // Resetando a mensagem de erro
     try {
-      await login(email, password);
+      await login(email, senha); // Usando 'senha' em vez de 'password'
       // Direciona para a tela inicial apenas se o login for bem-sucedido
       if (user) {
         router.push("/initialScreen");
       }
     } catch (err) {
-      const error = err as ApiError; // Tipando o erro
+      const error = err as ApiError;
       setErrorMessage(error?.response?.data?.message || "Erro ao fazer login.");
     }
   };
@@ -95,15 +85,15 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="senha" className="block text-sm font-medium text-gray-700">
                 Senha
               </label>
               <input
-                id="password"
+                id="senha"
                 type="password"
                 placeholder="Digite sua senha"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
                 className="w-full p-3 border-2 border-gray-300 rounded-xl focus:ring focus:ring-blue-300 text-gray-800 placeholder-gray-500"
                 required
               />

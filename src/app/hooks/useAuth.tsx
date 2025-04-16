@@ -1,28 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../lib/axiosConfig';
-
-interface User {
-  _id: string;
-  nome: string;
-  email: string;
-  perfil: 'Admin' | 'Perito' | 'Assistente';
-  rg: string;
-  cro?: string;
-}
-
-interface AuthResponse {
-  token: string;
-  user: User;
-}
-
-// Definindo um tipo para o erro
-interface ApiError {
-  response?: {
-    data: {
-      message: string;
-    };
-  };
-}
+import { User, AuthResponse, ApiError } from '../types'; // Importar as interfaces do arquivo types
 
 const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -41,8 +19,9 @@ const useAuth = () => {
       
       return userData;
     } catch (error) {
+      console.error('Failed to login:', error);
       const errorTyped = error as ApiError;
-      const errorMessage = errorTyped.response?.data?.message || 'Erro ao fazer login';
+      const errorMessage = errorTyped.response?.data?.message || 'Não foi possível fazer login. Verifique suas credenciais.';
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
