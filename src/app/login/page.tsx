@@ -1,11 +1,11 @@
-"use client"; 
+"use client";
 
-import { useState } from "react";
+import { useState} from "react"; // Added useEffect for state sync
 import { useRouter } from "next/navigation";
-import useAuth from "../hooks/useAuth"; 
+import useAuth from "../../hooks/useAuth";
 import Image from "next/image";
 import { FaArrowLeft } from "react-icons/fa";
-import { ApiError } from "../types/user";
+import { ApiError } from "../../types/user";
 
 export default function LoginPage() {
   const [email, setEmail] = useState<string>("");
@@ -19,8 +19,12 @@ export default function LoginPage() {
     setErrorMessage(null);
     try {
       await login(email, senha);
-      await fetchLoggedUser(); // Chama fetchLoggedUser após o login
-      router.push("/initialScreen"); // Redireciona após buscar o usuário
+      await fetchLoggedUser(); // Fetch user data after login
+      if (user) {
+        router.push("/initialScreen");
+      } else {
+        setErrorMessage("Falha ao carregar dados do usuário após login.");
+      }
     } catch (err) {
       const error = err as ApiError;
       setErrorMessage(error?.response?.data?.message || "Erro ao fazer login.");

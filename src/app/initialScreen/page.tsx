@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import useAuth from "../hooks/useAuth";
+import useAuth from "../../hooks/useAuth";
 import {
   FaUsers,
   FaFolderOpen,
@@ -12,7 +12,6 @@ import {
   FaEye,
 } from "react-icons/fa";
 import React from "react";
-
 
 export default function HomePage() {
   const router = useRouter();
@@ -25,8 +24,10 @@ export default function HomePage() {
       return;
     }
 
-    fetchLoggedUser();
-  }, [fetchLoggedUser, router]);
+    if (!user) {
+      fetchLoggedUser(); // Fetch user only if not already loaded
+    }
+  }, [fetchLoggedUser, router, user]);
 
   if (loading) {
     return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
