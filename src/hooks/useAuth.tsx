@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import api from '../lib/axiosConfig';
-import { User, AuthResponse, ApiError } from '../types/user'; // Importar as interfaces do arquivo types
+import { User, AuthResponse, ApiError } from '../types/user';
 
 const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start as false
   const [error, setError] = useState<string | null>(null);
 
   const login = async (email: string, senha: string) => {
@@ -38,12 +38,12 @@ const useAuth = () => {
     }
 
     try {
+      setLoading(true);
       const response = await api.get<User>('/api/auth/logged-user');
-      setUser(response.data);
+      setUser(response.data); // Ensure this matches the User interface
     } catch (error) {
       console.error('Failed to fetch logged user:', error);
       setError('Não foi possível carregar os dados do usuário. Você foi desconectado.');
-      logout();
     } finally {
       setLoading(false);
     }
@@ -58,9 +58,7 @@ const useAuth = () => {
     }
   };
 
-  useEffect(() => {
-    fetchLoggedUser();
-  }, []);
+
 
   return {
     user,
