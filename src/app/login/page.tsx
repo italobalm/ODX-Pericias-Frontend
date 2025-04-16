@@ -20,7 +20,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
-  const { login, user, loading, error } = useAuth();
+  const { login, user, loading } = useAuth(); // Removed 'error' from destructuring
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

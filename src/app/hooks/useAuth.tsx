@@ -40,10 +40,9 @@ const useAuth = () => {
       setError(null);
       
       return userData;
-    } catch (err) {
-      // Tipando o erro de forma mais segura
-      const error = err as ApiError; // Fazendo o casting do erro
-      const errorMessage = error.response?.data?.message || 'Erro ao fazer login';
+    } catch (error) {
+      const errorTyped = error as ApiError;
+      const errorMessage = errorTyped.response?.data?.message || 'Erro ao fazer login';
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -62,7 +61,9 @@ const useAuth = () => {
     try {
       const response = await api.get<User>('api/auth/logged-user');
       setUser(response.data);
-    } catch (err) {
+    } catch (error) {
+      console.error('Failed to fetch logged user:', error);
+      setError('Não foi possível carregar os dados do usuário. Você foi desconectado.');
       logout();
     } finally {
       setLoading(false);
