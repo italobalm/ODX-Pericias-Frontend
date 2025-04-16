@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../lib/axiosConfig';
-import { User, AuthResponse, ApiError } from '../types'; // Importar as interfaces do arquivo types
+import { User, AuthResponse, ApiError } from '../types/user'; // Importar as interfaces do arquivo types
 
 const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
