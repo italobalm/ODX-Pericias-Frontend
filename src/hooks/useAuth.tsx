@@ -10,7 +10,7 @@ const useAuth = () => {
   const login = async (email: string, senha: string) => {
     try {
       setLoading(true);
-      const response = await api.post<AuthResponse>('api/auth/login', { email, senha });
+      const response = await api.post<AuthResponse>('/api/auth/login', { email, senha });
       
       const { token, user: userData } = response.data;
       localStorage.setItem('token', token);
@@ -38,7 +38,7 @@ const useAuth = () => {
     }
 
     try {
-      const response = await api.get<User>('api/auth/logged-user');
+      const response = await api.get<User>('/api/auth/logged-user');
       setUser(response.data);
     } catch (error) {
       console.error('Failed to fetch logged user:', error);
@@ -51,7 +51,7 @@ const useAuth = () => {
 
   const logout = async () => {
     try {
-      await api.post('api/auth/logout');
+      await api.post('/api/auth/logout');
     } finally {
       localStorage.removeItem('token');
       setUser(null);
