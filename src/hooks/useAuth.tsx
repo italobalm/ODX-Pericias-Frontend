@@ -35,7 +35,11 @@ const useAuth = () => {
     }
     try {
       setLoading(true);
-      const response = await api.get<User>('/api/auth/logged-user');
+      const response = await api.get<User>('/api/auth/logged-user', {
+        headers: {
+          Authorization: `Bearer ${token}`, // Aqui você passa o token para a API
+        },
+      });
       setUser(response.data);
       setError(null);
     } catch (error) {
