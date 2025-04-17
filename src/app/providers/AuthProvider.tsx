@@ -9,43 +9,47 @@ import {
   ReactNode,
 } from "react";
 
-// Tipagem do usuário, incluindo o perfil
+// Tipagem do usuário
+type Perfil = "Admin" | "Perito" | "Assistente";
+type UserId = "admin" | "perito" | "assistente";
+
 interface User {
   userFullName: string;
   croNumber: string;
-  userId: "admin" | "perito" | "assistente";
-  perfil: "Admin" | "Perito" | "Assistente";
+  userId: UserId;
+  perfil: Perfil;
 }
 
-// Contexto e Provider
+// Tipagem do contexto
 interface AuthContextProps {
   user: User | null;
-  setUser: (user: User) => void;
+  setUser: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
+// Provider do contexto
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    async function fetchUser() {
       try {
-        const response = await axios.get("/api/auth/me"); // Altere o endpoint conforme sua API
-        const { nome, cro, perfil } = response.data;
+        const { data } = await axios.get("/api/auth/logged-user");
 
         const formattedUser: User = {
-          userFullName: nome,
-          croNumber: cro ?? "N/A",
-          userId: perfil.toLowerCase() as "admin" | "perito" | "assistente",
-          perfil: perfil as "Admin" | "Perito" | "Assistente",
+          userFullName: data.nome,
+          croNumber: data.cro ?? "N/A",
+          userId: data.perfil.toLowerCase() as UserId,
+          perfil: data.perfil as Perfil,
         };
 
         setUser(formattedUser);
       } catch (error) {
         console.error("Erro ao buscar usuário:", error);
+        setUser(null); // Garante reset em caso de erro
       }
-    };
+    }
 
     fetchUser();
   }, []);
@@ -57,10 +61,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Hook para consumir o contexto
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   }
   return context;
 }
