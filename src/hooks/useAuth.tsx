@@ -4,7 +4,7 @@ import { User, AuthResponse, ApiError } from '../types/user';
 
 const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false); // Start as false
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const login = async (email: string, senha: string) => {
@@ -13,7 +13,9 @@ const useAuth = () => {
       const response = await api.post<AuthResponse>('/api/auth/login', { email, senha });
       
       const { token, user: userData } = response.data;
+      console.log('Token received from login:', token); // Debug log
       localStorage.setItem('token', token);
+      console.log('Token stored in localStorage:', localStorage.getItem('token')); // Debug log
       setUser(userData);
       setError(null);
       
@@ -31,6 +33,7 @@ const useAuth = () => {
 
   const fetchLoggedUser = async () => {
     const token = localStorage.getItem('token');
+    console.log('Token retrieved for fetchLoggedUser:', token); // Debug log
     if (!token) {
       setUser(null);
       setLoading(false);
@@ -40,7 +43,8 @@ const useAuth = () => {
     try {
       setLoading(true);
       const response = await api.get<User>('/api/auth/logged-user');
-      setUser(response.data); // Ensure this matches the User interface
+      console.log('fetchLoggedUser response:', response.data); // Debug log
+      setUser(response.data);
     } catch (error) {
       console.error('Failed to fetch logged user:', error);
       setError('Não foi possível carregar os dados do usuário. Você foi desconectado.');
@@ -57,8 +61,6 @@ const useAuth = () => {
       setUser(null);
     }
   };
-
-
 
   return {
     user,

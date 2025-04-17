@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react"; // Added useEffect
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import useAuth from "../../hooks/useAuth";
 import Image from "next/image";
@@ -12,25 +12,27 @@ export default function LoginPage() {
   const [senha, setSenha] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
-  const { login, fetchLoggedUser, user, loading } = useAuth();
+  const { login, fetchLoggedUser, user, loading, error } = useAuth(); // Added error
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     try {
       await login(email, senha);
-      await fetchLoggedUser(); 
+      await fetchLoggedUser(); // Fetch user data after login
     } catch (err) {
-      const error = err as ApiError;
-      setErrorMessage(error?.response?.data?.message || "Erro ao fazer login.");
+      const errorTyped = err as ApiError;
+      setErrorMessage(errorTyped.response?.data?.message || "Erro ao fazer login.");
     }
   };
 
   useEffect(() => {
     if (user && !loading) {
       router.push("/initialScreen");
+    } else if (error) {
+      setErrorMessage(error); // Display fetch error if it occurs
     }
-  }, [user, loading, router]); // Trigger redirect when user is set and loading is false
+  }, [user, loading, error, router]);
 
   const handleGoBack = () => {
     window.history.back();
@@ -98,7 +100,7 @@ export default function LoginPage() {
               />
             </div>
 
-            {errorMessage && <div className="text-red-600 text-sm">{errorMessage}</div>}
+            {(errorMessage || error) && <div className="text-red-600 text-sm">{errorMessage || error}</div>}
 
             <button
               type="submit"

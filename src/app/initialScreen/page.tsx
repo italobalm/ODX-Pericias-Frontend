@@ -15,7 +15,7 @@ import React from "react";
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, fetchLoggedUser, loading } = useAuth();
+  const { user, fetchLoggedUser, loading, error } = useAuth(); // Added error
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -36,6 +36,10 @@ export default function HomePage() {
   if (!user) {
     router.push("/login");
     return null;
+  }
+
+  if (error) {
+    return <div className="text-center mt-20 text-red-600">{error}</div>;
   }
 
   const menuItems = [

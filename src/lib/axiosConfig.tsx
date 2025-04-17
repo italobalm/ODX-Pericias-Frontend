@@ -1,4 +1,4 @@
-// src/lib/axiosConfig.ts
+// src/lib/axiosConfig.tsx
 import axios from 'axios';
 
 const api = axios.create({
@@ -7,10 +7,14 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
+  console.log('Interceptor token:', token); // Debug log
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
+}, (error) => {
+  console.error('Interceptor error:', error);
+  return Promise.reject(error);
 });
 
 export default api;
