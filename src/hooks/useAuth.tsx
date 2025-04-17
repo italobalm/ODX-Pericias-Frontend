@@ -37,7 +37,7 @@ const useAuth = () => {
       setLoading(true);
       const response = await api.get<User>('/api/auth/logged-user', {
         headers: {
-          Authorization: `Bearer ${token}`, // Aqui você passa o token para a API
+          Authorization: `Bearer ${token}`,
         },
       });
       setUser(response.data);
