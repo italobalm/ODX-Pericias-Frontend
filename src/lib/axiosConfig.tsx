@@ -22,4 +22,17 @@ api.interceptors.request.use(
   }
 );
 
+// Trata erros 401 (Unauthorized)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
+      console.log('Erro 401: Token inválido. Limpando localStorage e redirecionando para /login');
+      localStorage.removeItem('token');
+      window.location.href = '/login'; // Força redirecionamento
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

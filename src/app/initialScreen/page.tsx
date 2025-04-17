@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import useAuth from "../../hooks/useAuth";
 import {
   FaUsers,
@@ -12,28 +10,18 @@ import {
   FaEye,
 } from "react-icons/fa";
 import React from "react";
+import { useRouter } from "next/navigation"; // Adicionado explicitamente
 
 export default function HomePage() {
-  const router = useRouter();
   const { user, loading, error } = useAuth();
-
-  useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.push("/login"); // Redireciona para login caso não tenha usuário
-      } else {
-        router.push("/initialScreen"); // Se houver usuário, redireciona para a página inicial
-      }
-    }
-  }, [user, loading, router]);
-  
+  const router = useRouter(); // Necessário para navegação do menu
 
   if (loading) {
     return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
   }
 
   if (!user) {
-    return null; // Redirect handled in useEffect
+    return null; // Redirect handled by useAuth
   }
 
   if (error) {

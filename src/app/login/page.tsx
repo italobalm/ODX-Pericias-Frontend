@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import useAuth from "../../hooks/useAuth";
 import Image from "next/image";
@@ -12,14 +12,7 @@ export default function LoginPage() {
   const [senha, setSenha] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
-  const { login, loading, error, user } = useAuth();
-
-  useEffect(() => {
-    // If user is logged in, redirect to the home page
-    if (user) {
-      router.push("/initialScreen");
-    }
-  }, [user, router]);
+  const { login, loading, error } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +26,7 @@ export default function LoginPage() {
   };
 
   const handleGoBack = () => {
-    router.push("/"); 
+    router.push("/");
   };
 
   if (loading) {
