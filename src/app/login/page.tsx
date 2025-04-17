@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import useAuth from "../../hooks/useAuth";
+import useAuth from "../../hooks/userAuth";
 import Image from "next/image";
 import { FaArrowLeft } from "react-icons/fa";
-import { ApiError } from "../../types/user";
+import { ApiError } from "../../types/User";
 
 export default function LoginPage() {
   const [email, setEmail] = useState<string>("");

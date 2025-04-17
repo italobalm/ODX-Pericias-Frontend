@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import useAuth from "../../hooks/useAuth";
+import useAuth from "../../hooks/userAuth";
 import {
   FaUsers,
   FaFolderOpen,
@@ -23,7 +23,7 @@ export default function HomePage() {
       router.push("/login");
       return;
     }
-    // Nenhuma chamada fetchLoggedUser, contando com LoginPage para definir o usuário
+    // Removido fetchLoggedUser, dependência do LoginPage
   }, [router, user]);
 
   if (loading) {
@@ -87,7 +87,7 @@ export default function HomePage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
           {menuItems
-            .filter((item) => item.allowed.includes(user.tipo)) // Changed to tipo
+            .filter((item) => item.allowed.includes(user.tipo))
             .map((item, index) => (
               <button
                 key={index}

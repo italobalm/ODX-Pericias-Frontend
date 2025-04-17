@@ -1,34 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { FaBars } from "react-icons/fa";
-import axios from "axios";
-import { useAuth } from "../app/providers/AuthProvider"; // Atualize aqui se necessário
+import { useState } from "react";
+import useAuth from "../hooks/userAuth";
 
 export default function Navbar() {
   const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const [userData, setUserData] = useState<{ nome: string; cro?: string } | null>(null);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!user) return;
-      try {
-        const response = await axios.get(`/api/usuarios/${user.userId}`);
-        setUserData(response.data);
-      } catch (error) {
-        console.error("Erro ao buscar dados do usuário:", error);
-      }
-    };
-
-    fetchUserData();
-  }, [user]);
-
-  if (!user || !userData) return null;
+  if (!user) return null;
 
   const menuItems = [
     { label: "Início", path: "/initialScreen", allowed: ["Admin", "Perito", "Assistente"] },
@@ -71,9 +55,9 @@ export default function Navbar() {
         {/* Saudação */}
         <div className="flex flex-col leading-tight">
           <span className="text-sm text-gray-200">Olá,</span>
-          <span className="text-lg font-semibold">{userData.nome}</span>
-          {userData.cro && (
-            <span className="text-xs text-gray-200">{`CRO: ${userData.cro}`}</span>
+          <span className="text-lg font-semibold">{user.nome}</span>
+          {user.cro && (
+            <span className="text-xs text-gray-200">{`CRO: ${user.cro}`}</span>
           )}
         </div>
 
