@@ -58,11 +58,11 @@ const useAuth = () => {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token && !user) {
+    const token = localStorage.getItem("token");
+      if (token && !user) {
       fetchLoggedUser();
     }
-  }, [user]);  // Remove dependência de 'loading' aqui, garantindo que a busca seja feita uma vez
+  }, [user]);
 
   return { user, loading, error, login, logout, fetchLoggedUser };
 };
