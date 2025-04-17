@@ -4,7 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { FaBars } from "react-icons/fa";
 import { useState } from "react";
-import useAuth from "../hooks/useAuth";
+import { useAuth } from "@/app/providers/AuthProvider";  // Corrigido o caminho do import
 
 export default function Navbar() {
   const { user } = useAuth();
