@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function fetchUser() {
       try {
-        const { data } = await axios.get("/auth/logged-user");
+        const { data } = await axios.get("/api/auth/logged-user");
 
         const formattedUser: User = {
           userFullName: data.nome,
