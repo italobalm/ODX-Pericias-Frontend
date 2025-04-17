@@ -12,7 +12,7 @@ const useAuth = () => {
   const login = async (email: string, senha: string) => {
     try {
       setLoading(true);
-      const response = await api.post<AuthResponse>('/api/auth/login', { email, senha });
+      const response = await api.post<AuthResponse>('/auth/login', { email, senha });
       const { token, user: userData } = response.data;
       localStorage.setItem('token', token);
       setUser(userData);
@@ -35,7 +35,7 @@ const useAuth = () => {
     }
     try {
       setLoading(true);
-      const response = await api.get<User>('/api/auth/logged-user', {
+      const response = await api.get<User>('/auth/logged-user', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -52,7 +52,7 @@ const useAuth = () => {
   };
 
   const logout = async () => {
-    await api.post('/api/auth/logout');
+    await api.post('/auth/logout');
     localStorage.removeItem('token');
     setUser(null);
   };
