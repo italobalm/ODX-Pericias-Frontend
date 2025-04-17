@@ -1,25 +1,27 @@
-import { useState, useEffect } from 'react';
-import api from '../lib/axiosConfig';
-import { User, AuthResponse } from '../types/User';
-import { ApiError } from '../types/Error';
-
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import api from "../lib/axiosConfig";
+import { User, AuthResponse } from "../types/User";
+import { ApiError } from "../types/Error";
 
 const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const login = async (email: string, senha: string) => {
     try {
       setLoading(true);
-      const response = await api.post<AuthResponse>('/api/auth/login', { email, senha });
+      const response = await api.post<AuthResponse>("/api/auth/login", { email, senha });
       const { token, user: userData } = response.data;
-      localStorage.setItem('token', token);
+      localStorage.setItem("token", token);
       setUser(userData);
       setError(null);
+      router.push("/initialScreen"); // Redirect to initialScreen after login
     } catch (error) {
       const errorTyped = error as ApiError;
-      const errorMessage = errorTyped.response?.data?.msg || 'Não foi possível fazer login.';
+      const errorMessage = errorTyped.response?.data?.msg || "Não foi possível fazer login.";
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -27,44 +29,18 @@ const useAuth = () => {
     }
   };
 
-  const fetchLoggedUser = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setUser(null);
-      return;
-    }
-    try {
-      setLoading(true);
-      const response = await api.get<User>('/api/auth/logged-user', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setUser(response.data);
-      setError(null);
-    } catch (error) {
-      const errorTyped = error as ApiError;
-      setError(errorTyped.response?.data?.msg || 'Erro ao carregar os dados do usuário.');
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const logout = async () => {
-    await api.post('/api/auth/logout');
-    localStorage.removeItem('token');
+    try {
+      await api.post("/api/auth/logout");
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
+    localStorage.removeItem("token");
     setUser(null);
+    router.push("/login"); // Redirect to login after logout
   };
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-      if (token && !user) {
-      fetchLoggedUser();
-    }
-  }, [user]);
-
-  return { user, loading, error, login, logout, fetchLoggedUser };
+  return { user, loading, error, login, logout };
 };
 
 export default useAuth;
