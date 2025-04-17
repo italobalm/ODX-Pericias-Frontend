@@ -15,19 +15,16 @@ import React from "react";
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, fetchLoggedUser, loading, error } = useAuth(); // Added error
+  const { user, loading, error } = useAuth();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
+    if (!token || !user) {
       router.push("/login");
       return;
     }
-
-    if (!user) {
-      fetchLoggedUser(); // Fetch user only if not already loaded
-    }
-  }, [fetchLoggedUser, router, user]);
+    // Nenhuma chamada fetchLoggedUser, contando com LoginPage para definir o usuário
+  }, [router, user]);
 
   if (loading) {
     return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
@@ -47,37 +44,37 @@ export default function HomePage() {
       title: "Gestão de Usuários",
       icon: FaUsers,
       path: "/gestao-usuarios",
-      allowed: ["Admin"],
+      allowed: ["admin"],
     },
     {
       title: "Gestão de Casos",
       icon: FaFolderOpen,
       path: "/gestao-casos",
-      allowed: ["Admin", "Perito", "Assistente"],
+      allowed: ["admin", "perito", "assistente"],
     },
     {
       title: "Elaborar Relatório",
       icon: FaChartBar,
       path: "/relatorios",
-      allowed: ["Admin", "Perito", "Assistente"],
+      allowed: ["admin", "perito", "assistente"],
     },
     {
       title: "Cadastrar Evidências",
       icon: FaMicroscope,
       path: "/gestao-evidencias",
-      allowed: ["Admin", "Perito", "Assistente"],
+      allowed: ["admin", "perito", "assistente"],
     },
     {
       title: "Dashboard",
       icon: FaEye,
       path: "/dashboard",
-      allowed: ["Admin", "Perito", "Assistente"],
+      allowed: ["admin", "perito", "assistente"],
     },
     {
       title: "Novo Caso",
       icon: FaFileAlt,
       path: "/cadastrarCaso",
-      allowed: ["Admin", "Perito"],
+      allowed: ["admin", "perito"],
     },
   ];
 
@@ -90,7 +87,7 @@ export default function HomePage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
           {menuItems
-            .filter((item) => item.allowed.includes(user.perfil))
+            .filter((item) => item.allowed.includes(user.tipo)) // Changed to tipo
             .map((item, index) => (
               <button
                 key={index}
