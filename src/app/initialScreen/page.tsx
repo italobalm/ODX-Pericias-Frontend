@@ -87,7 +87,7 @@ export default function HomePage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
           {menuItems
-            .filter((item) => item.allowed.includes(user.tipo))
+            .filter((item) => item.allowed.includes(user.perfil))
             .map((item, index) => (
               <button
                 key={index}
