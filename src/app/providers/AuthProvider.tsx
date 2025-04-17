@@ -1,6 +1,6 @@
 "use client";
 
-import axios from "axios";
+import api from "../../lib/axiosConfig"; // ou o caminho correto para seu axiosConfig
 import {
   createContext,
   useContext,
@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function fetchUser() {
       try {
-        const { data } = await axios.get("/api/auth/logged-user");
+        const { data } = await api.get("/api/auth/logged-user");
 
         const formattedUser: User = {
           userFullName: data.nome,
