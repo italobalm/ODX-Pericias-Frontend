@@ -12,14 +12,13 @@ export default function LoginPage() {
   const [senha, setSenha] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
-  const { login, fetchLoggedUser, user, loading, error } = useAuth();
+  const { login, user, loading, error } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     try {
       await login(email, senha);
-      await fetchLoggedUser(); // Call fetchLoggedUser to sync with /api/auth/logged-user
     } catch (err) {
       const errorTyped = err as ApiError;
       setErrorMessage(errorTyped.response?.data?.msg || "Erro ao fazer login.");
