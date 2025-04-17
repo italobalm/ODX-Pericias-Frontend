@@ -20,7 +20,7 @@ const useAuth = () => {
           headers: { Authorization: `Bearer ${token}` },
         })
         .then((response) => {
-          setUser(response.data.user); // Aqui assume-se que a resposta tenha a informação do usuário
+          setUser(response.data.user); 
         })
         .catch(() => {
           setUser(null); // Se falhar ao recuperar, desloga o usuário
