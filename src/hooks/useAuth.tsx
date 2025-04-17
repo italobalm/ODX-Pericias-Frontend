@@ -19,7 +19,6 @@ const useAuth = () => {
 
   // Redirecionamento baseado no estado do usuário
   useEffect(() => {
-<<<<<<< HEAD
     if (!loading) {
       console.log("Estado atualizado - user:", user, "loading:", loading);
       if (user) {
@@ -32,30 +31,6 @@ const useAuth = () => {
     }
   }, [user, loading, router]);
 
-=======
-    const token = localStorage.getItem("token");
-  
-    if (token) {
-      setLoading(true);
-      api
-        .get<AuthResponse>("/api/auth/logged-user", {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((response) => {
-          setUser(response.data.user); 
-        })
-        .catch(() => {
-          setUser(null); // Se falhar ao recuperar, desloga o usuário
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    } else {
-      setUser(null); // Se não houver token, o usuário é nulo
-    }
-  }, []);
-  
->>>>>>> 44f2cb93a6b65fcc4858cb2b829c6058ab13fe96
   const login = async (email: string, senha: string) => {
     try {
       setLoading(true);
