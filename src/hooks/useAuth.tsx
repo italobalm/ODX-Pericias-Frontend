@@ -23,7 +23,7 @@ const useAuth = () => {
     if (token) {
       setLoading(true);
   
-      api.get<AuthResponse>("/logged-user", {
+      api.get<AuthResponse>("/api/auth/logged-user", {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then((response) => {
