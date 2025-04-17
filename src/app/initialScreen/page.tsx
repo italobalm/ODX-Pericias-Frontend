@@ -9,12 +9,18 @@ import {
   FaMicroscope,
   FaEye,
 } from "react-icons/fa";
-import React from "react";
-import { useRouter } from "next/navigation"; // Adicionado explicitamente
+import React, { useEffect } from "react";
+import { useRouter } from "next/navigation"; 
 
 export default function HomePage() {
   const { user, loading, error } = useAuth();
-  const router = useRouter(); // Necessário para navegação do menu
+  const router = useRouter();
+  
+    useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
 
   if (loading) {
     return <div className="text-center mt-20 text-gray-600">Carregando...</div>;

@@ -17,19 +17,27 @@ const useAuth = () => {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // Redirecionamento baseado no estado do usuário
   useEffect(() => {
-    if (!loading) {
-      console.log("Estado atualizado - user:", user, "loading:", loading);
-      if (user) {
-        console.log("Redirecionando para /initialScreen");
-        router.push("/initialScreen");
-      } else if (!localStorage.getItem("token")) {
-        console.log("Redirecionando para /login");
-        router.push("/login");
-      }
+    const token = localStorage.getItem("token");
+  
+    if (token) {
+      setLoading(true);
+  
+      api.get<AuthResponse>("/logged-user", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then((response) => {
+          setUser(response.data.user); 
+        })
+        .catch(() => {
+          setUser(null);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     }
-  }, [user, loading, router]);
+  }, []);
+  
 
   const login = async (email: string, senha: string) => {
     try {
