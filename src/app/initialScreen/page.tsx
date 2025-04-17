@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import useAuth from "../../hooks/userAuth";
+import useAuth from "../../hooks/useAuth";
 import {
   FaUsers,
   FaFolderOpen,

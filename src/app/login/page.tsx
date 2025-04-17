@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import useAuth from "../../hooks/userAuth";
+import useAuth from "../../hooks/useAuth";
 import Image from "next/image";
 import { FaArrowLeft } from "react-icons/fa";
 import { ApiError } from "../../types/User";
