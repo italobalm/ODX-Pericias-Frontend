@@ -6,12 +6,19 @@ import { ApiError } from "../types/Error";
 
 const useAuth = () => {
   const [user, setUser] = useState<User | null>(() => {
-    // Tenta restaurar o usuário do localStorage (opcional)
     if (typeof window !== 'undefined') {
       const storedUser = localStorage.getItem('user');
-      return storedUser ? JSON.parse(storedUser) : null;
+
+      try {
+        if (storedUser && storedUser !== "undefined") {
+          return JSON.parse(storedUser);
+        }
+      } catch (err) {
+        console.error("Erro ao fazer parse do user armazenado:", storedUser, err);
+      }
+      
+      return null;
     }
-    return null;
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
