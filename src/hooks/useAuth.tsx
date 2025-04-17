@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "../lib/axiosConfig";
 import { User, AuthResponse } from "../types/User";
@@ -9,6 +9,25 @@ const useAuth = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      setLoading(true);
+      api.get<AuthResponse>("/api/auth/verify-token", { // Exemplo de endpoint para verificar token
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then((response) => {
+          setUser(response.data.user);
+        })
+        .catch(() => {
+          setUser(null);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }, []);
 
   const login = async (email: string, senha: string) => {
     try {

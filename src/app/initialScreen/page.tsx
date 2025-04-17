@@ -18,10 +18,15 @@ export default function HomePage() {
   const { user, loading, error } = useAuth();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
+    if (!loading) {
+      if (!user) {
+        router.push("/login"); // Redireciona para login caso não tenha usuário
+      } else {
+        router.push("/initialScreen"); // Se houver usuário, redireciona para a página inicial
+      }
     }
   }, [user, loading, router]);
+  
 
   if (loading) {
     return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
