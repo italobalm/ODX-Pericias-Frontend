@@ -1,7 +1,4 @@
-"use client";
-
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import useAuth from "../../hooks/useAuth";
 import {
   FaUsers,
@@ -16,15 +13,6 @@ import React from "react";
 export default function HomePage() {
   const router = useRouter();
   const { user, loading, error } = useAuth();
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token || !user) {
-      router.push("/login");
-      return;
-    }
-    // Removido fetchLoggedUser, dependência do LoginPage
-  }, [router, user]);
 
   if (loading) {
     return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
