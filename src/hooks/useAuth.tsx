@@ -12,23 +12,27 @@ const useAuth = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+  
     if (token) {
       setLoading(true);
-      api.get<AuthResponse>("/api/auth/verify-token", { // Exemplo de endpoint para verificar token
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      api
+        .get<AuthResponse>("/api/auth/logged-user", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
         .then((response) => {
-          setUser(response.data.user);
+          setUser(response.data.user); // Aqui assume-se que a resposta tenha a informação do usuário
         })
         .catch(() => {
-          setUser(null);
+          setUser(null); // Se falhar ao recuperar, desloga o usuário
         })
         .finally(() => {
           setLoading(false);
         });
+    } else {
+      setUser(null); // Se não houver token, o usuário é nulo
     }
   }, []);
-
+  
   const login = async (email: string, senha: string) => {
     try {
       setLoading(true);
