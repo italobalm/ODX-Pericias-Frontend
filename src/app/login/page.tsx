@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import useAuth from "../../hooks/useAuth";
 import Image from "next/image";
@@ -12,36 +12,25 @@ export default function LoginPage() {
   const [senha, setSenha] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
-  const { login, user, loading, error } = useAuth();
+  const { login, loading, error } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     try {
-      await login(email, senha);
+      await login(email, senha); // Redirect handled by useAuth
     } catch (err) {
       const errorTyped = err as ApiError;
       setErrorMessage(errorTyped.response?.data?.msg || "Erro ao fazer login.");
     }
   };
 
-  useEffect(() => {
-    if (user && !loading) {
-      router.push("/initialScreen");
-    } else if (error) {
-      setErrorMessage(error);
-    }
-  }, [user, loading, error, router]);
-
   const handleGoBack = () => {
-    window.history.back();
+    router.push("/"); 
   };
 
-  if (loading) return <div>Carregando...</div>;
-
-  if (user) {
-    router.push("/initialScreen");
-    return null;
+  if (loading) {
+    return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
   }
 
   return (
@@ -99,7 +88,9 @@ export default function LoginPage() {
               />
             </div>
 
-            {(errorMessage || error) && <div className="text-red-600 text-sm">{errorMessage || error}</div>}
+            {(errorMessage || error) && (
+              <div className="text-red-600 text-sm">{errorMessage || error}</div>
+            )}
 
             <button
               type="submit"

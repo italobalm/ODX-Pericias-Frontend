@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import useAuth from "../../hooks/useAuth";
 import {
@@ -16,13 +17,18 @@ export default function HomePage() {
   const router = useRouter();
   const { user, loading, error } = useAuth();
 
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
+
   if (loading) {
     return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
   }
 
   if (!user) {
-    router.push("/login");
-    return null;
+    return null; // Redirect handled in useEffect
   }
 
   if (error) {
@@ -77,7 +83,7 @@ export default function HomePage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
           {menuItems
-            .filter((item) => item.allowed.includes(user.perfil))
+            .filter((item) => item.allowed.includes(user.perfil.toLowerCase()))
             .map((item, index) => (
               <button
                 key={index}
