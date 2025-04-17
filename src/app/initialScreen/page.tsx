@@ -1,6 +1,4 @@
 "use client";
-
-import useAuth from "../../hooks/useAuth";
 import {
   FaUsers,
   FaFolderOpen,
@@ -11,6 +9,8 @@ import {
 } from "react-icons/fa";
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation"; 
+import { useAuth } from "../providers/AuthProvider";
+
 
 export default function HomePage() {
   const { user, loading, error } = useAuth();
