@@ -47,7 +47,7 @@ export default function UserManagementPage() {
 
     const fetchUsers = async () => {
       try {
-        const res = await api.get<User[]>("/api/users");
+        const res = await api.get<User[]>("/api/user");
         setUsers(res.data);
       } catch (err) {
         const apiError = err as ApiError;
@@ -80,13 +80,13 @@ export default function UserManagementPage() {
 
     try {
       if (editingUser) {
-        const res = await api.put<User>(`/api/users/${editingUser.id}`, userData);
+        const res = await api.put<User>(`/api/user/${editingUser.id}`, userData);
         setUsers((prev) =>
           prev.map((u) => (u.id === editingUser.id ? res.data : u))
         );
         setSuccess("Usuário atualizado com sucesso.");
       } else {
-        const res = await api.post<User>("/api/users", userData);
+        const res = await api.post<User>("/api/user", userData);
         setUsers((prev) => [...prev, res.data]);
         setSuccess("Usuário adicionado com sucesso.");
       }
