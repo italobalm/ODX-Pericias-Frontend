@@ -21,7 +21,7 @@ export interface User {
 
 export default function UserManagementPage() {
   const router = useRouter();
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth(); 
 
   const [users, setUsers] = useState<User[]>([]);
   const [nome, setNome] = useState("");
@@ -41,7 +41,6 @@ export default function UserManagementPage() {
     }
   }, [user, loading, router]);
 
-  // Buscar usuários na montagem (somente administrador)
   useEffect(() => {
     if (!user || user.perfil !== "Admin") return;
 
@@ -59,7 +58,6 @@ export default function UserManagementPage() {
     fetchUsers();
   }, [user]);
 
-  // Add or update a user
   const handleSaveUser = async () => {
     if (!nome || !email || !rg || (!senha && !editingUser)) {
       setError("Preencha todos os campos obrigatórios.");
@@ -70,7 +68,6 @@ export default function UserManagementPage() {
       return;
     }
 
-    // Exclude id from the request body
     const userData = {
       nome,
       email,
@@ -82,20 +79,17 @@ export default function UserManagementPage() {
 
     try {
       if (editingUser) {
-        // Update user
         const res = await api.put<User>(`/api/users/${editingUser.id}`, userData);
         setUsers((prev) =>
           prev.map((u) => (u.id === editingUser.id ? res.data : u))
         );
         setSuccess("Usuário atualizado com sucesso.");
       } else {
-        // Add new user
         const res = await api.post<User>("/api/users", userData);
         setUsers((prev) => [...prev, res.data]);
         setSuccess("Usuário adicionado com sucesso.");
       }
 
-      // Reset form
       setEditingUser(null);
       setNome("");
       setEmail("");
