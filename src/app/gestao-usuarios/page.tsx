@@ -2,8 +2,10 @@
 
 import { useEffect, useState, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
-import { FaTrashAlt, FaArrowLeft } from "react-icons/fa";
+import { FaTrashAlt, FaArrowLeft, FaEdit } from "react-icons/fa";
+import api from "../../lib/axiosConfig";
+import { useAuth } from "../providers/AuthProvider";
+import { ApiError } from "@/types/Error";
 
 export type Perfil = "Admin" | "Perito" | "Assistente";
 
@@ -11,7 +13,7 @@ export interface User {
   id: string;
   nome: string;
   email: string;
-  senha?: string; // Não será exibida na listagem
+  senha?: string;
   perfil: Perfil;
   rg: string;
   cro?: string;
@@ -19,8 +21,8 @@ export interface User {
 
 export default function UserManagementPage() {
   const router = useRouter();
+  const { user, loading, logout } = useAuth();
 
-  // Estados para listagem e para os campos do formulário
   const [users, setUsers] = useState<User[]>([]);
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -29,74 +31,136 @@ export default function UserManagementPage() {
   const [cro, setCro] = useState("");
   const [perfil, setPerfil] = useState<Perfil>("Perito");
   const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>("");
 
-  // Busca os usuários do backend ao montar o componente
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+
   useEffect(() => {
+    if (!loading && (!user || user.perfil !== "Admin")) {
+      router.push("/initialScreen");
+    }
+  }, [user, loading, router]);
+
+  // Buscar usuários na montagem (somente administrador)
+  useEffect(() => {
+    if (!user || user.perfil !== "Admin") return;
+
     const fetchUsers = async () => {
       try {
-        const res = await axios.get<User[]>("/api/users");
+        const res = await api.get<User[]>("/api/users");
         setUsers(res.data);
-      } catch (err: unknown) {
-        console.error("Erro ao buscar usuários:", err);
-        setError("Erro ao carregar os usuários.");
+      } catch (err) {
+        const apiError = err as ApiError;
+        const msg = apiError?.response?.data?.msg || "Erro ao carregar os usuários.";
+        setError(msg);
       }
     };
 
     fetchUsers();
-  }, []);
+  }, [user]);
 
-  // Adiciona um novo usuário
-  const handleAddUser = async () => {
-    if (!nome || !email || !senha || !rg) {
-      alert("Preencha todos os campos obrigatórios.");
+  // Add or update a user
+  const handleSaveUser = async () => {
+    if (!nome || !email || !rg || (!senha && !editingUser)) {
+      setError("Preencha todos os campos obrigatórios.");
       return;
     }
-    // O backend define que o campo 'cro' é obrigatório somente para peritos
     if (perfil === "Perito" && !cro) {
-      alert("Para o perfil 'Perito', informe o CRO.");
+      setError("Para o perfil 'Perito', informe o CRO.");
       return;
     }
 
-    const newUser: User = {
-      id: crypto.randomUUID(),
+    // Exclude id from the request body
+    const userData = {
       nome,
       email,
-      senha,
+      senha: senha || undefined,
       rg,
       cro: cro || undefined,
       perfil,
     };
 
     try {
-      await axios.post("/api/users", newUser);
-      setUsers((prev) => [...prev, newUser]);
-      // Limpa os campos do formulário
+      if (editingUser) {
+        // Update user
+        const res = await api.put<User>(`/api/users/${editingUser.id}`, userData);
+        setUsers((prev) =>
+          prev.map((u) => (u.id === editingUser.id ? res.data : u))
+        );
+        setSuccess("Usuário atualizado com sucesso.");
+      } else {
+        // Add new user
+        const res = await api.post<User>("/api/users", userData);
+        setUsers((prev) => [...prev, res.data]);
+        setSuccess("Usuário adicionado com sucesso.");
+      }
+
+      // Reset form
+      setEditingUser(null);
       setNome("");
       setEmail("");
       setSenha("");
       setRg("");
       setCro("");
       setPerfil("Perito");
-    } catch (error) {
-      console.error("Erro ao adicionar usuário:", error);
-      alert("Não foi possível adicionar o usuário.");
+      setError("");
+    } catch (err) {
+      const apiError = err as ApiError;
+      const msg = apiError?.response?.data?.msg || "Erro ao salvar o usuário.";
+      setError(msg);
     }
   };
 
-  // Remove um usuário
+  // Edit a user
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setNome(user.nome);
+    setEmail(user.email);
+    setRg(user.rg);
+    setCro(user.cro || "");
+    setPerfil(user.perfil);
+    setSenha("");
+    setError("");
+    setSuccess("");
+  };
+
+  // Cancel edit
+  const handleCancelEdit = () => {
+    setEditingUser(null);
+    setNome("");
+    setEmail("");
+    setSenha("");
+    setRg("");
+    setCro("");
+    setPerfil("Perito");
+    setError("");
+    setSuccess("");
+  };
+
+  // Remove a user
   const handleRemoveUser = async (id: string) => {
     try {
-      await axios.delete(`/api/users/${id}`);
+      await api.delete(`/api/users/${id}`);
       setUsers((prev) => prev.filter((u) => u.id !== id));
-    } catch (error) {
-      console.error("Erro ao remover usuário:", error);
-      alert("Não foi possível remover o usuário.");
+      setSuccess("Usuário removido com sucesso.");
+    } catch (err) {
+      const apiError = err as ApiError;
+      const msg = apiError?.response?.data?.msg || "Erro ao remover o usuário.";
+      setError(msg);
     }
   };
+
+  if (loading) {
+    return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
+  }
+
+  if (!user || user.perfil !== "Admin") {
+    return null; // Redirect handled by useEffect
+  }
 
   return (
     <div className="max-w-5xl mx-auto pt-28 p-4 md:p-8">
-      {/* Cabeçalho com seta de voltar e título */}
+      {/* Header with back arrow and title */}
       <div className="flex items-center gap-4 mb-6">
         <button
           onClick={() => router.back()}
@@ -110,11 +174,13 @@ export default function UserManagementPage() {
         </h1>
       </div>
 
-      {/* Formulário para adicionar um novo usuário */}
+      {/* Form to add/edit a user */}
       <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-10 space-y-6">
         <h2 className="text-lg font-semibold text-gray-700">
-          Adicionar Novo Usuário
+          {editingUser ? "Editar Usuário" : "Adicionar Novo Usuário"}
         </h2>
+        {error && <p className="text-red-500">{error}</p>}
+        {success && <p className="text-green-500">{success}</p>}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <input
             type="text"
@@ -136,7 +202,7 @@ export default function UserManagementPage() {
           />
           <input
             type="password"
-            placeholder="Senha *"
+            placeholder={editingUser ? "Nova Senha (opcional)" : "Senha *"}
             value={senha}
             onChange={(e: ChangeEvent<HTMLInputElement>) =>
               setSenha(e.target.value)
@@ -173,24 +239,30 @@ export default function UserManagementPage() {
             <option value="Assistente">Assistente</option>
           </select>
         </div>
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-4">
+          {editingUser && (
+            <button
+              onClick={handleCancelEdit}
+              className="bg-gray-500 text-white py-2 px-6 rounded-md hover:bg-gray-600 transition"
+            >
+              Cancelar
+            </button>
+          )}
           <button
-            onClick={handleAddUser}
+            onClick={handleSaveUser}
             className="bg-teal-600 text-white py-2 px-6 rounded-md hover:bg-teal-700 transition"
           >
-            Adicionar Usuário
+            {editingUser ? "Salvar Alterações" : "Adicionar Usuário"}
           </button>
         </div>
       </div>
 
-      {/* Exibição dos usuários cadastrados */}
+      {/* Display registered users */}
       <div className="bg-white mt-4 rounded-xl shadow-md p-4 md:p-6">
         <h2 className="text-lg font-semibold text-gray-700 mb-6">
           Usuários Cadastrados
         </h2>
-        {error ? (
-          <p className="text-red-500">{error}</p>
-        ) : users.length === 0 ? (
+        {users.length === 0 ? (
           <p className="text-gray-500">Nenhum usuário cadastrado.</p>
         ) : (
           <ul className="divide-y divide-gray-200">
@@ -203,17 +275,25 @@ export default function UserManagementPage() {
                   <p className="font-medium text-gray-800">{user.nome}</p>
                   <p className="text-sm text-gray-500">
                     E-mail: {user.email} | RG: {user.rg}
-                    {user.cro && <> | CRO: {user.cro}</>} | Função:{" "}
-                    {user.perfil}
+                    {user.cro && <> | CRO: {user.cro}</>} | Função: {user.perfil}
                   </p>
                 </div>
-                <button
-                  onClick={() => handleRemoveUser(user.id)}
-                  className="text-red-600 hover:text-red-800 self-start md:self-auto"
-                  title="Remover Usuário"
-                >
-                  <FaTrashAlt />
-                </button>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => handleEditUser(user)}
+                    className="text-blue-600 hover:text-blue-800"
+                    title="Editar Usuário"
+                  >
+                    <FaEdit />
+                  </button>
+                  <button
+                    onClick={() => handleRemoveUser(user.id)}
+                    className="text-red-600 hover:text-red-800"
+                    title="Remover Usuário"
+                  >
+                    <FaTrashAlt />
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
