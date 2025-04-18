@@ -2,37 +2,56 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
-import { jsPDF } from "jspdf";
 import { FaArrowLeft, FaEdit, FaTrash, FaDownload } from "react-icons/fa";
+import useAuth from "../../hooks/useAuth";
+import { useReports } from "../../hooks/report";
+import { Case } from "../../types/Case";
+import { ApiError } from "../../types/Error";
 
 interface Report {
-  id: string;
-  caso: string;
-  titulo: string;
-  descricao: string;
-  objetoPericia: string;
-  analiseTecnica: string;
-  metodoUtilizado: string;
-  destinatario: string;
-  materiaisUtilizados: string;
-  examesRealizados: string;
-  consideracoesTecnicoPericiais: string;
-  conclusaoTecnica: string;
+  _id: string;
+  caseId: string;
+  titulo?: string;
+  descricao?: string;
+  objetoPericia?: string;
+  analiseTecnica?: string;
+  metodoUtilizado?: string;
+  destinatario?: string;
+  materiaisUtilizados?: string;
+  examesRealizados?: string;
+  consideracoesTecnicoPericiais?: string;
+  conclusaoTecnica?: string;
+  evidencias?: string;
+}
+
+interface ReportData {
+  caseId: string;
+  titulo?: string;
+  descricao?: string;
+  objetoPericia?: string;
+  analiseTecnica?: string;
+  metodoUtilizado?: string;
+  destinatario?: string;
+  materiaisUtilizados?: string;
+  examesRealizados?: string;
+  consideracoesTecnicoPericiais?: string;
+  conclusaoTecnica?: string;
   evidencias?: string;
 }
 
 export default function ReportManagementPage() {
   const router = useRouter();
+  const { user, loading: authLoading, fetchLoggedUser } = useAuth();
+  const { fetchReports, fetchCases, createReport, updateReport, deleteReport, loading: reportLoading, error: reportError } = useReports();
 
-  // Estados para dados, loading e erro
+  // Estados para dados
   const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [cases, setCases] = useState<Case[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Estados para controle da edição (modal)
   const [editingReport, setEditingReport] = useState<Report | null>(null);
-  const [editCaso, setEditCaso] = useState("");
+  const [editCaseId, setEditCaseId] = useState("");
   const [editTitulo, setEditTitulo] = useState("");
   const [editDescricao, setEditDescricao] = useState("");
   const [editObjetoPericia, setEditObjetoPericia] = useState("");
@@ -41,71 +60,72 @@ export default function ReportManagementPage() {
   const [editDestinatario, setEditDestinatario] = useState("");
   const [editMateriaisUtilizados, setEditMateriaisUtilizados] = useState("");
   const [editExamesRealizados, setEditExamesRealizados] = useState("");
-  const [
-    editConsideracoesTecnicoPericiais,
-    setEditConsideracoesTecnicoPericiais,
-  ] = useState("");
+  const [editConsideracoesTecnicoPericiais, setEditConsideracoesTecnicoPericiais] = useState("");
   const [editConclusaoTecnica, setEditConclusaoTecnica] = useState("");
   const [editEvidencias, setEditEvidencias] = useState("");
 
-  // Busca os relatórios do backend
+  // Verifica autenticação e busca relatórios e casos
   useEffect(() => {
-    const fetchReports = async () => {
+    const checkAuthAndFetchData = async () => {
+      if (authLoading) return;
+
+      if (!user) {
+        try {
+          await fetchLoggedUser();
+        } catch {
+          router.push("/login");
+          return;
+        }
+      }
+
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      if (!["ADMIN", "PERITO"].includes(user.perfil)) {
+        setError("Você não tem permissão para acessar esta página.");
+        router.push("/");
+        return;
+      }
+
       try {
-        const response = await axios.get<Report[]>("/api/reports");
-        setReports(response.data);
-      } catch (err: unknown) {
-        console.error("Erro ao buscar relatórios:", err);
-        setError("Erro ao carregar os relatórios.");
-      } finally {
-        setLoading(false);
+        const [reportsData, casesData] = await Promise.all([fetchReports(), fetchCases()]);
+        setReports(reportsData);
+        setCases(casesData);
+      } catch {
+        setError("Erro ao carregar os dados.");
       }
     };
 
-    fetchReports();
-  }, []);
-
-  // Função para excluir um relatório
-  const handleDelete = async (id: string) => {
-    if (confirm("Você tem certeza que deseja excluir este relatório?")) {
-      try {
-        await axios.delete(`/api/reports/${id}`);
-        setReports((prev) => prev.filter((report) => report.id !== id));
-      } catch (err: unknown) {
-        console.error("Erro ao excluir relatório:", err);
-        alert("Não foi possível excluir o relatório.");
-      }
-    }
-  };
+    checkAuthAndFetchData();
+  }, [user, authLoading, fetchLoggedUser, fetchReports, fetchCases, router]);
 
   // Preenche os campos de edição a partir do relatório selecionado
-  const handleEdit = (id: string) => {
-    const reportToEdit = reports.find((report) => report.id === id);
+  const handleEdit = (reportId: string) => {
+    const reportToEdit = reports.find((report) => report._id === reportId);
     if (reportToEdit) {
       setEditingReport(reportToEdit);
-      setEditCaso(reportToEdit.caso);
-      setEditTitulo(reportToEdit.titulo);
-      setEditDescricao(reportToEdit.descricao);
-      setEditObjetoPericia(reportToEdit.objetoPericia);
-      setEditAnaliseTecnica(reportToEdit.analiseTecnica);
-      setEditMetodoUtilizado(reportToEdit.metodoUtilizado);
-      setEditDestinatario(reportToEdit.destinatario);
-      setEditMateriaisUtilizados(reportToEdit.materiaisUtilizados);
-      setEditExamesRealizados(reportToEdit.examesRealizados);
-      setEditConsideracoesTecnicoPericiais(
-        reportToEdit.consideracoesTecnicoPericiais
-      );
-      setEditConclusaoTecnica(reportToEdit.conclusaoTecnica);
+      setEditCaseId(reportToEdit.caseId);
+      setEditTitulo(reportToEdit.titulo || "");
+      setEditDescricao(reportToEdit.descricao || "");
+      setEditObjetoPericia(reportToEdit.objetoPericia || "");
+      setEditAnaliseTecnica(reportToEdit.analiseTecnica || "");
+      setEditMetodoUtilizado(reportToEdit.metodoUtilizado || "");
+      setEditDestinatario(reportToEdit.destinatario || "");
+      setEditMateriaisUtilizados(reportToEdit.materiaisUtilizados || "");
+      setEditExamesRealizados(reportToEdit.examesRealizados || "");
+      setEditConsideracoesTecnicoPericiais(reportToEdit.consideracoesTecnicoPericiais || "");
+      setEditConclusaoTecnica(reportToEdit.conclusaoTecnica || "");
       setEditEvidencias(reportToEdit.evidencias || "");
     }
   };
 
-  // Atualiza o relatório editado e envia a alteração para o backend
+  // Atualiza o relatório editado
   const confirmEdit = async () => {
     if (editingReport) {
-      const updatedReport: Report = {
-        ...editingReport,
-        caso: editCaso,
+      const updatedReportData: ReportData = {
+        caseId: editCaseId,
         titulo: editTitulo,
         descricao: editDescricao,
         objetoPericia: editObjetoPericia,
@@ -120,16 +140,14 @@ export default function ReportManagementPage() {
       };
 
       try {
-        await axios.put(`/api/reports/${editingReport.id}`, updatedReport);
+        const updatedReport = await updateReport(editingReport._id, updatedReportData);
         setReports((prev) =>
-          prev.map((report) =>
-            report.id === editingReport.id ? updatedReport : report
-          )
+          prev.map((report) => (report._id === editingReport._id ? updatedReport : report))
         );
         setEditingReport(null);
-      } catch (err: unknown) {
-        console.error("Erro ao atualizar relatório:", err);
-        alert("Não foi possível atualizar o relatório.");
+      } catch (err) {
+        const errorTyped = err as ApiError;
+        setError(errorTyped.response?.data?.msg || "Erro ao atualizar o relatório.");
       }
     }
   };
@@ -139,61 +157,47 @@ export default function ReportManagementPage() {
     setEditingReport(null);
   };
 
-  // Função para gerar e baixar o PDF do relatório utilizando jsPDF
-  const downloadReport = (report: Report) => {
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
-    let currentY = margin;
-
-    // Cabeçalho do PDF
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text(`Relatório: ${report.titulo}`, pageWidth / 2, currentY, {
-      align: "center",
-    });
-    currentY += 10;
-
-    // Dados básicos
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(12);
-    doc.text(`Caso: ${report.caso}`, margin, currentY);
-    currentY += 8;
-    doc.text(`Descrição: ${report.descricao}`, margin, currentY);
-    currentY += 8;
-    doc.text(`Destinatário: ${report.destinatario}`, margin, currentY);
-    currentY += 8;
-    doc.text(`Conclusão Técnica: ${report.conclusaoTecnica}`, margin, currentY);
-    currentY += 8;
-
-    // Outros dados relevantes
-    doc.text(`Objeto da Perícia: ${report.objetoPericia}`, margin, currentY);
-    currentY += 8;
-    doc.text(`Análise Técnica: ${report.analiseTecnica}`, margin, currentY);
-    currentY += 8;
-    doc.text(`Método Utilizado: ${report.metodoUtilizado}`, margin, currentY);
-    currentY += 8;
-    doc.text(
-      `Materiais Utilizados: ${report.materiaisUtilizados}`,
-      margin,
-      currentY
-    );
-    currentY += 8;
-    doc.text(`Exames Realizados: ${report.examesRealizados}`, margin, currentY);
-    currentY += 8;
-    doc.text(
-      `Considerações Técnico-Periciais: ${report.consideracoesTecnicoPericiais}`,
-      margin,
-      currentY
-    );
-    currentY += 8;
-    if (report.evidencias) {
-      doc.text(`Evidências: ${report.evidencias}`, margin, currentY);
-      currentY += 8;
+  // Exclui um relatório
+  const handleDelete = async (reportId: string) => {
+    if (confirm("Você tem certeza que deseja excluir este relatório?")) {
+      try {
+        await deleteReport(reportId);
+        setReports((prev) => prev.filter((report) => report._id !== reportId));
+      } catch (err) {
+        const errorTyped = err as ApiError;
+        setError(errorTyped.response?.data?.msg || "Erro ao excluir o relatório.");
+      }
     }
+  };
 
-    // Dispara o download do PDF
-    doc.save(`relatorio_${report.titulo}.pdf`);
+  // Gera e baixa o PDF do relatório
+  const downloadReport = async (report: Report) => {
+    try {
+      const reportData: ReportData = {
+        caseId: report.caseId,
+        titulo: report.titulo,
+        descricao: report.descricao,
+        objetoPericia: report.objetoPericia,
+        analiseTecnica: report.analiseTecnica,
+        metodoUtilizado: report.metodoUtilizado,
+        destinatario: report.destinatario,
+        materiaisUtilizados: report.materiaisUtilizados,
+        examesRealizados: report.examesRealizados,
+        consideracoesTecnicoPericiais: report.consideracoesTecnicoPericiais,
+        conclusaoTecnica: report.conclusaoTecnica,
+        evidencias: report.evidencias,
+      };
+      const pdfBlob = await createReport(reportData);
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `relatorio_${report.titulo || "relatorio"}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      const errorTyped = err as ApiError;
+      setError(errorTyped.response?.data?.msg || "Erro ao gerar o PDF do relatório.");
+    }
   };
 
   // Renderiza a lista de relatórios
@@ -206,31 +210,33 @@ export default function ReportManagementPage() {
         <ul className="divide-y divide-gray-200">
           {reports.map((report) => (
             <li
-              key={report.id}
+              key={report._id}
               className="py-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4 hover:bg-gray-50 transition p-2 rounded-lg"
             >
               <div>
-                <p className="font-medium text-gray-800">Caso: {report.caso}</p>
+                <p className="font-medium text-gray-800">
+                  Caso: {cases.find((c) => c._id === report.caseId)?.titulo || report.caseId}
+                </p>
                 <p className="text-sm text-gray-500">
-                  Título: {report.titulo}
+                  Título: {report.titulo || "Sem título"}
                   <br />
-                  Descrição: {report.descricao}
+                  Descrição: {report.descricao || "Sem descrição"}
                   <br />
-                  Destinatário: {report.destinatario}
+                  Destinatário: {report.destinatario || "Não informado"}
                   <br />
-                  Conclusão Técnica: {report.conclusaoTecnica}
+                  Conclusão Técnica: {report.conclusaoTecnica || "Não informada"}
                 </p>
               </div>
               <div className="flex items-center gap-4">
                 <button
-                  onClick={() => handleEdit(report.id)}
+                  onClick={() => handleEdit(report._id)}
                   className="text-blue-500 hover:text-blue-700 transition"
                   title="Editar Relatório"
                 >
                   <FaEdit size={18} />
                 </button>
                 <button
-                  onClick={() => handleDelete(report.id)}
+                  onClick={() => handleDelete(report._id)}
                   className="text-red-500 hover:text-red-700 transition"
                   title="Excluir Relatório"
                 >
@@ -251,18 +257,18 @@ export default function ReportManagementPage() {
     </div>
   );
 
-  if (loading) {
+  if (authLoading || reportLoading) {
     return (
       <div className="max-w-6xl mx-auto pt-28 p-4 md:p-8">
-        <p>Carregando relatórios...</p>
+        <p>Carregando...</p>
       </div>
     );
   }
 
-  if (error) {
+  if (error || reportError) {
     return (
       <div className="max-w-6xl mx-auto pt-28 p-4 md:p-8">
-        <p className="text-red-500">{error}</p>
+        <p className="text-red-500">{error || reportError}</p>
       </div>
     );
   }
@@ -295,12 +301,18 @@ export default function ReportManagementPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Caso
               </label>
-              <input
-                type="text"
-                value={editCaso}
-                onChange={(e) => setEditCaso(e.target.value)}
+              <select
+                value={editCaseId}
+                onChange={(e) => setEditCaseId(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
-              />
+              >
+                <option value="">Selecione um caso</option>
+                {cases.map((caseItem) => (
+                  <option key={caseItem._id} value={caseItem._id}>
+                    {caseItem.titulo}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -396,9 +408,7 @@ export default function ReportManagementPage() {
               </label>
               <textarea
                 value={editConsideracoesTecnicoPericiais}
-                onChange={(e) =>
-                  setEditConsideracoesTecnicoPericiais(e.target.value)
-                }
+                onChange={(e) => setEditConsideracoesTecnicoPericiais(e.target.value)}
                 rows={2}
                 className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
               ></textarea>

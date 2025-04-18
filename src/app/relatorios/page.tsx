@@ -1,15 +1,22 @@
 "use client";
 
-import { useState, FormEvent, ChangeEvent } from "react";
+import { useState, useEffect, FormEvent, ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { FaArrowLeft } from "react-icons/fa";
-import { jsPDF } from "jspdf";
+import useAuth from "../../hooks/useAuth";
+import { useReports } from "../../hooks/report";
+import { Case } from "../../types/Case";
 
 export default function ReportRegisterPage() {
+  const router = useRouter();
+  const { user, loading: authLoading, fetchLoggedUser } = useAuth();
+  const { fetchCases, createReport, loading: reportLoading, error: reportError } = useReports();
+
   // Etapas: 1 – Informações Básicas; 2 – Dados Periciais; 3 – Detalhes e Revisão; 4 – Visualizar PDF
   const [step, setStep] = useState(1);
 
-  // Estados dos campos (conforme backend)
+  // Estados dos campos
   const [caso, setCaso] = useState("");
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -19,201 +26,100 @@ export default function ReportRegisterPage() {
   const [destinatario, setDestinatario] = useState("");
   const [materiaisUtilizados, setMateriaisUtilizados] = useState("");
   const [examesRealizados, setExamesRealizados] = useState("");
-  const [consideracoesTecnicoPericiais, setConsideracoesTecnicoPericiais] =
-    useState("");
+  const [consideracoesTecnicoPericiais, setConsideracoesTecnicoPericiais] = useState("");
   const [conclusaoTecnica, setConclusaoTecnica] = useState("");
-  const [evidencias, setEvidencias] = useState("");
 
+  const [cases, setCases] = useState<Case[]>([]);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [pdfUrl, setPdfUrl] = useState("");
 
   // Validações simples por etapa
   const isStep1Valid = caso && titulo && descricao;
-  const isStep2Valid =
-    objetoPericia && analiseTecnica && metodoUtilizado && destinatario;
+  const isStep2Valid = objetoPericia && analiseTecnica && metodoUtilizado && destinatario;
+
+  // Verifica autenticação e busca os casos
+  useEffect(() => {
+    const checkAuthAndFetchCases = async () => {
+      if (authLoading) return; // Aguarda até que o authLoading seja resolvido
+  
+      if (!user) {
+        try {
+          await fetchLoggedUser();
+        } catch  {
+          router.push("/login");
+          return;
+        }
+      }
+  
+      // Após fetchLoggedUser, user pode ainda ser null se houver falha
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+  
+      if (!["ADMIN", "PERITO"].includes(user.perfil)) {
+        setError("Você não tem permissão para acessar esta página.");
+        router.push("/");
+        return;
+      }
+  
+      try {
+        const casesData = await fetchCases();
+        setCases(casesData);
+      } catch  {
+        setError("Erro ao carregar os casos.");
+      }
+    };
+  
+    checkAuthAndFetchCases();
+  }, [user, authLoading, fetchLoggedUser, fetchCases, router]);
 
   const handleGoBack = () => {
     if (step === 1) window.history.back();
     else setStep(step - 1);
   };
 
-  // Função para atualizar os estados dos inputs
   const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
     setter: React.Dispatch<React.SetStateAction<string>>
   ) => {
     setter(e.target.value);
   };
 
-  // Função para gerar um PDF com um design profissional
-  const gerarPDF = () => {
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
-    let currentY = margin;
-
-    // Cabeçalho: logo e título
-    // Substitua logoData pela sua logo real em base64
-    const logoData =
-      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAABTUlEQVR4Xu3YMQ6CMBAF0N/ULs26MVNOnSyJtCzB2QIwB1YHe7HcP+gS0AIN9LS+vd54+7Un6JycyIiiKIIiiKIIiiKIIiiKIIiiKIIiiKIIiiKIIiiKIIiiKIIiiKIIiiKIIiiKIIiiKIIiiKIIiiKIIiiKIIiiKIIiiKIIiiKIIiuSP8I/L8AB9x1CJ5fZvtTPYLcF6I8RU3uAVM8hOkBTPITpAUzye6QFM8hOoBTPIe6QHM8hOkBTPIe6QHM8hOkBTPIe6QHM8hOkBTPIe6QHM8hOkBTPIe6QHM8hOkBTPIe6QHM8hOkBTPId6gX9yaH3gG4r9jgAAAABJRU5ErkJggg==";
-    const logoWidth = 30;
-    const logoHeight = 30;
-    doc.addImage(
-      logoData,
-      "PNG",
-      (pageWidth - logoWidth) / 2,
-      currentY,
-      logoWidth,
-      logoHeight
-    );
-    currentY += logoHeight + 5;
-
-    // Título do Documento
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.text(
-      "Relatório de Perícia Odontológica Criminal",
-      pageWidth / 2,
-      currentY,
-      { align: "center" }
-    );
-    currentY += 10;
-
-    // Linha divisória do cabeçalho
-    doc.setLineWidth(0.7);
-    doc.line(margin, currentY, pageWidth - margin, currentY);
-    currentY += 8;
-
-    // Seção: Dados do Caso
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text("Dados do Caso", margin, currentY);
-    currentY += 7;
-    doc.setLineWidth(0.2);
-    doc.line(margin, currentY, pageWidth - margin, currentY);
-    currentY += 7;
-    doc.setFont("helvetica", "normal");
-    doc.text(`ID/Nome do Caso: ${caso}`, margin, currentY);
-    currentY += 12;
-
-    // Seção: Informações Básicas
-    doc.setFont("helvetica", "bold");
-    doc.text("Informações Básicas", margin, currentY);
-    currentY += 7;
-    doc.line(margin, currentY, pageWidth - margin, currentY);
-    currentY += 7;
-    doc.setFont("helvetica", "normal");
-    doc.text(`Título: ${titulo}`, margin, currentY);
-    currentY += 7;
-    let lines = doc.splitTextToSize(
-      `Descrição: ${descricao}`,
-      pageWidth - margin * 2
-    );
-    doc.text(lines, margin, currentY);
-    currentY += lines.length * 7 + 5;
-
-    // Seção: Dados Periciais
-    doc.setFont("helvetica", "bold");
-    doc.text("Dados Periciais", margin, currentY);
-    currentY += 7;
-    doc.line(margin, currentY, pageWidth - margin, currentY);
-    currentY += 7;
-    doc.setFont("helvetica", "normal");
-    doc.text(`Objeto da Perícia: ${objetoPericia}`, margin, currentY);
-    currentY += 7;
-    doc.text(`Análise Técnica: ${analiseTecnica}`, margin, currentY);
-    currentY += 7;
-    doc.text(`Método Utilizado: ${metodoUtilizado}`, margin, currentY);
-    currentY += 7;
-    doc.text(`Destinatário: ${destinatario}`, margin, currentY);
-    currentY += 12;
-
-    // Seção: Detalhes e Conclusões
-    doc.setFont("helvetica", "bold");
-    doc.text("Detalhes e Conclusões", margin, currentY);
-    currentY += 7;
-    doc.line(margin, currentY, pageWidth - margin, currentY);
-    currentY += 7;
-    doc.setFont("helvetica", "normal");
-    lines = doc.splitTextToSize(
-      `Materiais Utilizados: ${materiaisUtilizados}`,
-      pageWidth - margin * 2
-    );
-    doc.text(lines, margin, currentY);
-    currentY += lines.length * 7 + 5;
-    lines = doc.splitTextToSize(
-      `Exames Realizados: ${examesRealizados}`,
-      pageWidth - margin * 2
-    );
-    doc.text(lines, margin, currentY);
-    currentY += lines.length * 7 + 5;
-    lines = doc.splitTextToSize(
-      `Considerações Técnico-Periciais: ${consideracoesTecnicoPericiais}`,
-      pageWidth - margin * 2
-    );
-    doc.text(lines, margin, currentY);
-    currentY += lines.length * 7 + 5;
-    lines = doc.splitTextToSize(
-      `Conclusão Técnica: ${conclusaoTecnica}`,
-      pageWidth - margin * 2
-    );
-    doc.text(lines, margin, currentY);
-    currentY += lines.length * 7 + 5;
-
-    // Seção: Evidências (caso haja)
-    if (evidencias) {
-      doc.setFont("helvetica", "bold");
-      doc.text("Evidências Associadas", margin, currentY);
-      currentY += 7;
-      doc.line(margin, currentY, pageWidth - margin, currentY);
-      currentY += 7;
-      doc.setFont("helvetica", "normal");
-      doc.text(`IDs: ${evidencias}`, margin, currentY);
-      currentY += 12;
-    }
-
-    // Espaço para assinatura
-    doc.setFont("helvetica", "bold");
-    doc.text("Assinatura:", margin, pageHeight - margin - 20);
-    doc.setLineWidth(0.3);
-    doc.line(
-      margin,
-      pageHeight - margin - 15,
-      pageWidth - margin,
-      pageHeight - margin - 15
-    );
-
-    // Rodapé: observação
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "italic");
-    doc.text(
-      "Documento gerado automaticamente pelo sistema.",
-      margin,
-      pageHeight - margin
-    );
-
-    // Converte para blob e cria URL para visualização/download
-    const pdfBlob = doc.output("blob");
-    const url = window.URL.createObjectURL(pdfBlob);
-    setPdfUrl(url);
-  };
-
-  // Envia o formulário (etapa 3) e chama a função de finalização; não há envio para backend
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     try {
+      const reportData = {
+        caseId: caso,
+        titulo,
+        descricao,
+        objetoPericia,
+        analiseTecnica,
+        metodoUtilizado,
+        destinatario,
+        materiaisUtilizados,
+        examesRealizados,
+        consideracoesTecnicoPericiais,
+        conclusaoTecnica,
+      };
+
+      const pdfBlob = await createReport(reportData);
+      const url = window.URL.createObjectURL(pdfBlob);
+      setPdfUrl(url);
       setSubmitted(true);
-      // Ao clicar em "Finalizar", o PDF é gerado e a etapa 4 é exibida
-      gerarPDF();
       setStep(4);
     } catch (err) {
-      console.error(err);
-      setError("Erro ao gerar o PDF.");
+      const errorTyped = err as Error;
+    const errorMessage = errorTyped.message || "Erro ao cadastrar o relatório.";
+    setError(errorMessage);
     }
   };
+
+  if (authLoading || reportLoading) {
+    return <div className="text-center mt-20">Carregando...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-white p-6 sm:p-12">
@@ -266,12 +172,23 @@ export default function ReportRegisterPage() {
           >
             {step === 1 && (
               <form className="space-y-4">
-                <Input
-                  label="Caso (ID)"
-                  value={caso}
-                  placeholder="Digite o ID ou nome do caso"
-                  onChange={(e) => handleChange(e, setCaso)}
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Caso
+                  </label>
+                  <select
+                    value={caso}
+                    onChange={(e) => handleChange(e, setCaso)}
+                    className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-teal-300"
+                  >
+                    <option value="">Selecione um caso</option>
+                    {cases.map((caseItem) => (
+                      <option key={caseItem._id} value={caseItem._id}>
+                        {caseItem.titulo}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <Input
                   label="Título"
                   value={titulo}
@@ -356,9 +273,7 @@ export default function ReportRegisterPage() {
                   label="Considerações Técnico-Periciais"
                   value={consideracoesTecnicoPericiais}
                   placeholder="Digite as considerações técnico-periciais"
-                  onChange={(e) =>
-                    handleChange(e, setConsideracoesTecnicoPericiais)
-                  }
+                  onChange={(e) => handleChange(e, setConsideracoesTecnicoPericiais)}
                 />
                 <Textarea
                   label="Conclusão Técnica"
@@ -366,60 +281,26 @@ export default function ReportRegisterPage() {
                   placeholder="Digite a conclusão técnica"
                   onChange={(e) => handleChange(e, setConclusaoTecnica)}
                 />
-                <Input
-                  label="Evidências (opcional)"
-                  value={evidencias}
-                  placeholder="Digite os IDs das evidências, separados por vírgula"
-                  onChange={(e) => handleChange(e, setEvidencias)}
-                />
 
                 <div className="bg-teal-50 p-4 rounded-xl border border-teal-200 space-y-2">
-                  <p>
-                    <strong>Caso:</strong> {caso}
-                  </p>
-                  <p>
-                    <strong>Título:</strong> {titulo}
-                  </p>
-                  <p>
-                    <strong>Descrição:</strong> {descricao}
-                  </p>
-                  <p>
-                    <strong>Objeto da Perícia:</strong> {objetoPericia}
-                  </p>
-                  <p>
-                    <strong>Análise Técnica:</strong> {analiseTecnica}
-                  </p>
-                  <p>
-                    <strong>Método Utilizado:</strong> {metodoUtilizado}
-                  </p>
-                  <p>
-                    <strong>Destinatário:</strong> {destinatario}
-                  </p>
-                  <p>
-                    <strong>Materiais Utilizados:</strong> {materiaisUtilizados}
-                  </p>
-                  <p>
-                    <strong>Exames Realizados:</strong> {examesRealizados}
-                  </p>
-                  <p>
-                    <strong>Considerações Técnico-Periciais:</strong>{" "}
-                    {consideracoesTecnicoPericiais}
-                  </p>
-                  <p>
-                    <strong>Conclusão Técnica:</strong> {conclusaoTecnica}
-                  </p>
-                  {evidencias && (
-                    <p>
-                      <strong>Evidências:</strong> {evidencias}
-                    </p>
-                  )}
+                  <p><strong>Caso:</strong> {cases.find(c => c._id === caso)?.titulo || caso}</p>
+                  <p><strong>Título:</strong> {titulo}</p>
+                  <p><strong>Descrição:</strong> {descricao}</p>
+                  <p><strong>Objeto da Perícia:</strong> {objetoPericia}</p>
+                  <p><strong>Análise Técnica:</strong> {analiseTecnica}</p>
+                  <p><strong>Método Utilizado:</strong> {metodoUtilizado}</p>
+                  <p><strong>Destinatário:</strong> {destinatario}</p>
+                  <p><strong>Materiais Utilizados:</strong> {materiaisUtilizados}</p>
+                  <p><strong>Exames Realizados:</strong> {examesRealizados}</p>
+                  <p><strong>Considerações Técnico-Periciais:</strong> {consideracoesTecnicoPericiais}</p>
+                  <p><strong>Conclusão Técnica:</strong> {conclusaoTecnica}</p>
                 </div>
 
-                {error && <p className="text-red-500 text-sm">{error}</p>}
+                {(error || reportError) && (
+                  <p className="text-red-500 text-sm">{error || reportError}</p>
+                )}
                 {submitted && (
-                  <p className="text-green-600 text-sm">
-                    Relatório cadastrado com sucesso!
-                  </p>
+                  <p className="text-green-600 text-sm">Relatório cadastrado com sucesso!</p>
                 )}
                 <div className="flex justify-between gap-4 mt-4">
                   <button
@@ -432,8 +313,9 @@ export default function ReportRegisterPage() {
                   <button
                     type="submit"
                     className="bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
+                    disabled={reportLoading}
                   >
-                    Finalizar
+                    {reportLoading ? "Enviando..." : "Finalizar"}
                   </button>
                 </div>
               </form>
@@ -450,7 +332,7 @@ export default function ReportRegisterPage() {
                       src={pdfUrl}
                       title="Visualização do PDF"
                       className="w-full h-full"
-                    ></iframe>
+                    />
                   ) : (
                     <p className="text-gray-500 text-center mt-20">
                       PDF não disponível.
@@ -481,7 +363,6 @@ export default function ReportRegisterPage() {
 }
 
 // Componentes reutilizáveis
-
 function Input({
   label,
   value,
@@ -533,7 +414,7 @@ function Textarea({
         placeholder={placeholder}
         className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-teal-300 placeholder-gray-500"
         rows={4}
-      ></textarea>
+      />
     </div>
   );
 }
