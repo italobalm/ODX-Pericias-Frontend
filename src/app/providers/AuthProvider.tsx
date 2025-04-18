@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         senha,
       });
 
-      const { token, usuario: userData } = response.data;
+      const { token, user: userData } = response.data;
 
       localStorage.setItem("token", token);
       setUser(userData);
