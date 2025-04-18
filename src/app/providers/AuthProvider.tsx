@@ -15,7 +15,7 @@ import {
 interface AuthContextProps {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, senha: string) => Promise<void>;
   logout: () => void;
   error: string | null;
 }
@@ -27,7 +27,7 @@ const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null); // Novo estado de erro
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchUser() {
@@ -56,15 +56,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchUser();
   }, []);
 
-  async function login(email: string, password: string) {
+  async function login(email: string, senha: string) {
     try {
-      setError(null); // Limpa erro anterior
+      setError(null);
       const response = await api.post<AuthResponse>("/api/auth/login", {
         email,
-        password,
+        senha,
       });
 
-      const { token, user: userData } = response.data;
+      const { token, usuario: userData } = response.data;
 
       localStorage.setItem("token", token);
       setUser(userData);
