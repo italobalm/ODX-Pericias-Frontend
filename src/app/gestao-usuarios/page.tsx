@@ -21,7 +21,7 @@ export interface User {
 
 export default function UserManagementPage() {
   const router = useRouter();
-  const { user, loading } = useAuth(); 
+  const { user, loading, error } = useAuth(); 
 
   const [users, setUsers] = useState<User[]>([]);
   const [nome, setNome] = useState("");
@@ -30,19 +30,20 @@ export default function UserManagementPage() {
   const [rg, setRg] = useState("");
   const [cro, setCro] = useState("");
   const [perfil, setPerfil] = useState<Perfil>("Perito");
-  const [error, setError] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>(""); 
   const [success, setSuccess] = useState<string>("");
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
   useEffect(() => {
-    if (!loading && (!user || user.perfil !== "Admin")) {
+    if (!loading && (!user || user.perfil.toLowerCase() !== "admin")) {
+      console.log("Redirecting to /initialScreen - user.perfil:", user?.perfil);
       router.push("/initialScreen");
     }
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (!user || user.perfil !== "Admin") return;
+    if (!user || user.perfil.toLowerCase() !== "admin") return;
 
     const fetchUsers = async () => {
       try {
@@ -51,7 +52,7 @@ export default function UserManagementPage() {
       } catch (err) {
         const apiError = err as ApiError;
         const msg = apiError?.response?.data?.msg || "Erro ao carregar os usuários.";
-        setError(msg);
+        setErrorMessage(msg);
       }
     };
 
@@ -60,11 +61,11 @@ export default function UserManagementPage() {
 
   const handleSaveUser = async () => {
     if (!nome || !email || !rg || (!senha && !editingUser)) {
-      setError("Preencha todos os campos obrigatórios.");
+      setErrorMessage("Preencha todos os campos obrigatórios.");
       return;
     }
     if (perfil === "Perito" && !cro) {
-      setError("Para o perfil 'Perito', informe o CRO.");
+      setErrorMessage("Para o perfil 'Perito', informe o CRO.");
       return;
     }
 
@@ -97,15 +98,14 @@ export default function UserManagementPage() {
       setRg("");
       setCro("");
       setPerfil("Perito");
-      setError("");
+      setErrorMessage("");
     } catch (err) {
       const apiError = err as ApiError;
       const msg = apiError?.response?.data?.msg || "Erro ao salvar o usuário.";
-      setError(msg);
+      setErrorMessage(msg);
     }
   };
 
-  // Edit a user
   const handleEditUser = (user: User) => {
     setEditingUser(user);
     setNome(user.nome);
@@ -114,11 +114,10 @@ export default function UserManagementPage() {
     setCro(user.cro || "");
     setPerfil(user.perfil);
     setSenha("");
-    setError("");
+    setErrorMessage("");
     setSuccess("");
   };
 
-  // Cancel edit
   const handleCancelEdit = () => {
     setEditingUser(null);
     setNome("");
@@ -127,11 +126,10 @@ export default function UserManagementPage() {
     setRg("");
     setCro("");
     setPerfil("Perito");
-    setError("");
+    setErrorMessage("");
     setSuccess("");
   };
 
-  // Remove a user
   const handleRemoveUser = async (id: string) => {
     try {
       await api.delete(`/api/users/${id}`);
@@ -140,7 +138,7 @@ export default function UserManagementPage() {
     } catch (err) {
       const apiError = err as ApiError;
       const msg = apiError?.response?.data?.msg || "Erro ao remover o usuário.";
-      setError(msg);
+      setErrorMessage(msg);
     }
   };
 
@@ -148,8 +146,12 @@ export default function UserManagementPage() {
     return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
   }
 
-  if (!user || user.perfil !== "Admin") {
+  if (!user || user.perfil.toLowerCase() !== "admin") {
     return null; // Redirect handled by useEffect
+  }
+
+  if (error) {
+    return <div className="text-center mt-20 text-red-600">{error}</div>;
   }
 
   return (
@@ -173,7 +175,9 @@ export default function UserManagementPage() {
         <h2 className="text-lg font-semibold text-gray-700">
           {editingUser ? "Editar Usuário" : "Adicionar Novo Usuário"}
         </h2>
-        {error && <p className="text-red-500">{error}</p>}
+        {(errorMessage || error) && (
+          <p className="text-red-500">{errorMessage || error}</p>
+        )}
         {success && <p className="text-green-500">{success}</p>}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <input
