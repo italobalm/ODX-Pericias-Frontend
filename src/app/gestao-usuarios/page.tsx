@@ -10,7 +10,7 @@ import { ApiError } from "@/types/Error";
 export type Perfil = "Admin" | "Perito" | "Assistente";
 
 export interface User {
-  id: string;
+  _id: string; 
   nome: string;
   email: string;
   senha?: string;
@@ -21,7 +21,7 @@ export interface User {
 
 export default function UserManagementPage() {
   const router = useRouter();
-  const { user, loading, error } = useAuth(); 
+  const { user, loading, error } = useAuth();
 
   const [users, setUsers] = useState<User[]>([]);
   const [nome, setNome] = useState("");
@@ -30,8 +30,9 @@ export default function UserManagementPage() {
   const [rg, setRg] = useState("");
   const [cro, setCro] = useState("");
   const [perfil, setPerfil] = useState<Perfil>("Perito");
-  const [errorMessage, setErrorMessage] = useState<string>(""); 
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
@@ -46,13 +47,23 @@ export default function UserManagementPage() {
     if (!user || user.perfil.toLowerCase() !== "admin") return;
 
     const fetchUsers = async () => {
+      setIsLoading(true);
       try {
         const res = await api.get<User[]>("/api/user");
+        console.log("Fetched users:", res.data);
         setUsers(res.data);
+        // Validate that each user has an _id
+        if (res.data.some((u) => !u._id)) {
+          console.error("Some users are missing an _id:", res.data);
+          setErrorMessage("Erro: Alguns usuários não possuem ID.");
+        }
       } catch (err) {
         const apiError = err as ApiError;
         const msg = apiError?.response?.data?.msg || "Erro ao carregar os usuários.";
+        console.error("Error fetching users:", apiError?.response?.data || apiError);
         setErrorMessage(msg);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -75,14 +86,21 @@ export default function UserManagementPage() {
       senha: senha || undefined,
       rg,
       cro: cro || undefined,
-      perfil,
+      perfil: perfil,
     };
 
+    setIsLoading(true);
     try {
       if (editingUser) {
-        const res = await api.put<User>(`/api/user/${editingUser.id}`, userData);
+        if (!editingUser._id) {
+          setErrorMessage("ID do usuário não encontrado para edição.");
+          console.error("Editing user _id is undefined:", editingUser);
+          setIsLoading(false);
+          return;
+        }
+        const res = await api.put<User>(`/api/user/${editingUser._id}`, userData);
         setUsers((prev) =>
-          prev.map((u) => (u.id === editingUser.id ? res.data : u))
+          prev.map((u) => (u._id === editingUser._id ? res.data : u))
         );
         setSuccess("Usuário atualizado com sucesso.");
       } else {
@@ -102,11 +120,20 @@ export default function UserManagementPage() {
     } catch (err) {
       const apiError = err as ApiError;
       const msg = apiError?.response?.data?.msg || "Erro ao salvar o usuário.";
+      console.error("Error saving user:", apiError?.response?.data || apiError);
       setErrorMessage(msg);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleEditUser = (user: User) => {
+    if (!user._id) {
+      setErrorMessage("Não é possível editar: ID do usuário não encontrado.");
+      console.error("User _id is missing for editing:", user);
+      return;
+    }
+    console.log("Editing user:", user);
     setEditingUser(user);
     setNome(user.nome);
     setEmail(user.email);
@@ -131,14 +158,24 @@ export default function UserManagementPage() {
   };
 
   const handleRemoveUser = async (id: string) => {
+    if (!id) {
+      setErrorMessage("ID do usuário não encontrado para remoção.");
+      console.error("User _id is undefined for deletion");
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
     try {
-      await api.delete(`/api/users/${id}`);
-      setUsers((prev) => prev.filter((u) => u.id !== id));
+      await api.delete(`/api/user/${id}`);
+      setUsers((prev) => prev.filter((u) => u._id !== id));
       setSuccess("Usuário removido com sucesso.");
     } catch (err) {
       const apiError = err as ApiError;
       const msg = apiError?.response?.data?.msg || "Erro ao remover o usuário.";
+      console.error("Error deleting user:", apiError?.response?.data || apiError);
       setErrorMessage(msg);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -147,7 +184,7 @@ export default function UserManagementPage() {
   }
 
   if (!user || user.perfil.toLowerCase() !== "admin") {
-    return null; // Redirect handled by useEffect
+    return null; 
   }
 
   if (error) {
@@ -156,7 +193,6 @@ export default function UserManagementPage() {
 
   return (
     <div className="max-w-5xl mx-auto pt-28 p-4 md:p-8">
-      {/* Header with back arrow and title */}
       <div className="flex items-center gap-4 mb-6">
         <button
           onClick={() => router.back()}
@@ -170,7 +206,6 @@ export default function UserManagementPage() {
         </h1>
       </div>
 
-      {/* Form to add/edit a user */}
       <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-10 space-y-6">
         <h2 className="text-lg font-semibold text-gray-700">
           {editingUser ? "Editar Usuário" : "Adicionar Novo Usuário"}
@@ -188,6 +223,7 @@ export default function UserManagementPage() {
               setNome(e.target.value)
             }
             className="w-full p-3 border border-gray-300 rounded-md"
+            disabled={isLoading}
           />
           <input
             type="email"
@@ -197,6 +233,7 @@ export default function UserManagementPage() {
               setEmail(e.target.value)
             }
             className="w-full p-3 border border-gray-300 rounded-md"
+            disabled={isLoading}
           />
           <input
             type="password"
@@ -206,6 +243,7 @@ export default function UserManagementPage() {
               setSenha(e.target.value)
             }
             className="w-full p-3 border border-gray-300 rounded-md"
+            disabled={isLoading}
           />
           <input
             type="text"
@@ -215,6 +253,7 @@ export default function UserManagementPage() {
               setRg(e.target.value)
             }
             className="w-full p-3 border border-gray-300 rounded-md"
+            disabled={isLoading}
           />
           <input
             type="text"
@@ -224,6 +263,7 @@ export default function UserManagementPage() {
               setCro(e.target.value)
             }
             className="w-full p-3 border border-gray-300 rounded-md"
+            disabled={isLoading}
           />
           <select
             value={perfil}
@@ -231,6 +271,7 @@ export default function UserManagementPage() {
               setPerfil(e.target.value as Perfil)
             }
             className="w-full p-3 border border-gray-300 rounded-md"
+            disabled={isLoading}
           >
             <option value="Admin">Administrador</option>
             <option value="Perito">Perito</option>
@@ -242,6 +283,7 @@ export default function UserManagementPage() {
             <button
               onClick={handleCancelEdit}
               className="bg-gray-500 text-white py-2 px-6 rounded-md hover:bg-gray-600 transition"
+              disabled={isLoading}
             >
               Cancelar
             </button>
@@ -249,24 +291,33 @@ export default function UserManagementPage() {
           <button
             onClick={handleSaveUser}
             className="bg-teal-600 text-white py-2 px-6 rounded-md hover:bg-teal-700 transition"
+            disabled={isLoading}
           >
-            {editingUser ? "Salvar Alterações" : "Adicionar Usuário"}
+            {isLoading
+              ? "Carregando..."
+              : editingUser
+              ? "Salvar Alterações"
+              : "Adicionar Usuário"}
           </button>
         </div>
       </div>
 
-      {/* Display registered users */}
       <div className="bg-white mt-4 rounded-xl shadow-md p-4 md:p-6">
         <h2 className="text-lg font-semibold text-gray-700 mb-6">
           Usuários Cadastrados
         </h2>
-        {users.length === 0 ? (
-          <p className="text-gray-500">Nenhum usuário cadastrado.</p>
+        {isLoading ? (
+          <p className="text-gray-500">Carregando usuários...</p>
+        ) : users.length === 0 ? (
+          <p className="text-gray-500">
+            Nenhum usuário cadastrado.{" "}
+            {errorMessage && <span className="text-red-500">({errorMessage})</span>}
+          </p>
         ) : (
           <ul className="divide-y divide-gray-200">
             {users.map((user) => (
               <li
-                key={user.id}
+                key={user._id}
                 className="py-6 flex flex-col md:flex-row md:justify-between md:items-center gap-4"
               >
                 <div>
@@ -281,13 +332,15 @@ export default function UserManagementPage() {
                     onClick={() => handleEditUser(user)}
                     className="text-blue-600 hover:text-blue-800"
                     title="Editar Usuário"
+                    disabled={isLoading}
                   >
                     <FaEdit />
                   </button>
                   <button
-                    onClick={() => handleRemoveUser(user.id)}
+                    onClick={() => handleRemoveUser(user._id)}
                     className="text-red-600 hover:text-red-800"
                     title="Remover Usuário"
+                    disabled={isLoading}
                   >
                     <FaTrashAlt />
                   </button>
