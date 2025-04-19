@@ -3,7 +3,7 @@ import { useState, FormEvent, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { FaArrowLeft } from "react-icons/fa";
-import axios from "axios";
+import api from "@/lib/axiosConfig";
 
 export default function NewCasePage() {
   const router = useRouter();
@@ -46,7 +46,7 @@ export default function NewCasePage() {
     };
 
     try {
-      await axios.post("/api/cases", newCase);
+      await api.post("/api/cases", newCase);
       setSubmitted(true);
       setError("");
 
