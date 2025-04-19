@@ -16,7 +16,7 @@ interface AuthContextProps {
   user: User | null;
   loading: boolean;
   login: (email: string, senha: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>; // Update to return a Promise
   error: string | null;
 }
 
@@ -77,9 +77,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  function logout() {
-    localStorage.removeItem("token");
-    setUser(null);
+  async function logout() {
+    try {
+      // ponto final de logout
+      await api.post("/api/auth/logout");
+    } catch (err) {
+      const apiError = err as ApiError;
+      const msg = apiError?.response?.data?.msg || "Erro ao realizar logout no servidor.";
+      console.error("Erro ao realizar logout:", msg);
+    } finally {
+      localStorage.removeItem("token");
+      setUser(null);
+    }
   }
 
   return (
