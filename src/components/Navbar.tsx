@@ -15,19 +15,46 @@ export default function Navbar() {
   if (!user) return null;
 
   const menuItems = [
-    { label: "Início", path: "/initialScreen", allowed: ["Admin", "Perito", "Assistente"] },
-    { label: "Novo caso", path: "/cadastrarCaso", allowed: ["Admin", "Perito"] },
-    { label: "Gestão de Usuários", path: "/gestao-usuarios", allowed: ["Admin"] },
-    { label: "Gestão de Casos", path: "/gestao-casos", allowed: ["Admin", "Perito", "Assistente"] },
-    { label: "Cadastrar Evidência", path: "/cadastrarEvidencia", allowed: ["Admin"] },
-    { label: "Elaborar Relatório", path: "/gestao-relatorios", allowed: ["Admin", "Perito", "Assistente"] },
-    { label: "Dashboard", path: "/dashboard", allowed: ["Admin", "Perito", "Assistente"] },
-    { label: "Configurações", path: "/settings", allowed: ["Admin", "Perito", "Assistente"] },
-    { label: "Sair", path: "/login", allowed: ["Admin", "Perito", "Assistente"], isLogout: true },
+    {
+      label: "Gestão de Usuários",
+      path: "/gestao-usuarios",
+      allowed: ["admin"],
+    },
+    {
+      label: "Novo Caso",
+      path: "/cadastrarCaso",
+      allowed: ["admin", "perito"],
+    },
+    {
+      label: "Cadastrar Evidências",
+      path: "/gestao-evidencias",
+      allowed: ["admin", "perito", "assistente"],
+    },
+    {
+      label: "Elaborar Relatório",
+      path: "/relatorios",
+      allowed: ["admin", "perito", "assistente"],
+    },
+    {
+      label: "Gestão de Casos",
+      path: "/gestao-geral",
+      allowed: ["admin", "perito", "assistente"],
+    },
+    {
+      label: "Dashboard",
+      path: "/dashboard",
+      allowed: ["admin", "perito", "assistente"],
+    },
+    {
+      label: "Sair",
+      path: "/login",
+      allowed: ["admin", "perito", "assistente"],
+      isLogout: true,
+    },
   ];
 
   const filteredItems = menuItems.filter((item) =>
-    item.allowed.includes(user.perfil)
+    item.allowed.includes(user.perfil.toLowerCase())
   );
 
   if (
@@ -41,15 +68,22 @@ export default function Navbar() {
   const handleMenuItemClick = async (item: typeof menuItems[number]) => {
     setIsOpen(false);
     if (item.isLogout) {
-      await logout(); 
+      await logout();
       router.push("/login");
     } else {
       router.push(item.path);
     }
   };
 
+  const toggleMenu = () => {
+    console.log("Toggling menu, current isOpen:", isOpen); // Debugging
+    setIsOpen((prev) => !prev);
+  };
+
+  console.log("Filtered menu items:", filteredItems); // Debugging
+
   return (
-    <header className="w-full fixed top-0 left-0 right-0 z-10 bg-teal-500 text-white px-6 py-4 shadow-md">
+    <header className="w-full fixed top-0 left-0 right-0 z-50 bg-teal-500 text-white px-6 py-4 shadow-md">
       <div className="relative max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
         {/* Logo central (desktop) */}
         <div className="absolute left-1/2 transform -translate-x-1/2 hidden md:block">
@@ -74,23 +108,27 @@ export default function Navbar() {
         {/* Botão menu hambúrguer */}
         <div className="relative">
           <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition"
+            onClick={toggleMenu}
+            className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition focus:outline-none"
           >
             <FaBars className="text-white text-xl" />
           </button>
 
           {isOpen && (
-            <ul className="absolute right-0 mt-2 bg-white text-gray-800 rounded-md shadow-lg w-48 overflow-hidden z-20">
-              {filteredItems.map((item) => (
-                <li
-                  key={item.path}
-                  onClick={() => handleMenuItemClick(item)}
-                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                >
-                  {item.label}
-                </li>
-              ))}
+            <ul className="absolute right-0 top-12 mt-2 bg-white text-gray-800 rounded-md shadow-lg w-48 overflow-hidden z-50">
+              {filteredItems.length === 0 ? (
+                <li className="px-4 py-2 text-gray-500">Nenhum item disponível</li>
+              ) : (
+                filteredItems.map((item) => (
+                  <li
+                    key={item.path}
+                    onClick={() => handleMenuItemClick(item)}
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                  >
+                    {item.label}
+                  </li>
+                ))
+              )}
             </ul>
           )}
         </div>
