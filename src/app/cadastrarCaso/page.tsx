@@ -58,29 +58,30 @@ export default function NewCasePage() {
         },
       });
       
-      if (response.status === 200) {
+      if (response.status >= 200 && response.status < 300) {
+        // Caso tenha sucesso, define como enviado e limpa os dados do formulário
         setSubmitted(true);
         setError("");
-
-      // Limpa o formulário
-      setTitulo("");
-      setDescricao("");
-      setStatus("");
-      setResponsavel("");
-      setCidade("");
-      setEstado("");
-      setCasoReferencia(""); 
-
-    router.push("/gestao-casos");
-
-    } else {
+  
+        // Limpa o formulário
+        setTitulo("");
+        setDescricao("");
+        setStatus("");
+        setResponsavel("");
+        setCidade("");
+        setEstado("");
+        setCasoReferencia("");
+  
+        // Redireciona para a página de gestão de casos
+        router.push("/gestao-casos");
+      } else {
+        setError("Erro ao enviar os dados para o servidor.");
+      }
+    } catch (err) {
+      console.error(err);
       setError("Erro ao enviar os dados para o servidor.");
     }
-  } catch (err) {
-    console.error(err);
-    setError("Erro ao enviar os dados para o servidor.");
-  }
-};
+  };
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
