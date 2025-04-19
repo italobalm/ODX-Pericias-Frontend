@@ -15,7 +15,9 @@ export default function CaseManagementPage() {
   const [cases, setCases] = useState<Case[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState("Aberto");
+  const [status, setStatus] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [estado, setEstado] = useState("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -74,6 +76,8 @@ export default function CaseManagementPage() {
       title,
       description,
       status,
+      cidade,
+      estado,
     };
 
     setIsLoading(true);
@@ -93,7 +97,9 @@ export default function CaseManagementPage() {
       setEditingCase(null);
       setTitle("");
       setDescription("");
-      setStatus("open");
+      setStatus("");
+      setCidade("");
+      setEstado("");
       setErrorMessage("");
     } catch (err) {
       const apiError = err as ApiError;
@@ -108,6 +114,8 @@ export default function CaseManagementPage() {
     setTitle(caseItem.titulo);
     setDescription(caseItem.descricao);
     setStatus(caseItem.status);
+    setCidade(caseItem.cidade);
+    setEstado(caseItem.estado);
     setErrorMessage("");
     setSuccess("");
   };
@@ -116,7 +124,7 @@ export default function CaseManagementPage() {
     setEditingCase(null);
     setTitle("");
     setDescription("");
-    setStatus("open");
+    setStatus("");
     setErrorMessage("");
     setSuccess("");
   };
@@ -184,6 +192,22 @@ export default function CaseManagementPage() {
             className="w-full p-3 border border-gray-300 rounded-md"
             disabled={isLoading}
           />
+           <input
+              type="text"
+              placeholder="Cidade"
+              value={cidade}
+              onChange={(e) => setCidade(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-md"
+              disabled={isLoading}
+            />
+            <input
+              type="text"
+              placeholder="Estado"
+              value={estado}
+              onChange={(e) => setEstado(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-md"
+              disabled={isLoading}
+            />
           <textarea
             placeholder="Descrição *"
             value={description}
@@ -197,8 +221,9 @@ export default function CaseManagementPage() {
             className="w-full p-3 border border-gray-300 rounded-md"
             disabled={isLoading}
           >
-            <option value="open">Aberto</option>
-            <option value="closed">Fechado</option>
+            <option value="open">Em Andamento</option>
+            <option value="closed">Finalizado</option>
+            <option value="closed">Arquivado</option>
           </select>
         </div>
         <div className="flex justify-end gap-4">
@@ -238,8 +263,14 @@ export default function CaseManagementPage() {
                 className="py-6 flex flex-col md:flex-row md:justify-between md:items-center gap-4"
               >
                 <div>
-                  <p className="font-medium text-gray-800">{caseItem.titulo}</p>
-                  <p className="text-sm text-gray-500">{caseItem.descricao}</p>
+                <p className="font-semibold text-gray-800">Título: {caseItem.titulo}</p>
+                <p className="text-gray-600">Descrição: {caseItem.descricao}</p>
+                <p className="text-gray-600">Status: {caseItem.status}</p>
+                <p className="text-gray-600">Responsável: {caseItem.responsavel}</p>
+                <p className="text-gray-600">Data de Criação: {new Date(caseItem.dataCriacao).toLocaleDateString()}</p>
+                <p className="text-gray-600">Caso de Referência: {caseItem.casoReferencia}</p>
+                <p className="text-gray-600">Cidade: {caseItem.cidade}</p>
+                <p className="text-gray-600">Estado: {caseItem.estado}</p>
                 </div>
                 <div className="flex gap-4">
                   <button
