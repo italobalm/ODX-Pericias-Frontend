@@ -24,7 +24,8 @@ export default function LoginPage() {
     e.preventDefault();
     setErrorMessage(null);
     try {
-      await login(email, senha); // Redirect handled by useAuth
+      await login(email, senha);
+      router.push("/initialScreen"); // Redireciona imediatamente após login
     } catch (err) {
       const errorTyped = err as ApiError;
       setErrorMessage(errorTyped.response?.data?.msg || "Erro ao fazer login.");

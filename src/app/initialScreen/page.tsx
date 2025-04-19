@@ -1,12 +1,5 @@
 "use client";
-import {
-  FaUsers,
-  FaFolderOpen,
-  FaFileAlt,
-  FaChartBar,
-  FaMicroscope,
-  FaEye,
-} from "react-icons/fa";
+import { FaUsers, FaFolderOpen, FaFileAlt, FaChartBar, FaMicroscope, FaEye, } from "react-icons/fa";
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation"; 
 import { useAuth } from "../providers/AuthProvider";
@@ -15,24 +8,14 @@ import { useAuth } from "../providers/AuthProvider";
 export default function HomePage() {
   const { user, loading, error } = useAuth();
   const router = useRouter();
-  
-    useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-    }
+
+  useEffect(() => {
+    if (!loading && !user) router.push("/login");
   }, [user, loading, router]);
 
-  if (loading) {
-    return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
-  }
-
-  if (!user) {
-    return null; // Redirect handled by useAuth
-  }
-
-  if (error) {
-    return <div className="text-center mt-20 text-red-600">{error}</div>;
-  }
+  if (loading) return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
+  if (error) return <div className="text-center mt-20 text-red-600">{error}</div>;
+  if (!user) return null;
 
   const menuItems = [
     {

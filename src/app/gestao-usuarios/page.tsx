@@ -6,18 +6,8 @@ import { FaTrashAlt, FaArrowLeft, FaEdit } from "react-icons/fa";
 import api from "../../lib/axiosConfig";
 import { useAuth } from "../providers/AuthProvider";
 import { ApiError } from "@/types/Error";
+import { User, Perfil } from "@/types/User";
 
-export type Perfil = "Admin" | "Perito" | "Assistente";
-
-export interface User {
-  _id: string; 
-  nome: string;
-  email: string;
-  senha?: string;
-  perfil: Perfil;
-  rg: string;
-  cro?: string;
-}
 
 export default function UserManagementPage() {
   const router = useRouter();

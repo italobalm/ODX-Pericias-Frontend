@@ -1,16 +1,20 @@
 "use client";
-
 import { useState, FormEvent, ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { FaArrowLeft } from "react-icons/fa";
 import axios from "axios";
 
 export default function NewCasePage() {
+  const router = useRouter();
+
   const [step, setStep] = useState(1);
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [status, setStatus] = useState("");
   const [responsavel, setResponsavel] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [estado, setEstado] = useState("");
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
@@ -23,20 +27,39 @@ export default function NewCasePage() {
   };
 
   const isStep1Valid = titulo && descricao;
-  const isStep2Valid = status && responsavel;
+  const isStep2Valid = status && responsavel && cidade && estado;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
     const newCase = {
       titulo,
       descricao,
       status,
       responsavel,
+      dataCriacao: new Date().toISOString(),
+      casoReferencia: `CR-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)
+        .toString()
+        .padStart(3, "0")}`,
+      cidade,
+      estado,
     };
 
     try {
       await axios.post("/api/cases", newCase);
       setSubmitted(true);
+      setError("");
+
+      // Limpa o formulário
+      setTitulo("");
+      setDescricao("");
+      setStatus("");
+      setResponsavel("");
+      setCidade("");
+      setEstado("");
+
+      // Recarrega a página
+      router.refresh();
     } catch (err) {
       console.error(err);
       setError("Erro ao enviar os dados para o servidor.");
@@ -133,6 +156,18 @@ export default function NewCasePage() {
                   placeholder="Digite o nome ou ID do responsável"
                   onChange={(e) => handleChange(e, setResponsavel)}
                 />
+                <Input
+                  label="Cidade"
+                  value={cidade}
+                  placeholder="Digite a cidade"
+                  onChange={(e) => handleChange(e, setCidade)}
+                />
+                <Input
+                  label="Estado"
+                  value={estado}
+                  placeholder="Digite o estado"
+                  onChange={(e) => handleChange(e, setEstado)}
+                />
                 <div className="flex justify-between gap-4 mt-4">
                   <button
                     type="button"
@@ -167,6 +202,12 @@ export default function NewCasePage() {
                   </p>
                   <p>
                     <strong>Responsável:</strong> {responsavel}
+                  </p>
+                  <p>
+                    <strong>Cidade:</strong> {cidade}
+                  </p>
+                  <p>
+                    <strong>Estado:</strong> {estado}
                   </p>
                 </div>
 

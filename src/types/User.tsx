@@ -1,11 +1,15 @@
 export interface User {
-  id: string;
+  _id: string; 
   nome: string;
-  cro: string;
+  email: string;
+  senha?: string;
   perfil: 'Admin' | 'Perito' | 'Assistente';
-  email?: string; // Optional since not returned by getLoggedUser
-  rg?: string;    // Optional since not returned by getLoggedUser
+  rg: string;
+  cro?: string;
 }
+
+export type Perfil = "Admin" | "Perito" | "Assistente";
+
 
 export interface AuthResponse {
   token: string;
