@@ -4,10 +4,10 @@ import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { FaBars } from "react-icons/fa";
 import { useState } from "react";
-import { useAuth } from "@/app/providers/AuthProvider";  // Corrigido o caminho do import
+import { useAuth } from "@/app/providers/AuthProvider";
 
 export default function Navbar() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -23,7 +23,7 @@ export default function Navbar() {
     { label: "Elaborar Relatório", path: "/gestao-relatorios", allowed: ["Admin", "Perito", "Assistente"] },
     { label: "Dashboard", path: "/dashboard", allowed: ["Admin", "Perito", "Assistente"] },
     { label: "Configurações", path: "/settings", allowed: ["Admin", "Perito", "Assistente"] },
-    { label: "Sair", path: "/", allowed: ["Admin", "Perito", "Assistente"] },
+    { label: "Sair", path: "/login", allowed: ["Admin", "Perito", "Assistente"], isLogout: true },
   ];
 
   const filteredItems = menuItems.filter((item) =>
@@ -37,6 +37,16 @@ export default function Navbar() {
   ) {
     return null;
   }
+
+  const handleMenuItemClick = async (item: typeof menuItems[number]) => {
+    setIsOpen(false);
+    if (item.isLogout) {
+      await logout(); 
+      router.push("/login");
+    } else {
+      router.push(item.path);
+    }
+  };
 
   return (
     <header className="w-full fixed top-0 left-0 right-0 z-10 bg-teal-500 text-white px-6 py-4 shadow-md">
@@ -75,10 +85,7 @@ export default function Navbar() {
               {filteredItems.map((item) => (
                 <li
                   key={item.path}
-                  onClick={() => {
-                    setIsOpen(false);
-                    router.push(item.path);
-                  }}
+                  onClick={() => handleMenuItemClick(item)}
                   className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                 >
                   {item.label}
