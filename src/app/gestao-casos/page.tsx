@@ -23,7 +23,8 @@ export default function CaseManagementPage() {
   const [editingCase, setEditingCase] = useState<Case | null>(null);
 
   useEffect(() => {
-    if (!loading && (!user || user.perfil.toLowerCase() !== "admin")) {
+    // Apenas efetua o redirecionamento se o usuário não for "admin" e o carregamento foi concluído
+    if (!loading && user && user.perfil.toLowerCase() !== "admin") {
       router.push("/initialScreen");
     }
   }, [user, loading, router]);
