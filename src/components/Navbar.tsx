@@ -4,7 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { FaBars } from "react-icons/fa";
 import { useState } from "react";
-import { useAuth } from "@/app/providers/AuthProvider";
+import { useAuth } from "../app/providers/AuthProvider";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
