@@ -7,6 +7,7 @@ import api from "@/lib/axiosConfig";
 
 export default function NewCasePage() {
   const router = useRouter();
+  
   const [step, setStep] = useState(1);
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -14,7 +15,7 @@ export default function NewCasePage() {
   const [responsavel, setResponsavel] = useState("");
   const [cidade, setCidade] = useState("");
   const [estado, setEstado] = useState("");
-  const [casoReferencia, setCasoReferencia] = useState("");  // Novo estado para 'caso referencia'
+  const [casoReferencia, setCasoReferencia] = useState("");  
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
@@ -46,7 +47,13 @@ export default function NewCasePage() {
     };
 
     try {
-      const response = await api.post("/api/cases", newCase);
+      const token = localStorage.getItem('authToken'); 
+  
+      const response = await api.post("/api/cases", newCase, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       
       if (response.status === 200) {
         setSubmitted(true);
