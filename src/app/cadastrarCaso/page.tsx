@@ -73,7 +73,7 @@ export default function NewCasePage() {
         setCasoReferencia("");
   
         // Redireciona para a página de gestão de casos
-        router.push("/gestao-casos");
+        router.push("/initialScreen");
       } else {
         setError("Erro ao enviar os dados para o servidor.");
       }
