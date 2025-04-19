@@ -22,6 +22,13 @@ export default function CaseManagementPage() {
 
   const [editingCase, setEditingCase] = useState<Case | null>(null);
 
+  const [pagination, setPagination] = useState({
+    total: 0,
+    paginaAtual: 1,
+    porPagina: 10,
+    totalPaginas: 0
+  });
+
   useEffect(() => {
     // Apenas efetua o redirecionamento se o usuário não for "admin" ou "perito" e o carregamento foi concluído
     if (!loading && user && !["admin", "perito"].includes(user.perfil.toLowerCase())) {
@@ -35,8 +42,17 @@ export default function CaseManagementPage() {
     const fetchCases = async () => {
       setIsLoading(true);
       try {
-        const res = await api.get<Case[]>("/api/cases");
-        setCases(res.data);
+        const res = await api.get("/api/cases", {
+          params: {
+            page: pagination.paginaAtual,
+            limit: pagination.porPagina,
+          },
+        });
+        
+        // Aqui você pega tanto os casos quanto a informação de paginação
+        setCases(res.data.casos); // Array de casos
+        setPagination(res.data.paginacao); // Informações de paginação
+        
       } catch (err) {
         const apiError = err as ApiError;
         setErrorMessage(apiError?.response?.data?.msg || "Erro ao carregar os casos.");
@@ -46,7 +62,7 @@ export default function CaseManagementPage() {
     };
 
     fetchCases();
-  }, [user]);
+  }, [user, pagination.paginaAtual, pagination.porPagina]);
 
   const handleSaveCase = async () => {
     if (!title || !description) {
@@ -119,12 +135,19 @@ export default function CaseManagementPage() {
     }
   };
 
+  const handlePaginationChange = (page: number) => {
+    setPagination((prev) => ({
+      ...prev,
+      paginaAtual: page,
+    }));
+  };
+
   if (loading) {
     return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
   }
 
   if (!user || !["admin", "perito"].includes(user.perfil.toLowerCase())) {
-    return null; 
+    return null;
   }
 
   if (error) {
@@ -240,6 +263,27 @@ export default function CaseManagementPage() {
             ))}
           </ul>
         )}
+      </div>
+
+      {/* Paginação */}
+      <div className="flex justify-center gap-4 mt-6">
+        <button
+          onClick={() => handlePaginationChange(pagination.paginaAtual - 1)}
+          className="bg-gray-200 text-gray-600 py-2 px-4 rounded-md hover:bg-gray-300 disabled:opacity-50"
+          disabled={pagination.paginaAtual === 1 || isLoading}
+        >
+          Anterior
+        </button>
+        <p className="flex items-center text-gray-700">
+          Página {pagination.paginaAtual} de {pagination.totalPaginas}
+        </p>
+        <button
+          onClick={() => handlePaginationChange(pagination.paginaAtual + 1)}
+          className="bg-gray-200 text-gray-600 py-2 px-4 rounded-md hover:bg-gray-300 disabled:opacity-50"
+          disabled={pagination.paginaAtual === pagination.totalPaginas || isLoading}
+        >
+          Próxima
+        </button>
       </div>
     </div>
   );
