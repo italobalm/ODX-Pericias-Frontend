@@ -25,14 +25,17 @@ const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 // Provider
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [token, setToken] = useState<string | null>(
+    typeof window !== "undefined" ? localStorage.getItem("token") : null
+  );
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem("token")); // Track token changes
 
   useEffect(() => {
     async function fetchUser() {
-      const currentToken = localStorage.getItem("token");
+      const currentToken =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
       setToken(currentToken);
       if (!currentToken) {
         setUser(null);
@@ -49,7 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setError(null);
       } catch (error) {
         console.error("Erro ao buscar usuário:", error);
-        localStorage.removeItem("token");
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("token");
+        }
         setToken(null);
         setUser(null);
         setError("Falha ao carregar usuário. Por favor, faça login novamente.");
@@ -59,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     fetchUser();
-  }, [token]); 
+  }, [token]);
 
   async function login(email: string, senha: string) {
     try {
@@ -72,8 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { token: newToken, user: userData } = response.data;
 
-      localStorage.setItem("token", newToken);
-      setToken(newToken); // Trigger useEffect
+      if (typeof window !== "undefined") {
+        localStorage.setItem("token", newToken);
+      }
+      setToken(newToken);
       setUser(userData);
     } catch (err) {
       const apiError = err as ApiError;
@@ -94,8 +101,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const msg = apiError?.response?.data?.msg || "Erro ao realizar logout no servidor.";
       console.error("Erro ao realizar logout:", msg);
     } finally {
-      localStorage.removeItem("token");
-      setToken(null); // Trigger useEffect
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+      }
+      setToken(null);
       setUser(null);
       setLoading(false);
       setError(null);
