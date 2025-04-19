@@ -60,9 +60,11 @@ export default function NewCasePage() {
       setEstado("");
       setCasoReferencia(""); 
 
-      // Redireciona para
-      // router.push("/caminho/para/sucesso");
+    // // Redireciona para 
+    // router.push("/caminho");
 
+      // Recarrega a página
+      router.refresh();
     } catch (err) {
       console.error(err);
       setError("Erro ao enviar os dados para o servidor.");
