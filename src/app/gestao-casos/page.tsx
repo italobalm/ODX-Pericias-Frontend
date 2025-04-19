@@ -30,7 +30,7 @@ export default function CaseManagementPage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (!user || user.perfil.toLowerCase() !== "admin") return;
+    if (!user || !["admin", "perito"].includes(user.perfil.toLowerCase())) return;
 
     const fetchCases = async () => {
       setIsLoading(true);
@@ -123,7 +123,7 @@ export default function CaseManagementPage() {
     return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
   }
 
-  if (!user || user.perfil.toLowerCase() !== "admin") {
+  if (!user || !["admin", "perito"].includes(user.perfil.toLowerCase())) {
     return null; 
   }
 
