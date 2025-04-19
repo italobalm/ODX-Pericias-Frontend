@@ -69,18 +69,18 @@ export default function Navbar() {
     setIsOpen(false);
     if (item.isLogout) {
       await logout();
-      router.push("/login");
+      window.location.href = "/login"; 
     } else {
       router.push(item.path);
     }
   };
 
   const toggleMenu = () => {
-    console.log("Toggling menu, current isOpen:", isOpen); // Debugging
+    console.log("Alternando menu, atualmente está aberto:", isOpen);
     setIsOpen((prev) => !prev);
   };
 
-  console.log("Filtered menu items:", filteredItems); // Debugging
+  console.log("Filtered menu items:", filteredItems);
 
   return (
     <header className="w-full fixed top-0 left-0 right-0 z-50 bg-teal-500 text-white px-6 py-4 shadow-md">
