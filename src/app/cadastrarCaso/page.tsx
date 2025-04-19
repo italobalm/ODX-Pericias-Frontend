@@ -15,6 +15,7 @@ export default function NewCasePage() {
   const [responsavel, setResponsavel] = useState("");
   const [cidade, setCidade] = useState("");
   const [estado, setEstado] = useState("");
+  const [casoReferencia, setCasoReferencia] = useState("");  // Novo estado para 'caso referencia'
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
@@ -57,6 +58,7 @@ export default function NewCasePage() {
       setResponsavel("");
       setCidade("");
       setEstado("");
+      setCasoReferencia(""); 
 
       // Recarrega a página
       router.refresh();
@@ -168,6 +170,12 @@ export default function NewCasePage() {
                   placeholder="Digite o estado"
                   onChange={(e) => handleChange(e, setEstado)}
                 />
+                <Input
+                  label="Caso Referência"
+                  value={casoReferencia}
+                  placeholder="Digite o caso referência"
+                  onChange={(e) => handleChange(e, setCasoReferencia)}
+                />
                 <div className="flex justify-between gap-4 mt-4">
                   <button
                     type="button"
@@ -209,6 +217,8 @@ export default function NewCasePage() {
                   <p>
                     <strong>Estado:</strong> {estado}
                   </p>
+                  <p>
+                    <strong>Caso Referência:</strong> {casoReferencia}
                 </div>
 
                 {error && <p className="text-red-500 text-sm">{error}</p>}
