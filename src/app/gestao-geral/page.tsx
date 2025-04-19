@@ -31,7 +31,7 @@ export default function CaseManagementPage() {
           Evidências
         </button>
         <button
-          onClick={() => router.push("/gestao-pericias")}
+          onClick={() => router.push("/gestao-casos")}
           className="w-64 py-4 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition"
         >
           Casos
