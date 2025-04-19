@@ -8,11 +8,9 @@ import { useAuth } from "../providers/AuthProvider";
 import { ApiError } from "@/types/Error";
 import { User, Perfil } from "@/types/User";
 
-
 export default function UserManagementPage() {
   const router = useRouter();
   const { user, loading, error } = useAuth();
-
   const [users, setUsers] = useState<User[]>([]);
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -28,7 +26,6 @@ export default function UserManagementPage() {
 
   useEffect(() => {
     if (!loading && (!user || user.perfil.toLowerCase() !== "admin")) {
-      console.log("Redirecting to /initialScreen - user.perfil:", user?.perfil);
       router.push("/initialScreen");
     }
   }, [user, loading, router]);
@@ -40,17 +37,10 @@ export default function UserManagementPage() {
       setIsLoading(true);
       try {
         const res = await api.get<User[]>("/api/user");
-        console.log("Fetched users:", res.data);
         setUsers(res.data);
-        // Validate that each user has an _id
-        if (res.data.some((u) => !u._id)) {
-          console.error("Some users are missing an _id:", res.data);
-          setErrorMessage("Erro: Alguns usuários não possuem ID.");
-        }
       } catch (err) {
         const apiError = err as ApiError;
         const msg = apiError?.response?.data?.msg || "Erro ao carregar os usuários.";
-        console.error("Error fetching users:", apiError?.response?.data || apiError);
         setErrorMessage(msg);
       } finally {
         setIsLoading(false);
@@ -80,22 +70,19 @@ export default function UserManagementPage() {
     };
 
     setIsLoading(true);
+    setErrorMessage(""); 
     try {
       if (editingUser) {
-        if (!editingUser._id) {
-          setErrorMessage("ID do usuário não encontrado para edição.");
-          console.error("Editing user _id is undefined:", editingUser);
-          setIsLoading(false);
-          return;
-        }
-        const res = await api.put<User>(`/api/user/${editingUser._id}`, userData);
+        const res = await api.put(`/api/user/${editingUser._id}`, userData);
+        const updatedUser: User = res.data.usuario; 
         setUsers((prev) =>
-          prev.map((u) => (u._id === editingUser._id ? res.data : u))
+          prev.map((u) => (u._id === editingUser._id ? updatedUser : u))
         );
         setSuccess("Usuário atualizado com sucesso.");
       } else {
-        const res = await api.post<User>("/api/user", userData);
-        setUsers((prev) => [...prev, res.data]);
+        const res = await api.post(`/api/user`, userData);
+        const newUser: User = res.data.usuario; 
+        setUsers((prev) => [...prev, newUser]);
         setSuccess("Usuário adicionado com sucesso.");
       }
 
@@ -106,11 +93,9 @@ export default function UserManagementPage() {
       setRg("");
       setCro("");
       setPerfil("Perito");
-      setErrorMessage("");
     } catch (err) {
       const apiError = err as ApiError;
       const msg = apiError?.response?.data?.msg || "Erro ao salvar o usuário.";
-      console.error("Error saving user:", apiError?.response?.data || apiError);
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
@@ -118,12 +103,6 @@ export default function UserManagementPage() {
   };
 
   const handleEditUser = (user: User) => {
-    if (!user._id) {
-      setErrorMessage("Não é possível editar: ID do usuário não encontrado.");
-      console.error("User _id is missing for editing:", user);
-      return;
-    }
-    console.log("Editing user:", user);
     setEditingUser(user);
     setNome(user.nome);
     setEmail(user.email);
@@ -148,13 +127,8 @@ export default function UserManagementPage() {
   };
 
   const handleRemoveUser = async (id: string) => {
-    if (!id) {
-      setErrorMessage("ID do usuário não encontrado para remoção.");
-      console.error("User _id is undefined for deletion");
-      setIsLoading(false);
-      return;
-    }
     setIsLoading(true);
+    setErrorMessage("");
     try {
       await api.delete(`/api/user/${id}`);
       setUsers((prev) => prev.filter((u) => u._id !== id));
@@ -162,7 +136,6 @@ export default function UserManagementPage() {
     } catch (err) {
       const apiError = err as ApiError;
       const msg = apiError?.response?.data?.msg || "Erro ao remover o usuário.";
-      console.error("Error deleting user:", apiError?.response?.data || apiError);
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
@@ -174,7 +147,7 @@ export default function UserManagementPage() {
   }
 
   if (!user || user.perfil.toLowerCase() !== "admin") {
-    return null; 
+    return null;
   }
 
   if (error) {
