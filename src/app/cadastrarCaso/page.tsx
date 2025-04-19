@@ -7,7 +7,6 @@ import api from "@/lib/axiosConfig";
 
 export default function NewCasePage() {
   const router = useRouter();
-
   const [step, setStep] = useState(1);
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -47,9 +46,11 @@ export default function NewCasePage() {
     };
 
     try {
-      await api.post("/api/cases", newCase);
-      setSubmitted(true);
-      setError("");
+      const response = await api.post("/api/cases", newCase);
+      
+      if (response.status === 200) {
+        setSubmitted(true);
+        setError("");
 
       // Limpa o formulário
       setTitulo("");
@@ -60,16 +61,19 @@ export default function NewCasePage() {
       setEstado("");
       setCasoReferencia(""); 
 
-    // // Redireciona para 
-    // router.push("/caminho");
 
-      // Recarrega a página
-      router.refresh();
-    } catch (err) {
-      console.error(err);
+   router.push("/cadastrarCaso");
+
+      // // Recarrega a página
+      // router.refresh();
+    } else {
       setError("Erro ao enviar os dados para o servidor.");
     }
-  };
+  } catch (err) {
+    console.error(err);
+    setError("Erro ao enviar os dados para o servidor.");
+  }
+};
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
@@ -173,12 +177,12 @@ export default function NewCasePage() {
                   placeholder="Digite o estado"
                   onChange={(e) => handleChange(e, setEstado)}
                 />
-                <Input
+                {/* <Input
                   label="Caso Referência"
                   value={casoReferencia}
                   placeholder="Digite o caso referência"
                   onChange={(e) => handleChange(e, setCasoReferencia)}
-                />
+                /> */}
                 <div className="flex justify-between gap-4 mt-4">
                   <button
                     type="button"
@@ -220,7 +224,12 @@ export default function NewCasePage() {
                   <p>
                     <strong>Estado:</strong> {estado}
                   </p>
+                  <p>
+                    <strong>Data de Criação:</strong> {new Date().toLocaleDateString()}
+                  </p>
+                  <p>
                     <strong>Caso Referência:</strong> {casoReferencia}
+                    </p>
                 </div>
 
                 {error && <p className="text-red-500 text-sm">{error}</p>}
