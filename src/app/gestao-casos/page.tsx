@@ -223,7 +223,7 @@ export default function CaseManagementPage() {
           >
             <option value="open">Em Andamento</option>
             <option value="closed">Finalizado</option>
-            <option value="closed">Arquivado</option>
+            <option value="archived">Arquivado</option>
           </select>
         </div>
         <div className="flex justify-end gap-4">
@@ -268,24 +268,19 @@ export default function CaseManagementPage() {
                 <p className="text-gray-600">Status: {caseItem.status}</p>
                 <p className="text-gray-600">Responsável: {caseItem.responsavel}</p>
                 <p className="text-gray-600">Data de Criação: {new Date(caseItem.dataCriacao).toLocaleDateString()}</p>
-                <p className="text-gray-600">Caso de Referência: {caseItem.casoReferencia}</p>
                 <p className="text-gray-600">Cidade: {caseItem.cidade}</p>
                 <p className="text-gray-600">Estado: {caseItem.estado}</p>
                 </div>
                 <div className="flex gap-4">
                   <button
                     onClick={() => handleEditCase(caseItem)}
-                    className="text-blue-600 hover:text-blue-800"
-                    title="Editar Caso"
-                    disabled={isLoading}
+                    className="text-teal-600 hover:text-teal-800 transition"
                   >
                     <FaEdit />
                   </button>
                   <button
                     onClick={() => handleRemoveCase(caseItem._id)}
-                    className="text-red-600 hover:text-red-800"
-                    title="Remover Caso"
-                    disabled={isLoading}
+                    className="text-red-600 hover:text-red-800 transition"
                   >
                     <FaTrashAlt />
                   </button>
@@ -294,27 +289,25 @@ export default function CaseManagementPage() {
             ))}
           </ul>
         )}
-      </div>
-
-      {/* Paginação */}
-      <div className="flex justify-center gap-4 mt-6">
-        <button
-          onClick={() => handlePaginationChange(pagination.paginaAtual - 1)}
-          className="bg-gray-200 text-gray-600 py-2 px-4 rounded-md hover:bg-gray-300 disabled:opacity-50"
-          disabled={pagination.paginaAtual === 1 || isLoading}
-        >
-          Anterior
-        </button>
-        <p className="flex items-center text-gray-700">
-          Página {pagination.paginaAtual} de {pagination.totalPaginas}
-        </p>
-        <button
-          onClick={() => handlePaginationChange(pagination.paginaAtual + 1)}
-          className="bg-gray-200 text-gray-600 py-2 px-4 rounded-md hover:bg-gray-300 disabled:opacity-50"
-          disabled={pagination.paginaAtual === pagination.totalPaginas || isLoading}
-        >
-          Próxima
-        </button>
+        <div className="mt-6 flex justify-between items-center">
+          <button
+            onClick={() => handlePaginationChange(pagination.paginaAtual - 1)}
+            disabled={pagination.paginaAtual === 1}
+            className="text-gray-500 disabled:text-gray-300"
+          >
+            Anterior
+          </button>
+          <span>
+            Página {pagination.paginaAtual} de {pagination.totalPaginas}
+          </span>
+          <button
+            onClick={() => handlePaginationChange(pagination.paginaAtual + 1)}
+            disabled={pagination.paginaAtual === pagination.totalPaginas}
+            className="text-gray-500 disabled:text-gray-300"
+          >
+            Próxima
+          </button>
+        </div>
       </div>
     </div>
   );
