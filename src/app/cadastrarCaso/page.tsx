@@ -60,8 +60,9 @@ export default function NewCasePage() {
       setEstado("");
       setCasoReferencia(""); 
 
-      // Recarrega a página
-      router.refresh();
+      // Redireciona para
+      // router.push("/caminho/para/sucesso");
+
     } catch (err) {
       console.error(err);
       setError("Erro ao enviar os dados para o servidor.");
@@ -217,7 +218,6 @@ export default function NewCasePage() {
                   <p>
                     <strong>Estado:</strong> {estado}
                   </p>
-                  <p>
                     <strong>Caso Referência:</strong> {casoReferencia}
                 </div>
 
