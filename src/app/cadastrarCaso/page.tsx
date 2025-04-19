@@ -46,6 +46,9 @@ export default function NewCasePage() {
       estado,
     };
 
+    // Atualiza o estado do casoReferencia antes de enviar
+    setCasoReferencia(newCase.casoReferencia);
+
     try {
       const token = localStorage.getItem('authToken'); 
   
@@ -68,11 +71,8 @@ export default function NewCasePage() {
       setEstado("");
       setCasoReferencia(""); 
 
+    router.push("/gestao-casos");
 
-   router.push("/cadastrarCaso");
-
-      // // Recarrega a página
-      // router.refresh();
     } else {
       setError("Erro ao enviar os dados para o servidor.");
     }

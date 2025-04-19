@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../providers/AuthProvider";
 import Image from "next/image";
@@ -12,20 +12,15 @@ export default function LoginPage() {
   const [senha, setSenha] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
-  const { login, loading, error, user } = useAuth();
-
-  useEffect(() => {
-    if (user) {
-      router.push("/initialScreen");
-    }
-  }, [user, router]);
+  const { login, loading, error } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     try {
       await login(email, senha);
-      router.push("/initialScreen"); // Redireciona imediatamente após login
+      // Redireciona imediatamente após login
+      router.push("/initialScreen");
     } catch (err) {
       const errorTyped = err as ApiError;
       setErrorMessage(errorTyped.response?.data?.msg || "Erro ao fazer login.");

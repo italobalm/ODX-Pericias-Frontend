@@ -25,9 +25,15 @@ export default function HomePage() {
       allowed: ["admin"],
     },
     {
-      title: "Gestão de Casos",
-      icon: FaFolderOpen,
-      path: "/gestao-casos",
+      title: "Novo Caso",
+      icon: FaFileAlt,
+      path: "/cadastrarCaso",
+      allowed: ["admin", "perito"],
+    },
+    {
+      title: "Cadastrar Evidências",
+      icon: FaMicroscope,
+      path: "/gestao-evidencias",
       allowed: ["admin", "perito", "assistente"],
     },
     {
@@ -37,9 +43,9 @@ export default function HomePage() {
       allowed: ["admin", "perito", "assistente"],
     },
     {
-      title: "Cadastrar Evidências",
-      icon: FaMicroscope,
-      path: "/gestao-evidencias",
+      title: "Gestão de Casos",
+      icon: FaFolderOpen,
+      path: "/gestao-casos",
       allowed: ["admin", "perito", "assistente"],
     },
     {
@@ -47,12 +53,6 @@ export default function HomePage() {
       icon: FaEye,
       path: "/dashboard",
       allowed: ["admin", "perito", "assistente"],
-    },
-    {
-      title: "Novo Caso",
-      icon: FaFileAlt,
-      path: "/cadastrarCaso",
-      allowed: ["admin", "perito"],
     },
   ];
 
