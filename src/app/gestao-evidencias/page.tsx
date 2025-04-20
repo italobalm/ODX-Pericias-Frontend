@@ -122,7 +122,7 @@ export default function EvidenceManagementPage() {
 
       <div className="flex justify-end mb-6">
         <button
-          onClick={() => router.push("/cadastrar-evidencia")}
+          onClick={() => router.push("/cadastrarEvidencia")}
           className="bg-teal-500 text-white px-6 py-3 rounded-xl hover:bg-teal-700 transition"
         >
           Nova Evidência
