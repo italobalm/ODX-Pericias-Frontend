@@ -6,6 +6,13 @@ import { motion } from "framer-motion";
 import { FaArrowLeft } from "react-icons/fa";
 import api from "@/lib/axiosConfig";
 import { useAuth } from "../providers/AuthProvider";
+import { Evidence } from "@/types/Evidence";
+import { AxiosError } from "axios";
+
+interface EvidenceResponse {
+  msg: string;
+  evidence: Evidence;
+}
 
 export default function NewEvidencePage() {
   const router = useRouter();
@@ -57,7 +64,7 @@ export default function NewEvidencePage() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("authToken");
-      const response = await api.post("/api/evidence", formData, {
+      const response = await api.post<EvidenceResponse>("/api/evidence", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
@@ -84,8 +91,9 @@ export default function NewEvidencePage() {
       } else {
         setError("Erro ao enviar os dados para o servidor.");
       }
-    } catch (err: any) {
-      setError(err.response?.data?.msg || "Erro ao enviar os dados para o servidor.");
+    } catch (err: unknown) {
+      const axiosError = err as AxiosError<{ msg?: string }>;
+      setError(axiosError.response?.data?.msg || "Erro ao enviar os dados para o servidor.");
     } finally {
       setIsLoading(false);
     }

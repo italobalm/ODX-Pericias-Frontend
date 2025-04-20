@@ -7,7 +7,12 @@ import api from "@/lib/axiosConfig";
 import { useAuth } from "../providers/AuthProvider";
 import { Evidence, EvidenceListResponse } from "@/types/Evidence";
 import { User } from "@/types/User";
+import { AxiosError } from "axios";
 import Link from "next/link";
+
+interface ApiResponse {
+  msg: string;
+}
 
 export default function EvidenceManagementPage() {
   const router = useRouter();
@@ -18,7 +23,7 @@ export default function EvidenceManagementPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalPages, t] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
   const [itemsPerPage] = useState<number>(10);
   const [searchCasoReferencia, setSearchCasoReferencia] = useState<string>("");
 
@@ -58,8 +63,9 @@ export default function EvidenceManagementPage() {
       });
       setEvidences(response.data.evidencias);
       setTotalPages(response.data.paginacao.totalPaginas);
-    } catch (err: any) {
-      setErrorMessage(err.response?.data?.msg || "Erro ao carregar as evidências.");
+    } catch (err: unknown) {
+      const axiosError = err as AxiosError<{ msg?: string }>;
+      setErrorMessage(axiosError.response?.data?.msg || "Erro ao carregar as evidências.");
     } finally {
       setIsLoading(false);
     }
@@ -83,13 +89,14 @@ export default function EvidenceManagementPage() {
     if (confirm("Você tem certeza que deseja excluir esta evidência?")) {
       try {
         const token = localStorage.getItem("authToken");
-        const res = await api.delete(`/api/evidence/${id}`, {
+        const res = await api.delete<ApiResponse>(`/api/evidence/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         await fetchEvidences();
         setSuccessMessage(res.data.msg || "Evidência excluída com sucesso.");
-      } catch (err: any) {
-        setErrorMessage(err.response?.data?.msg || "Erro ao excluir a evidência.");
+      } catch (err: unknown) {
+        const axiosError = err as AxiosError<{ msg?: string }>;
+        setErrorMessage(axiosError.response?.data?.msg || "Erro ao excluir a evidência.");
       }
     }
   };
@@ -127,14 +134,15 @@ export default function EvidenceManagementPage() {
 
       try {
         const token = localStorage.getItem("authToken");
-        const res = await api.put(`/api/evidence/${editingEvidence._id}`, updatedEvidence, {
+        const res = await api.put<ApiResponse>(`/api/evidence/${editingEvidence._id}`, updatedEvidence, {
           headers: { Authorization: `Bearer ${token}` },
         });
         await fetchEvidences();
         setEditingEvidence(null);
         setSuccessMessage(res.data.msg || "Evidência atualizada com sucesso.");
-      } catch (err: any) {
-        setErrorMessage(err.response?.data?.msg || "Erro ao atualizar a evidência.");
+      } catch (err: unknown) {
+        const axiosError = err as AxiosError<{ msg?: string }>;
+        setErrorMessage(axiosError.response?.data?.msg || "Erro ao atualizar a evidência.");
       }
     }
   };
