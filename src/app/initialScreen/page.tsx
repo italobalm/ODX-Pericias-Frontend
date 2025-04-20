@@ -4,7 +4,6 @@ import React, { useEffect } from "react";
 import { useRouter } from "next/navigation"; 
 import { useAuth } from "../providers/AuthProvider";
 
-
 export default function HomePage() {
   const { user, loading, error } = useAuth();
   const router = useRouter();
@@ -33,7 +32,13 @@ export default function HomePage() {
     {
       title: "Cadastrar Evidências",
       icon: FaMicroscope,
-      path: "/gestao-evidencias",
+      path: "/cadastrarEvidencia", 
+      allowed: ["admin", "perito", "assistente"],
+    },
+    {
+      title: "Gestão de Evidências",
+      icon: FaFolderOpen, 
+      path: "/gestao-evidencias", 
       allowed: ["admin", "perito", "assistente"],
     },
     {
