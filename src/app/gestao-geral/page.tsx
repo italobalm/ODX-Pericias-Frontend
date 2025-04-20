@@ -18,7 +18,7 @@ export default function CaseManagementPage() {
           <FaArrowLeft className="w-6 h-6" />
         </button>
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-          Gestão de Casos
+          Gestão Geral
         </h1>
       </div>
 
