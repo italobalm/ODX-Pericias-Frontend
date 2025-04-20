@@ -69,7 +69,7 @@ export default function Navbar() {
     setIsOpen(false);
     if (item.isLogout) {
       await logout();
-      window.location.href = "/login"; 
+      window.location.href = "/login";
     } else {
       router.push(item.path);
     }
@@ -80,6 +80,13 @@ export default function Navbar() {
     setIsOpen((prev) => !prev);
   };
 
+  // Determinar o caminho de redirecionamento do logotipo
+  const logoRedirectPath = pathname === "/" ? "/initialScreen" : "/";
+
+  const handleLogoClick = () => {
+    router.push(logoRedirectPath);
+  };
+
   console.log("Filtered menu items:", filteredItems);
 
   return (
@@ -87,13 +94,15 @@ export default function Navbar() {
       <div className="relative max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
         {/* Logo central (desktop) */}
         <div className="absolute left-1/2 transform -translate-x-1/2 hidden md:block">
-          <Image
-            src="/logo.png"
-            alt="Logo"
-            width={40}
-            height={40}
-            className="object-contain"
-          />
+          <button onClick={handleLogoClick} className="focus:outline-none">
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              width={40}
+              height={40}
+              className="object-contain"
+            />
+          </button>
         </div>
 
         {/* Saudação */}

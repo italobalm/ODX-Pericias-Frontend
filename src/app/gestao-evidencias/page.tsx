@@ -1,144 +1,156 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
-import { FaArrowLeft, FaEdit, FaTrash } from "react-icons/fa";
-
-type EvidenceType = "imagem" | "texto";
-
-interface Evidence {
-  id: string;
-  caso: string;
-  tipo: EvidenceType;
-  categoria: string;
-  vitima: string;
-  sexo: string;
-  estadoCorpo: string;
-  lesoes?: string;
-  coletadoPor: string;
-  conteudo?: string; // utilizado se o tipo for "texto"
-  imagem?: string; // nome do arquivo, utilizado se o tipo for "imagem"
-  laudo?: string;
-}
+import { FaArrowLeft, FaEdit, FaTrash, FaChevronLeft, FaChevronRight, FaPlus } from "react-icons/fa";
+import api from "@/lib/axiosConfig";
+import { useAuth } from "../providers/AuthProvider";
+import { Evidence, EvidenceListResponse } from "@/types/Evidence";
+import { User } from "@/types/User";
+import Link from "next/link";
 
 export default function EvidenceManagementPage() {
   const router = useRouter();
+  const { user, loading: authLoading, error: authError } = useAuth();
 
-  // Estados de evidências e carregamento
   const [evidences, setEvidences] = useState<Evidence[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [itemsPerPage] = useState<number>(10);
+  const [searchCasoReferencia, setSearchCasoReferencia] = useState<string>("");
 
-  // Estados para controle do modal de edição
   const [editingEvidence, setEditingEvidence] = useState<Evidence | null>(null);
-  const [editCaso, setEditCaso] = useState("");
+  const [editCasoReferencia, setEditCasoReferencia] = useState("");
   const [editCategoria, setEditCategoria] = useState("");
-  const [editVitima, setEditVitima] = useState("");
-  const [editSexo, setEditSexo] = useState("");
-  const [editEstadoCorpo, setEditEstadoCorpo] = useState("");
+  const [editVitima, setEditVitima] = useState<"identificada" | "não identificada">("identificada");
+  const [editSexo, setEditSexo] = useState<"masculino" | "feminino" | "indeterminado">("masculino");
+  const [editEstadoCorpo, setEditEstadoCorpo] = useState<
+    "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto"
+  >("inteiro");
   const [editLesoes, setEditLesoes] = useState("");
   const [editColetadoPor, setEditColetadoPor] = useState("");
   const [editLaudo, setEditLaudo] = useState("");
   const [editConteudo, setEditConteudo] = useState("");
 
-  // Busca as evidências reais do backend na inicialização do componente
   useEffect(() => {
-    const fetchEvidences = async () => {
-      try {
-        const response = await axios.get<Evidence[]>("/api/evidences");
-        setEvidences(response.data);
-      } catch (err: unknown) {
-        console.error("Erro ao buscar evidências:", err);
-        setError("Erro ao carregar as evidências.");
-      } finally {
-        setLoading(false);
+    if (!authLoading && user) {
+      const perfilLower = user.perfil.toLowerCase() as Lowercase<User['perfil']>;
+      if (!["admin", "perito", "assistente"].includes(perfilLower)) {
+        router.push("/initialScreen");
       }
-    };
+    }
+  }, [user, authLoading, router]);
 
+  const fetchEvidences = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await api.get<EvidenceListResponse>("/api/evidence", {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { 
+          page: currentPage, 
+          limit: itemsPerPage, 
+          casoReferencia: searchCasoReferencia || undefined 
+        },
+      });
+      setEvidences(response.data.evidencias);
+      setTotalPages(response.data.paginacao.totalPaginas);
+    } catch (err: any) {
+      setErrorMessage(err.response?.data?.msg || "Erro ao carregar as evidências.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!user || authLoading) return;
     fetchEvidences();
-  }, []);
+  }, [user, authLoading, currentPage, itemsPerPage, searchCasoReferencia]);
 
-  // Filtrar evidências por tipo
   const textEvidences = useMemo(
-    () => evidences.filter((item) => item.tipo === "texto"),
+    () => evidences.filter((item) => item.tipoEvidencia === "texto"),
     [evidences]
   );
   const imageEvidences = useMemo(
-    () => evidences.filter((item) => item.tipo === "imagem"),
+    () => evidences.filter((item) => item.tipoEvidencia === "imagem"),
     [evidences]
   );
 
-  // Função para excluir uma evidência
   const handleDelete = async (id: string) => {
     if (confirm("Você tem certeza que deseja excluir esta evidência?")) {
       try {
-        await axios.delete(`/api/evidences/${id}`);
-        setEvidences((prev) => prev.filter((item) => item.id !== id));
-      } catch (err: unknown) {
-        console.error("Erro ao excluir evidência:", err);
-        alert("Não foi possível excluir a evidência.");
+        const token = localStorage.getItem("authToken");
+        const res = await api.delete(`/api/evidence/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        await fetchEvidences();
+        setSuccessMessage(res.data.msg || "Evidência excluída com sucesso.");
+      } catch (err: any) {
+        setErrorMessage(err.response?.data?.msg || "Erro ao excluir a evidência.");
       }
     }
   };
 
-  // Inicia a edição preenchendo os estados com os dados da evidência
   const handleEdit = (id: string) => {
-    const evidenceToEdit = evidences.find((item) => item.id === id);
+    const evidenceToEdit = evidences.find((item) => item._id === id);
     if (evidenceToEdit) {
       setEditingEvidence(evidenceToEdit);
-      setEditCaso(evidenceToEdit.caso);
+      setEditCasoReferencia(evidenceToEdit.casoReferencia);
       setEditCategoria(evidenceToEdit.categoria);
       setEditVitima(evidenceToEdit.vitima);
       setEditSexo(evidenceToEdit.sexo);
       setEditEstadoCorpo(evidenceToEdit.estadoCorpo);
       setEditLesoes(evidenceToEdit.lesoes || "");
-      setEditColetadoPor(evidenceToEdit.coletadoPor);
+      setEditColetadoPor(evidenceToEdit.coletadoPor.nome);
       setEditLaudo(evidenceToEdit.laudo || "");
       setEditConteudo(evidenceToEdit.conteudo || "");
     }
   };
 
-  // Confirma a edição e atualiza a lista de evidências no backend e na interface
   const confirmEdit = async () => {
     if (editingEvidence) {
-      const updatedEvidence: Evidence = {
-        ...editingEvidence,
-        caso: editCaso,
+      const updatedEvidence = {
+        casoReferencia: editCasoReferencia,
+        tipoEvidencia: editingEvidence.tipoEvidencia,
         categoria: editCategoria,
         vitima: editVitima,
         sexo: editSexo,
         estadoCorpo: editEstadoCorpo,
-        lesoes: editLesoes,
+        lesoes: editLesoes || undefined,
         coletadoPor: editColetadoPor,
-        laudo: editLaudo,
-        conteudo: editingEvidence.tipo === "texto" ? editConteudo : undefined,
+        laudo: editLaudo || undefined,
+        conteudo: editingEvidence.tipoEvidencia === "texto" ? editConteudo : undefined,
       };
 
       try {
-        await axios.put(
-          `/api/evidences/${editingEvidence.id}`,
-          updatedEvidence
-        );
-        setEvidences((prev) =>
-          prev.map((item) =>
-            item.id === editingEvidence.id ? updatedEvidence : item
-          )
-        );
+        const token = localStorage.getItem("authToken");
+        const res = await api.put(`/api/evidence/${editingEvidence._id}`, updatedEvidence, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        await fetchEvidences();
         setEditingEvidence(null);
-      } catch (err: unknown) {
-        console.error("Erro ao atualizar evidência:", err);
-        alert("Não foi possível atualizar a evidência.");
+        setSuccessMessage(res.data.msg || "Evidência atualizada com sucesso.");
+      } catch (err: any) {
+        setErrorMessage(err.response?.data?.msg || "Erro ao atualizar a evidência.");
       }
     }
   };
 
-  // Cancela a edição
   const cancelEdit = () => {
     setEditingEvidence(null);
   };
 
-  // Função auxiliar para renderizar cada grupo de evidências
+  const handlePreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
   const renderEvidenceGroup = (title: string, evidenceList: Evidence[]) => (
     <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-6">
       <h2 className="text-lg font-semibold text-gray-700 mb-4">{title}</h2>
@@ -148,16 +160,17 @@ export default function EvidenceManagementPage() {
         <ul className="divide-y divide-gray-200">
           {evidenceList.map((item) => (
             <li
-              key={item.id}
+              key={item._id}
               className="py-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4 hover:bg-gray-50 transition p-2 rounded-lg"
             >
               <div>
-                <p className="font-medium text-gray-800">Caso: {item.caso}</p>
+                <p className="font-medium text-gray-800">Caso: {item.casoReferencia}</p>
                 <p className="text-sm text-gray-500">
                   Categoria: {item.categoria}
                   <br />
-                  Vítima: {item.vitima} | Sexo: {item.sexo} | Estado do Corpo:{" "}
-                  {item.estadoCorpo}
+                  Data de Upload: {new Date(item.dataUpload).toLocaleDateString()}
+                  <br />
+                  Vítima: {item.vitima} | Sexo: {item.sexo} | Estado do Corpo: {item.estadoCorpo}
                   {item.lesoes && (
                     <>
                       <br />
@@ -165,17 +178,24 @@ export default function EvidenceManagementPage() {
                     </>
                   )}
                   <br />
-                  Coletado por: {item.coletadoPor}
-                  {item.tipo === "texto" && item.conteudo && (
+                  Coletado por: {item.coletadoPor.nome} ({item.coletadoPor.email})
+                  {item.tipoEvidencia === "texto" && item.conteudo && (
                     <>
                       <br />
                       Conteúdo: {item.conteudo}
                     </>
                   )}
-                  {item.tipo === "imagem" && item.imagem && (
+                  {item.tipoEvidencia === "imagem" && item.imagemURL && (
                     <>
                       <br />
-                      Imagem: {item.imagem}
+                      Imagem:{" "}
+                      <a
+                        href={item.imagemURL}
+                        target="_blank"
+                        className="text-teal-500 hover:underline"
+                      >
+                        {item.imagemURL}
+                      </a>
                     </>
                   )}
                   {item.laudo && (
@@ -188,14 +208,14 @@ export default function EvidenceManagementPage() {
               </div>
               <div className="flex items-center gap-4">
                 <button
-                  onClick={() => handleEdit(item.id)}
-                  className="text-blue-500 hover:text-blue-700 transition"
+                  onClick={() => handleEdit(item._id)}
+                  className="text-teal-500 hover:text-teal-700 transition"
                   title="Editar Evidência"
                 >
                   <FaEdit size={18} />
                 </button>
                 <button
-                  onClick={() => handleDelete(item.id)}
+                  onClick={() => handleDelete(item._id)}
                   className="text-red-500 hover:text-red-700 transition"
                   title="Excluir Evidência"
                 >
@@ -209,166 +229,349 @@ export default function EvidenceManagementPage() {
     </div>
   );
 
-  if (loading) {
-    return (
-      <div className="max-w-6xl mx-auto pt-28 p-4 md:p-8">
-        <p>Carregando evidências...</p>
-      </div>
-    );
+  if (authLoading || isLoading) {
+    return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
   }
 
-  if (error) {
-    return (
-      <div className="max-w-6xl mx-auto pt-28 p-4 md:p-8">
-        <p className="text-red-500">{error}</p>
-      </div>
-    );
+  if (!user || !["admin", "perito", "assistente"].includes(user.perfil.toLowerCase())) {
+    return null;
+  }
+
+  if (authError || errorMessage) {
+    return <div className="text-center mt-20 text-red-600">{authError || errorMessage}</div>;
   }
 
   return (
     <div className="max-w-6xl mx-auto pt-28 p-4 md:p-8 relative">
-      {/* Cabeçalho com seta de voltar e título alinhado à esquerda */}
-      <div className="flex items-center gap-4 mb-8">
-        <button
-          onClick={() => router.back()}
-          className="text-gray-600 hover:text-gray-800 transition p-2"
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.back()}
+            className="text-gray-600 hover:text-gray-800 transition p-2"
+          >
+            <FaArrowLeft size={20} />
+          </button>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Gestão de Evidências</h1>
+        </div>
+        <Link
+          href="/cadastrar-evidencia"
+          className="flex items-center gap-2 bg-teal-500 text-white py-2 px-4 rounded-xl hover:bg-teal-700 transition"
         >
-          <FaArrowLeft size={20} />
-        </button>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-          Gestão de Evidências
-        </h1>
+          <FaPlus size={16} />
+          Nova Evidência
+        </Link>
       </div>
 
+      <div className="mb-6">
+        <Input
+          label="Filtrar por Caso (Referência)"
+          value={searchCasoReferencia}
+          placeholder="Ex: CR-2025-001"
+          onChange={(e) => setSearchCasoReferencia(e.target.value)}
+          disabled={isLoading}
+        />
+      </div>
+
+      {successMessage && <p className="text-green-500 mb-6">{successMessage}</p>}
       {renderEvidenceGroup("Evidências de Texto", textEvidences)}
       {renderEvidenceGroup("Evidências de Imagem", imageEvidences)}
 
-      {/* Modal de edição */}
+      <div className="flex justify-center items-center gap-4 mt-6">
+        <button
+          onClick={handlePreviousPage}
+          disabled={currentPage === 1}
+          className="p-2 text-gray-600 hover:text-gray-800 disabled:opacity-50"
+        >
+          <FaChevronLeft size={20} />
+        </button>
+        <span className="text-gray-700">
+          Página {currentPage} de {totalPages}
+        </span>
+        <button
+          onClick={handleNextPage}
+          disabled={currentPage === totalPages}
+          className="p-2 text-gray-600 hover:text-gray-800 disabled:opacity-50"
+        >
+          <FaChevronRight size={20} />
+        </button>
+      </div>
+
       {editingEvidence && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="absolute inset-0 bg-white/70 backdrop-blur-sm"></div>
-          <div className="relative bg-white rounded-xl p-6 w-full max-w-md mx-4 sm:mx-auto z-10 shadow-xl overflow-y-auto max-h-full">
+          <div className="relative bg-white rounded-xl p-6 w-full max-w-md mx-4 sm:mx-auto z-10 shadow-xl overflow-y-auto max-h-[80vh]">
             <h2 className="text-xl font-bold mb-4">Editar Evidência</h2>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Caso
-              </label>
-              <input
-                type="text"
-                value={editCaso}
-                onChange={(e) => setEditCaso(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
+            <form className="space-y-4">
+              <Input
+                label="Caso (Referência)"
+                value={editCasoReferencia}
+                onChange={(e) => setEditCasoReferencia(e.target.value)}
               />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Categoria
-              </label>
-              <input
-                type="text"
+              <Input
+                label="Categoria"
                 value={editCategoria}
                 onChange={(e) => setEditCategoria(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
               />
-            </div>
-            <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Vítima
-                </label>
-                <input
-                  type="text"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Select
+                  label="Vítima"
                   value={editVitima}
-                  onChange={(e) => setEditVitima(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
+                  onChange={(e) =>
+                    setEditVitima(e.target.value as "identificada" | "não identificada")
+                  }
+                  options={["identificada", "não identificada"]}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Sexo
-                </label>
-                <input
-                  type="text"
+                <Select
+                  label="Sexo"
                   value={editSexo}
-                  onChange={(e) => setEditSexo(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
+                  onChange={(e) =>
+                    setEditSexo(e.target.value as "masculino" | "feminino" | "indeterminado")
+                  }
+                  options={["masculino", "feminino", "indeterminado"]}
                 />
               </div>
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Estado do Corpo
-              </label>
-              <input
-                type="text"
+              <Select
+                label="Estado do Corpo"
                 value={editEstadoCorpo}
-                onChange={(e) => setEditEstadoCorpo(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
+                onChange={(e) =>
+                  setEditEstadoCorpo(
+                    e.target.value as
+                      | "inteiro"
+                      | "fragmentado"
+                      | "carbonizado"
+                      | "putrefacto"
+                      | "esqueleto"
+                  )
+                }
+                options={["inteiro", "fragmentado", "carbonizado", "putrefacto", "esqueleto"]}
               />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Lesões (opcional)
-              </label>
-              <input
-                type="text"
+              <Input
+                label="Lesões (opcional)"
                 value={editLesoes}
                 onChange={(e) => setEditLesoes(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
               />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Coletado por
-              </label>
-              <input
-                type="text"
+              <Input
+                label="Coletado por"
                 value={editColetadoPor}
                 onChange={(e) => setEditColetadoPor(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
               />
-            </div>
-            {editingEvidence.tipo === "texto" && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Conteúdo
-                </label>
-                <textarea
+              {editingEvidence.tipoEvidencia === "texto" && (
+                <Textarea
+                  label="Conteúdo"
                   value={editConteudo}
                   onChange={(e) => setEditConteudo(e.target.value)}
-                  rows={4}
-                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
-                ></textarea>
-              </div>
-            )}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Laudo (opcional)
-              </label>
-              <input
-                type="text"
+                />
+              )}
+              <Input
+                label="Laudo (opcional)"
                 value={editLaudo}
                 onChange={(e) => setEditLaudo(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
               />
-            </div>
-            <div className="flex flex-col sm:flex-row justify-end gap-4">
-              <button
-                onClick={cancelEdit}
-                className="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500 transition"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={confirmEdit}
-                className="bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition"
-              >
-                Salvar
-              </button>
-            </div>
+              <div className="flex flex-col sm:flex-row justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="bg-gray-400 text-white px-4 py-2 rounded-xl hover:bg-gray-500 transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmEdit}
+                  className="bg-teal-500 text-white px-4 py-2 rounded-xl hover:bg-teal-700 transition"
+                >
+                  Salvar
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
     </div>
   );
+}
+
+function Input({
+  label,
+  value,
+  placeholder,
+  onChange,
+  disabled = false,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <input
+        type="text"
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+        disabled={disabled}
+      />
+    </div>
+  );
+}
+
+function Textarea({
+  label,
+  value,
+  placeholder,
+  onChange,
+  disabled = false,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <textarea
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+        rows={4}
+        disabled={disabled}
+      ></textarea>
+    </div>
+  );
+}
+
+function Select({
+  label,
+  value,
+  onChange,
+  options,
+  disabled = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
+  options: string[];
+  disabled?: boolean;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <select
+        value={value}
+        onChange={onChange}
+        className="w-full p-3 border text-gray-800 rounded-xl focus:ring focus:ring-teal-300 disabled:opacity-50"
+        disabled={disabled}
+      >
+        <option value="">Selecione uma opção</option>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+```
+
+---
+
+### **Passo 2: Melhorias e Integrações Realizadas**
+
+#### **2.1 Integração com o Sistema**
+- **Autenticação**: Usa `useAuth` para verificar se o usuário é `Admin`, `Perito` ou `Assistente`, redirecionando para `/initialScreen` se não autorizado.
+- **Backend**: Integra com os endpoints `/api/evidence` (GET, PUT, DELETE), usando `api` (`axiosConfig`) com autenticação via token.
+- **Navegação**: Adiciona um botão "Nova Evidência" que leva para `/cadastrar-evidencia`, alinhando com a separação feita.
+
+#### **2.2 Consistência com `CadastrarEvidencia`**
+- **Estilização**: Usa `bg-teal-500`, `rounded-xl`, e fontes consistentes (`text-gray-800`, `text-gray-500`).
+- **Componentes Reutilizáveis**: Adiciona `Input`, `Textarea`, e `Select` no modal de edição, iguais aos usados em `CadastrarEvidencia` e `NewCasePage`.
+- **Feedback**: Mensagens de sucesso (`text-green-500`) e erro (`text-red-500`) seguem o mesmo padrão.
+
+#### **2.3 Novas Funcionalidades**
+- **Filtro por `casoReferencia`**:
+  - Campo de busca adicionado acima da listagem.
+  - Atualiza a query do `GET /api/evidence` com o parâmetro `casoReferencia`.
+  - Reseta a página para 1 quando o filtro é alterado (implicitamente via `fetchEvidences`).
+- **Botão "Nova Evidência"**: Link para `/cadastrar-evidencia` com ícone `FaPlus`, estilizado como `bg-teal-500`.
+- **Refetch Otimizado**: Após edição ou exclusão, `fetchEvidences` é chamado para garantir consistência com a paginação.
+
+#### **2.4 Alinhamento com `CaseManagementPage`**
+- **Paginação**: Mantém o mesmo estilo de navegação (`FaChevronLeft`, `FaChevronRight`) e exibição de "Página X de Y".
+- **Listagem**: Divide evidências em "Texto" e "Imagem", semelhante à organização clara de casos.
+- **Modal de Edição**: Usa um modal fixo com fundo desfocado, como em `CaseManagementPage`, mas com componentes reutilizáveis para maior consistência.
+
+---
+
+### **Passo 3: Verificações de Integração**
+
+#### **3.1 Compatibilidade com o Backend**
+Certifique-se de que o backend suporta:
+- **GET `/api/evidence`**:
+  - Parâmetros: `page`, `limit`, `casoReferencia` (opcional).
+  - Resposta: `{ evidencias: Evidence[], paginacao: { totalItems, totalPaginas, paginaAtual, porPagina } }`.
+- **PUT `/api/evidence/:evidenceId`**:
+  - Body: `{ casoReferencia, tipoEvidencia, categoria, vitima, sexo, estadoCorpo, lesoes?, coletadoPor, laudo?, conteudo? }`.
+  - Resposta: `{ updatedEvidence: Evidence, msg: string }`.
+- **DELETE `/api/evidence/:evidenceId`**:
+  - Resposta: `{ msg: string }`.
+- **Autenticação**: Todas as requisições devem incluir o header `Authorization: Bearer <token>`.
+
+Se o backend não suportar o filtro `casoReferencia`, você pode implementar a filtragem no frontend temporariamente:
+
+```typescript
+const filteredEvidences = useMemo(
+  () =>
+    searchCasoReferencia
+      ? evidences.filter((item) =>
+          item.casoReferencia.toLowerCase().includes(searchCasoReferencia.toLowerCase())
+        )
+      : evidences,
+  [evidences, searchCasoReferencia]
+);
+const textEvidences = useMemo(
+  () => filteredEvidences.filter((item) => item.tipoEvidencia === "texto"),
+  [filteredEvidences]
+);
+const imageEvidences = useMemo(
+  () => filteredEvidences.filter((item) => item.tipoEvidencia === "imagem"),
+  [filteredEvidences]
+);
+```
+
+#### **3.2 Tipos (`src/types/Evidence.ts`)**
+O arquivo de tipos fornecido anteriormente está correto e suporta a integração. Para referência:
+
+```typescript
+export interface Evidence {
+  _id: string;
+  casoReferencia: string;
+  tipoEvidencia: "imagem" | "texto";
+  categoria: string;
+  vitima: "identificada" | "não identificada";
+  sexo: "masculino" | "feminino" | "indeterminado";
+  estadoCorpo: "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto";
+  lesoes?: string;
+  coletadoPor: { nome: string; email: string };
+  conteudo?: string;
+  imagemURL?: string;
+  laudo?: string;
+  dataUpload: string;
+}
+
+export interface EvidenceListResponse {
+  evidencias: Evidence[];
+  paginacao: {
+    totalItems: number;
+    totalPaginas: number;
+    paginaAtual: number;
+    porPagina: number;
+  };
 }
