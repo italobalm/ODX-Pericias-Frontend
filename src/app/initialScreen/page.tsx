@@ -35,12 +35,7 @@ export default function HomePage() {
       path: "/cadastrarEvidencia", 
       allowed: ["admin", "perito", "assistente"],
     },
-    {
-      title: "Gestão de Evidências",
-      icon: FaFolderOpen, 
-      path: "/gestao-evidencias", 
-      allowed: ["admin", "perito", "assistente"],
-    },
+
     {
       title: "Elaborar Relatório",
       icon: FaChartBar,
