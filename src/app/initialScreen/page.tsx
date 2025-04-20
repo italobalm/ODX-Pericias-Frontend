@@ -43,7 +43,7 @@ export default function HomePage() {
       allowed: ["admin", "perito", "assistente"],
     },
     {
-      title: "Gestão de Casos",
+      title: "Gestão Geral",
       icon: FaFolderOpen,
       path: "/gestao-geral",
       allowed: ["admin", "perito", "assistente"],
