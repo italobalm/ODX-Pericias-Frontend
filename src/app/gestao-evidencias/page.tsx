@@ -18,7 +18,7 @@ export default function EvidenceManagementPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalPages, t] = useState<number>(1);
   const [itemsPerPage] = useState<number>(10);
   const [searchCasoReferencia, setSearchCasoReferencia] = useState<string>("");
 
@@ -37,7 +37,7 @@ export default function EvidenceManagementPage() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      const perfilLower = user.perfil.toLowerCase() as Lowercase<User['perfil']>;
+      const perfilLower = user.perfil.toLowerCase() as Lowercase<User["perfil"]>;
       if (!["admin", "perito", "assistente"].includes(perfilLower)) {
         router.push("/initialScreen");
       }
@@ -50,10 +50,10 @@ export default function EvidenceManagementPage() {
       const token = localStorage.getItem("authToken");
       const response = await api.get<EvidenceListResponse>("/api/evidence", {
         headers: { Authorization: `Bearer ${token}` },
-        params: { 
-          page: currentPage, 
-          limit: itemsPerPage, 
-          casoReferencia: searchCasoReferencia || undefined 
+        params: {
+          page: currentPage,
+          limit: itemsPerPage,
+          casoReferencia: searchCasoReferencia || undefined,
         },
       });
       setEvidences(response.data.evidencias);
@@ -478,100 +478,4 @@ function Select({
       </select>
     </div>
   );
-}
-```
-
----
-
-### **Passo 2: Melhorias e Integrações Realizadas**
-
-#### **2.1 Integração com o Sistema**
-- **Autenticação**: Usa `useAuth` para verificar se o usuário é `Admin`, `Perito` ou `Assistente`, redirecionando para `/initialScreen` se não autorizado.
-- **Backend**: Integra com os endpoints `/api/evidence` (GET, PUT, DELETE), usando `api` (`axiosConfig`) com autenticação via token.
-- **Navegação**: Adiciona um botão "Nova Evidência" que leva para `/cadastrar-evidencia`, alinhando com a separação feita.
-
-#### **2.2 Consistência com `CadastrarEvidencia`**
-- **Estilização**: Usa `bg-teal-500`, `rounded-xl`, e fontes consistentes (`text-gray-800`, `text-gray-500`).
-- **Componentes Reutilizáveis**: Adiciona `Input`, `Textarea`, e `Select` no modal de edição, iguais aos usados em `CadastrarEvidencia` e `NewCasePage`.
-- **Feedback**: Mensagens de sucesso (`text-green-500`) e erro (`text-red-500`) seguem o mesmo padrão.
-
-#### **2.3 Novas Funcionalidades**
-- **Filtro por `casoReferencia`**:
-  - Campo de busca adicionado acima da listagem.
-  - Atualiza a query do `GET /api/evidence` com o parâmetro `casoReferencia`.
-  - Reseta a página para 1 quando o filtro é alterado (implicitamente via `fetchEvidences`).
-- **Botão "Nova Evidência"**: Link para `/cadastrar-evidencia` com ícone `FaPlus`, estilizado como `bg-teal-500`.
-- **Refetch Otimizado**: Após edição ou exclusão, `fetchEvidences` é chamado para garantir consistência com a paginação.
-
-#### **2.4 Alinhamento com `CaseManagementPage`**
-- **Paginação**: Mantém o mesmo estilo de navegação (`FaChevronLeft`, `FaChevronRight`) e exibição de "Página X de Y".
-- **Listagem**: Divide evidências em "Texto" e "Imagem", semelhante à organização clara de casos.
-- **Modal de Edição**: Usa um modal fixo com fundo desfocado, como em `CaseManagementPage`, mas com componentes reutilizáveis para maior consistência.
-
----
-
-### **Passo 3: Verificações de Integração**
-
-#### **3.1 Compatibilidade com o Backend**
-Certifique-se de que o backend suporta:
-- **GET `/api/evidence`**:
-  - Parâmetros: `page`, `limit`, `casoReferencia` (opcional).
-  - Resposta: `{ evidencias: Evidence[], paginacao: { totalItems, totalPaginas, paginaAtual, porPagina } }`.
-- **PUT `/api/evidence/:evidenceId`**:
-  - Body: `{ casoReferencia, tipoEvidencia, categoria, vitima, sexo, estadoCorpo, lesoes?, coletadoPor, laudo?, conteudo? }`.
-  - Resposta: `{ updatedEvidence: Evidence, msg: string }`.
-- **DELETE `/api/evidence/:evidenceId`**:
-  - Resposta: `{ msg: string }`.
-- **Autenticação**: Todas as requisições devem incluir o header `Authorization: Bearer <token>`.
-
-Se o backend não suportar o filtro `casoReferencia`, você pode implementar a filtragem no frontend temporariamente:
-
-```typescript
-const filteredEvidences = useMemo(
-  () =>
-    searchCasoReferencia
-      ? evidences.filter((item) =>
-          item.casoReferencia.toLowerCase().includes(searchCasoReferencia.toLowerCase())
-        )
-      : evidences,
-  [evidences, searchCasoReferencia]
-);
-const textEvidences = useMemo(
-  () => filteredEvidences.filter((item) => item.tipoEvidencia === "texto"),
-  [filteredEvidences]
-);
-const imageEvidences = useMemo(
-  () => filteredEvidences.filter((item) => item.tipoEvidencia === "imagem"),
-  [filteredEvidences]
-);
-```
-
-#### **3.2 Tipos (`src/types/Evidence.ts`)**
-O arquivo de tipos fornecido anteriormente está correto e suporta a integração. Para referência:
-
-```typescript
-export interface Evidence {
-  _id: string;
-  casoReferencia: string;
-  tipoEvidencia: "imagem" | "texto";
-  categoria: string;
-  vitima: "identificada" | "não identificada";
-  sexo: "masculino" | "feminino" | "indeterminado";
-  estadoCorpo: "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto";
-  lesoes?: string;
-  coletadoPor: { nome: string; email: string };
-  conteudo?: string;
-  imagemURL?: string;
-  laudo?: string;
-  dataUpload: string;
-}
-
-export interface EvidenceListResponse {
-  evidencias: Evidence[];
-  paginacao: {
-    totalItems: number;
-    totalPaginas: number;
-    paginaAtual: number;
-    porPagina: number;
-  };
 }
