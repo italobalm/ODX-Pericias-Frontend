@@ -80,11 +80,16 @@ export default function Navbar() {
     setIsOpen((prev) => !prev);
   };
 
-  // Determinar o caminho de redirecionamento do logotipo
-  const logoRedirectPath = pathname === "/" ? "/initialScreen" : "/";
+  // Sempre redirecione para /initialScreen ao clicar no logotipo
+  const logoRedirectPath = "/initialScreen";
 
   const handleLogoClick = () => {
     router.push(logoRedirectPath);
+  };
+
+  // Redirecionar para /initialScreen ao clicar na saudação
+  const handleGreetingClick = () => {
+    router.push("/initialScreen");
   };
 
   console.log("Filtered menu items:", filteredItems);
@@ -105,14 +110,17 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Saudação */}
-        <div className="flex flex-col leading-tight">
+        {/* Saudação com redirecionamento */}
+        <button
+          onClick={handleGreetingClick}
+          className="flex flex-col leading-tight focus:outline-none hover:opacity-80 transition"
+        >
           <span className="text-sm text-gray-200">Olá,</span>
           <span className="text-lg font-semibold">{user.nome}</span>
           {user.cro && (
             <span className="text-xs text-gray-200">{`CRO: ${user.cro}`}</span>
           )}
-        </div>
+        </button>
 
         {/* Botão menu hambúrguer */}
         <div className="relative">
