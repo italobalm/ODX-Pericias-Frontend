@@ -6,29 +6,25 @@ import { motion } from "framer-motion";
 import { FaArrowLeft, FaSearch, FaEdit, FaTrash } from "react-icons/fa";
 import api from "@/lib/axiosConfig";
 import { useAuth } from "../providers/AuthProvider";
-import { Evidence } from "@/types/Evidence";
+import { Evidence, EvidenceListResponse } from "@/types/Evidence";
 import { AxiosError } from "axios";
 import Image from "next/image";
 import Link from "next/link";
 
-interface EvidenceListResponse {
-  evidencias: Evidence[];
-  paginacao: {
-    totalPaginas: number;
-  };
-}
-
 export default function EvidenceManagementPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, error: authError } = useAuth();
 
   const [evidences, setEvidences] = useState<Evidence[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    paginaAtual: 1,
+    porPagina: 10,
+    totalPaginas: 0,
+  });
   const [searchCasoReferencia, setSearchCasoReferencia] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const itemsPerPage = 10;
 
   const fetchEvidences = async () => {
     setIsLoading(true);
@@ -37,14 +33,14 @@ export default function EvidenceManagementPage() {
       const response = await api.get<EvidenceListResponse>("/api/evidence", {
         headers: { Authorization: `Bearer ${token}` },
         params: {
-          page: currentPage,
-          limit: itemsPerPage,
+          page: pagination.paginaAtual,
+          limit: pagination.porPagina,
           casoReferencia: searchCasoReferencia || undefined,
         },
       });
 
       setEvidences(response.data.evidencias);
-      setTotalPages(response.data.paginacao.totalPaginas);
+      setPagination(response.data.paginacao);
       setError("");
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
@@ -60,7 +56,7 @@ export default function EvidenceManagementPage() {
     if (user && !authLoading) {
       fetchEvidences();
     }
-  }, [user, authLoading, currentPage, searchCasoReferencia]);
+  }, [user, authLoading, pagination.paginaAtual, pagination.porPagina, searchCasoReferencia]);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Tem certeza que deseja excluir esta evidência?")) return;
@@ -79,6 +75,13 @@ export default function EvidenceManagementPage() {
     }
   };
 
+  const handlePaginationChange = (page: number) => {
+    setPagination((prev) => ({
+      ...prev,
+      paginaAtual: page,
+    }));
+  };
+
   const textEvidences = useMemo(
     () => evidences.filter((item) => item.tipoEvidencia === "texto"),
     [evidences]
@@ -90,6 +93,14 @@ export default function EvidenceManagementPage() {
 
   if (authLoading) {
     return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
+  }
+
+  if (authError) {
+    return (
+      <div className="text-center mt-20 text-red-500">
+        Erro de autenticação: {authError}. Por favor, tente fazer login novamente.
+      </div>
+    );
   }
 
   if (!user || !["admin", "perito", "assistente"].includes(user.perfil.toLowerCase())) {
@@ -126,7 +137,7 @@ export default function EvidenceManagementPage() {
             value={searchCasoReferencia}
             onChange={(e) => {
               setSearchCasoReferencia(e.target.value);
-              setCurrentPage(1);
+              setPagination((prev) => ({ ...prev, paginaAtual: 1 }));
             }}
             className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-teal-300 placeholder-gray-500"
           />
@@ -209,9 +220,9 @@ export default function EvidenceManagementPage() {
                     transition={{ duration: 0.3 }}
                     className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
                   >
-                    {item.urlImagem ? (
+                    {item.imagemURL ? (
                       <Image
-                        src={item.urlImagem}
+                        src={item.imagemURL}
                         alt="Evidência"
                         width={200}
                         height={200}
@@ -256,22 +267,22 @@ export default function EvidenceManagementPage() {
         </div>
       )}
 
-      {totalPages > 1 && (
-        <div className="flex justify-center mt-8 space-x-4">
+      {pagination.totalPaginas > 1 && (
+        <div className="mt-6 flex justify-center items-center gap-4">
           <button
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-xl disabled:opacity-50"
+            onClick={() => handlePaginationChange(pagination.paginaAtual - 1)}
+            disabled={pagination.paginaAtual === 1}
+            className="text-gray-500 disabled:text-gray-300 px-4 py-2 bg-gray-200 rounded-xl hover:bg-gray-300 transition"
           >
             Anterior
           </button>
           <span className="text-gray-700">
-            Página {currentPage} de {totalPages}
+            Página {pagination.paginaAtual} de {pagination.totalPaginas}
           </span>
           <button
-            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-xl disabled:opacity-50"
+            onClick={() => handlePaginationChange(pagination.paginaAtual + 1)}
+            disabled={pagination.paginaAtual === pagination.totalPaginas}
+            className="text-gray-500 disabled:text-gray-300 px-4 py-2 bg-gray-200 rounded-xl hover:bg-gray-300 transition"
           >
             Próxima
           </button>

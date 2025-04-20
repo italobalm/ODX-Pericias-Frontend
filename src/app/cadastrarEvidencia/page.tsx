@@ -16,7 +16,7 @@ interface EvidenceResponse {
 
 export default function NewEvidencePage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, error: authError } = useAuth();
 
   const [casoReferencia, setCasoReferencia] = useState("");
   const [tipoEvidencia, setTipoEvidencia] = useState<"imagem" | "texto">("texto");
@@ -27,7 +27,8 @@ export default function NewEvidencePage() {
     "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto"
   >("inteiro");
   const [lesoes, setLesoes] = useState("");
-  const [coletadoPor, setColetadoPor] = useState("");
+  const [coletadoPorNome, setColetadoPorNome] = useState("Roberta Silva");
+  const [coletadoPorEmail, setColetadoPorEmail] = useState("roberta.silva@example.com");
   const [laudo, setLaudo] = useState("");
   const [conteudo, setConteudo] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -38,7 +39,8 @@ export default function NewEvidencePage() {
   const isFormValid =
     casoReferencia &&
     categoria &&
-    coletadoPor &&
+    coletadoPorNome &&
+    coletadoPorEmail &&
     (tipoEvidencia === "texto" ? conteudo : file);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -56,7 +58,7 @@ export default function NewEvidencePage() {
     formData.append("sexo", sexo);
     formData.append("estadoCorpo", estadoCorpo);
     if (lesoes) formData.append("lesoes", lesoes);
-    formData.append("coletadoPor", coletadoPor);
+    formData.append("coletadoPor", JSON.stringify({ nome: coletadoPorNome, email: coletadoPorEmail }));
     if (tipoEvidencia === "texto" && conteudo) formData.append("conteudo", conteudo);
     if (laudo) formData.append("laudo", laudo);
     if (tipoEvidencia === "imagem" && file) formData.append("file", file);
@@ -74,7 +76,6 @@ export default function NewEvidencePage() {
       if (response.status >= 200 && response.status < 300) {
         setSubmitted(true);
         setError("");
-        // Reset form
         setCasoReferencia("");
         setTipoEvidencia("texto");
         setCategoria("");
@@ -82,12 +83,12 @@ export default function NewEvidencePage() {
         setSexo("masculino");
         setEstadoCorpo("inteiro");
         setLesoes("");
-        setColetadoPor("");
+        setColetadoPorNome("Roberta Silva");
+        setColetadoPorEmail("roberta.silva@example.com");
         setLaudo("");
         setConteudo("");
         setFile(null);
-        // Redirect
-        setTimeout(() => router.push("/initialScreen"), 1000);
+        setTimeout(() => router.push("/gestao-evidencias"), 1000);
       } else {
         setError("Erro ao enviar os dados para o servidor.");
       }
@@ -110,7 +111,16 @@ export default function NewEvidencePage() {
     return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
   }
 
+  if (authError) {
+    return (
+      <div className="text-center mt-20 text-red-500">
+        Erro de autenticação: {authError}. Por favor, tente fazer login novamente.
+      </div>
+    );
+  }
+
   if (!user || !["admin", "perito", "assistente"].includes(user.perfil.toLowerCase())) {
+    router.push("/initialScreen");
     return null;
   }
 
@@ -198,10 +208,18 @@ export default function NewEvidencePage() {
                   disabled={isLoading}
                 />
                 <Input
-                  label="Coletado por *"
-                  value={coletadoPor}
+                  label="Coletado por (Nome) *"
+                  value={coletadoPorNome}
                   placeholder="Ex: Dra. Helena Costa"
-                  onChange={(e) => handleChange(e, setColetadoPor)}
+                  onChange={(e) => handleChange(e, setColetadoPorNome)}
+                  disabled={isLoading}
+                />
+                <Input
+                  label="Coletado por (Email) *"
+                  value={coletadoPorEmail}
+                  placeholder="Ex: helena.costa@example.com"
+                  onChange={(e) => handleChange(e, setColetadoPorEmail)}
+                  type="email"
                   disabled={isLoading}
                 />
                 {tipoEvidencia === "texto" && (
