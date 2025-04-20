@@ -1,5 +1,5 @@
 "use client";
-import { FaUsers, FaFolderOpen, FaFileAlt, FaChartBar, FaMicroscope, FaEye, } from "react-icons/fa";
+import { FaUsers, FaFolderOpen, FaFileAlt, FaChartBar, FaMicroscope, FaEye } from "react-icons/fa";
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation"; 
 import { useAuth } from "../providers/AuthProvider";
@@ -30,12 +30,11 @@ export default function HomePage() {
       allowed: ["admin", "perito"],
     },
     {
-      title: "Cadastrar Evidências",
+      title: "Nova Evidência",
       icon: FaMicroscope,
       path: "/cadastrarEvidencia", 
       allowed: ["admin", "perito", "assistente"],
     },
-
     {
       title: "Elaborar Relatório",
       icon: FaChartBar,
@@ -58,24 +57,24 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col items-center min-h-screen">
-      <main className="flex flex-col items-center justify-center w-full max-w-4xl flex-grow pt-20 pb-20 px-6 md:px-12">
+      <main className="flex flex-col items-center justify-center w-full max-w-4xl flex-grow pt-20 pb- anesthetized20 px-6 md:px-12">
         <h1 className="text-lg font-semibold text-gray-800 mb-6 text-center">
           O que deseja fazer?
         </h1>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
+        <div className="grid grid-cols-3 gap-4 w-full">
           {menuItems
             .filter((item) => item.allowed.includes(user.perfil.toLowerCase()))
             .map((item, index) => (
               <button
                 key={index}
                 onClick={() => router.push(item.path)}
-                className="flex flex-col items-center justify-center bg-white p-6 rounded-2xl shadow hover:bg-gray-50 transition border border-gray-200"
+                className="flex flex-col items-center justify-center bg-white p-4 rounded-2xl shadow hover:bg-gray-50 transition border border-gray-200"
               >
-                <span className="text-4xl text-teal-500">
+                <span className="text-3xl text-teal-500">
                   {React.createElement(item.icon)}
                 </span>
-                <span className="mt-2 text-base font-medium text-gray-800 text-center">
+                <span className="mt-2 text-sm font-medium text-gray-800 text-center">
                   {item.title}
                 </span>
               </button>
