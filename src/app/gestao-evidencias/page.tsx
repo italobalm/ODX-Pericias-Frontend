@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, ChangeEvent, FormEvent, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { FaArrowLeft, FaSearch, FaEdit, FaTrash } from "react-icons/fa";
+import { FaArrowLeft, FaEdit, FaTrash } from "react-icons/fa";
 import api from "@/lib/axiosConfig";
 import { useAuth } from "../providers/AuthProvider";
 import { Evidence, EvidenceListResponse } from "@/types/Evidence";
@@ -21,12 +21,12 @@ export default function EvidenceManagementPage() {
     porPagina: 10,
     totalPaginas: 0,
   });
-  const [searchCasoReferencia, setSearchCasoReferencia] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [editingEvidence, setEditingEvidence] = useState<Evidence | null>(null);
-  const [failedImages, setFailedImages] = useState<Set<string>>(new Set()); // Track failed image loads
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  const [showNewEvidenceForm, setShowNewEvidenceForm] = useState(false);
 
   // Estados para os campos do formulário de edição
   const [casoReferencia, setCasoReferencia] = useState("");
@@ -61,7 +61,6 @@ export default function EvidenceManagementPage() {
         params: {
           page: pagination.paginaAtual,
           limit: pagination.porPagina,
-          casoReferencia: searchCasoReferencia || undefined,
         },
       });
 
@@ -76,7 +75,7 @@ export default function EvidenceManagementPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [pagination.paginaAtual, pagination.porPagina, searchCasoReferencia]);
+  }, [pagination.paginaAtual, pagination.porPagina]);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -86,6 +85,7 @@ export default function EvidenceManagementPage() {
 
   const handleEditEvidence = (evidence: Evidence) => {
     setEditingEvidence(evidence);
+    setShowNewEvidenceForm(false);
     setCasoReferencia(evidence.casoReferencia);
     setTipo(evidence.tipo);
     setCategoria(evidence.categoria);
@@ -113,6 +113,7 @@ export default function EvidenceManagementPage() {
 
   const handleCancelEdit = () => {
     setEditingEvidence(null);
+    setShowNewEvidenceForm(false);
     setCasoReferencia("");
     setTipo("texto");
     setCategoria("");
@@ -257,7 +258,7 @@ export default function EvidenceManagementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white p-6 sm:p-12">
+    <div className="max-w-5xl mx-auto pt-28 p-4 md:p-8">
       <header className="w-full flex items-center justify-start mb-6">
         <button
           onClick={() => router.back()}
@@ -268,200 +269,200 @@ export default function EvidenceManagementPage() {
         <h1 className="text-3xl font-bold text-gray-800">Gestão de Evidências</h1>
       </header>
 
-      <div className="flex justify-end mb-6">
+      <div className="flex justify-end mb-6 gap-4">
         <button
-          onClick={() => router.push("/cadastrar-evidencia")}
+          onClick={() => {
+            setShowNewEvidenceForm(true);
+            setEditingEvidence(null);
+            handleCancelEdit();
+          }}
           className="bg-teal-500 text-white px-6 py-3 rounded-xl hover:bg-teal-700 transition"
         >
           Nova Evidência
         </button>
+        <button
+          onClick={() => {
+            setShowNewEvidenceForm(false);
+            setEditingEvidence(null);
+            handleCancelEdit();
+          }}
+          className="bg-gray-500 text-white px-6 py-3 rounded-xl hover:bg-gray-600 transition"
+        >
+          Editar Evidência
+        </button>
       </div>
 
-      <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-10 space-y-6">
-        <h2 className="text-lg font-semibold text-gray-700">
-          {editingEvidence ? "Editar Evidência" : "Adicionar Nova Evidência"}
-        </h2>
-        {error && <p className="text-red-500">{error}</p>}
-        {success && <p className="text-green-500">{success}</p>}
-        {editingEvidence && (
-          <form className="space-y-4" onSubmit={handleUpdateEvidence}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Select
-                label="Tipo de Evidência *"
-                value={tipo}
-                onChange={(e) => setTipo(e.target.value as "imagem" | "texto")}
-                options={["texto", "imagem"]}
-                disabled={isLoading}
-              />
-              <Input
-                label="Caso (Referência) *"
-                value={casoReferencia}
-                placeholder="Ex: CR-2025-001"
-                onChange={(e) => handleChange(e, setCasoReferencia)}
-                disabled={isLoading}
-              />
-              <Input
-                label="Categoria *"
-                value={categoria}
-                placeholder="Ex: Radiografia Panorâmica"
-                onChange={(e) => handleChange(e, setCategoria)}
-                disabled={isLoading}
-              />
-              <Select
-                label="Vítima *"
-                value={vitima}
-                onChange={(e) =>
-                  setVitima(e.target.value as "identificada" | "não identificada")
-                }
-                options={["identificada", "não identificada"]}
-                disabled={isLoading}
-              />
-              <Select
-                label="Sexo *"
-                value={sexo}
-                onChange={(e) =>
-                  setSexo(e.target.value as "masculino" | "feminino" | "indeterminado")
-                }
-                options={["masculino", "feminino", "indeterminado"]}
-                disabled={isLoading}
-              />
-              <Select
-                label="Estado do Corpo *"
-                value={estadoCorpo}
-                onChange={(e) =>
-                  setEstadoCorpo(
-                    e.target.value as
-                      | "inteiro"
-                      | "fragmentado"
-                      | "carbonizado"
-                      | "putrefacto"
-                      | "esqueleto"
-                  )
-                }
-                options={["inteiro", "fragmentado", "carbonizado", "putrefacto", "esqueleto"]}
-                disabled={isLoading}
-              />
-              <Input
-                label="Lesões"
-                value={lesoes}
-                placeholder="Ex: Fratura no osso maxilar"
-                onChange={(e) => handleChange(e, setLesoes)}
-                disabled={isLoading}
-              />
-              <Input
-                label="Coletado por (Nome) *"
-                value={coletadoPorNome}
-                placeholder="Ex: Dra. Helena Costa"
-                onChange={(e) => handleChange(e, setColetadoPorNome)}
-                disabled={isLoading}
-              />
-              <Input
-                label="Coletado por (Email) *"
-                value={coletadoPorEmail}
-                placeholder="Ex: helena.costa@example.com"
-                onChange={(e) => handleChange(e, setColetadoPorEmail)}
-                type="email"
-                disabled={isLoading}
-              />
-              {tipo === "texto" && (
-                <Textarea
-                  label="Conteúdo *"
-                  value={conteudo}
-                  placeholder="Relatório textual sobre a arcada dentária"
-                  onChange={(e) => handleChange(e, setConteudo)}
+      {(showNewEvidenceForm || editingEvidence) && (
+        <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-10 space-y-6">
+          <h2 className="text-lg font-semibold text-gray-700">
+            {editingEvidence ? "Editar Evidência" : "Adicionar Nova Evidência"}
+          </h2>
+          {error && <p className="text-red-500">{error}</p>}
+          {success && <p className="text-green-500">{success}</p>}
+          {editingEvidence && (
+            <form className="space-y-4" onSubmit={handleUpdateEvidence}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Select
+                  label="Tipo de Evidência *"
+                  value={tipo}
+                  onChange={(e) => setTipo(e.target.value as "imagem" | "texto")}
+                  options={["texto", "imagem"]}
                   disabled={isLoading}
                 />
-              )}
-              {tipo === "imagem" && (
-                <div className="col-span-1 md:col-span-2">
-                  {editingEvidence.imagemURL && (
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Imagem Atual
-                      </label>
-                      <Image
-                        src={editingEvidence.imagemURL}
-                        alt="Imagem Atual"
-                        width={200}
-                        height={200}
-                        className="w-full h-48 object-cover rounded-md"
-                        onError={() => {
-                          console.error("Erro ao carregar imagem atual:", editingEvidence.imagemURL);
-                          setFailedImages((prev) => new Set(prev).add(editingEvidence._id));
-                        }}
-                      />
-                    </div>
-                  )}
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nova Imagem (opcional)
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="w-full p-3 border border-gray-300 rounded-xl"
+                <Input
+                  label="Caso (Referência) *"
+                  value={casoReferencia}
+                  placeholder="Ex: CR-2025-001"
+                  onChange={(e) => handleChange(e, setCasoReferencia)}
+                  disabled={isLoading}
+                />
+                <Input
+                  label="Categoria *"
+                  value={categoria}
+                  placeholder="Ex: Radiografia Panorâmica"
+                  onChange={(e) => handleChange(e, setCategoria)}
+                  disabled={isLoading}
+                />
+                <Select
+                  label="Vítima *"
+                  value={vitima}
+                  onChange={(e) =>
+                    setVitima(e.target.value as "identificada" | "não identificada")
+                  }
+                  options={["identificada", "não identificada"]}
+                  disabled={isLoading}
+                />
+                <Select
+                  label="Sexo *"
+                  value={sexo}
+                  onChange={(e) =>
+                    setSexo(e.target.value as "masculino" | "feminino" | "indeterminado")
+                  }
+                  options={["masculino", "feminino", "indeterminado"]}
+                  disabled={isLoading}
+                />
+                <Select
+                  label="Estado do Corpo *"
+                  value={estadoCorpo}
+                  onChange={(e) =>
+                    setEstadoCorpo(
+                      e.target.value as
+                        | "inteiro"
+                        | "fragmentado"
+                        | "carbonizado"
+                        | "putrefacto"
+                        | "esqueleto"
+                    )
+                  }
+                  options={["inteiro", "fragmentado", "carbonizado", "putrefacto", "esqueleto"]}
+                  disabled={isLoading}
+                />
+                <Input
+                  label="Lesões"
+                  value={lesoes}
+                  placeholder="Ex: Fratura no osso maxilar"
+                  onChange={(e) => handleChange(e, setLesoes)}
+                  disabled={isLoading}
+                />
+                <Input
+                  label="Coletado por (Nome) *"
+                  value={coletadoPorNome}
+                  placeholder="Ex: Dra. Helena Costa"
+                  onChange={(e) => handleChange(e, setColetadoPorNome)}
+                  disabled={isLoading}
+                />
+                <Input
+                  label="Coletado por (Email) *"
+                  value={coletadoPorEmail}
+                  placeholder="Ex: helena.costa@example.com"
+                  onChange={(e) => handleChange(e, setColetadoPorEmail)}
+                  type="email"
+                  disabled={isLoading}
+                />
+                {tipo === "texto" && (
+                  <Textarea
+                    label="Conteúdo *"
+                    value={conteudo}
+                    placeholder="Relatório textual sobre a arcada dentária"
+                    onChange={(e) => handleChange(e, setConteudo)}
                     disabled={isLoading}
                   />
-                  {filePreview && (
-                    <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Prévia da Nova Imagem
-                      </label>
-                      <Image
-                        src={filePreview}
-                        alt="Prévia da Nova Imagem"
-                        width={200}
-                        height={200}
-                        className="w-full h-48 object-cover rounded-md"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-              <Input
-                label="Laudo"
-                value={laudo}
-                placeholder="Texto do laudo pericial"
-                onChange={(e) => handleChange(e, setLaudo)}
-                disabled={isLoading}
-              />
-            </div>
-            <div className="flex justify-end gap-4">
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="bg-gray-500 text-white py-2 px-6 rounded-md hover:bg-gray-600 transition"
-                disabled={isLoading}
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="bg-teal-600 text-white py-2 px-6 rounded-md hover:bg-teal-700 transition"
-                disabled={isLoading || !isFormValid}
-              >
-                {isLoading ? "Carregando..." : "Salvar Alterações"}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-
-      <div className="mb-8">
-        <div className="relative max-w-md mx-auto flex items-center gap-3">
-          <input
-            type="text"
-            placeholder="Buscar por Caso (Referência)"
-            value={searchCasoReferencia}
-            onChange={(e) => {
-              setSearchCasoReferencia(e.target.value);
-              setPagination((prev) => ({ ...prev, paginaAtual: 1 }));
-            }}
-            className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-teal-300 placeholder-gray-500"
-          />
-          <FaSearch className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                )}
+                {tipo === "imagem" && (
+                  <div className="col-span-1 md:col-span-2">
+                    {editingEvidence.imagemURL && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Imagem Atual
+                        </label>
+                        <Image
+                          src={editingEvidence.imagemURL}
+                          alt="Imagem Atual"
+                          width={200}
+                          height={200}
+                          className="w-full h-48 object-cover rounded-md"
+                          onError={() => {
+                            console.error("Erro ao carregar imagem atual:", editingEvidence.imagemURL);
+                            setFailedImages((prev) => new Set(prev).add(editingEvidence._id));
+                          }}
+                        />
+                      </div>
+                    )}
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nova Imagem (opcional)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="w-full p-3 border border-gray-300 rounded-md"
+                      disabled={isLoading}
+                    />
+                    {filePreview && (
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Prévia da Nova Imagem
+                        </label>
+                        <Image
+                          src={filePreview}
+                          alt="Prévia da Nova Imagem"
+                          width={200}
+                          height={200}
+                          className="w-full h-48 object-cover rounded-md"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+                <Input
+                  label="Laudo"
+                  value={laudo}
+                  placeholder="Texto do laudo pericial"
+                  onChange={(e) => handleChange(e, setLaudo)}
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="flex justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="bg-gray-500 text-white py-2 px-6 rounded-md hover:bg-gray-600 transition"
+                  disabled={isLoading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="bg-teal-600 text-white py-2 px-6 rounded-md hover:bg-teal-700 transition"
+                  disabled={isLoading || !isFormValid}
+                >
+                  {isLoading ? "Carregando..." : "Salvar Alterações"}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
-      </div>
+      )}
 
       {isLoading && !editingEvidence ? (
         <p className="text-center text-gray-600">Carregando evidências...</p>
@@ -644,7 +645,7 @@ function Input({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+        className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
         disabled={disabled}
       />
     </div>
@@ -671,7 +672,7 @@ function Textarea({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+        className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
         rows={4}
         disabled={disabled}
       ></textarea>
@@ -698,7 +699,7 @@ function Select({
       <select
         value={value}
         onChange={onChange}
-        className="w-full p-3 border text-gray-800 rounded-xl focus:ring focus:ring-teal-300 disabled:opacity-50"
+        className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
         disabled={disabled}
       >
         <option value="">Selecione uma opção</option>
