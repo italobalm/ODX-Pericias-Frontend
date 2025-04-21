@@ -1,3 +1,4 @@
+// src/app/layout.tsx
 import "./globals.css";
 import Navbar from "../components/Navbar";
 import { Geist } from "next/font/google";

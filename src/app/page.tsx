@@ -2,8 +2,23 @@
 
 import Image from "next/image";
 import { FaSignInAlt } from "react-icons/fa";
+import { useEffect } from "react";
 
 export default function Home() {
+  useEffect(() => {
+    // Verifica se o Service Worker é suportado
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/service-worker.js")
+        .then((registration) => {
+          console.log("Service Worker registrado com sucesso:", registration);
+        })
+        .catch((error) => {
+          console.error("Falha ao registrar o Service Worker:", error);
+        });
+    }
+  }, []);
+
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-teal-100 to-teal-300 flex flex-col items-center justify-center space-y-8 overflow-hidden">
       {/* Bolinhas pulsantes no fundo */}
