@@ -1,8 +1,8 @@
-import { User } from "./User"; // Import the User interface
+import { User } from "./User";
 
 export interface Evidence {
   _id: string;
-  casoReferencia: string; // Código de Referência do Caso Relacionado
+  casoReferencia: string;
   tipoEvidencia: 'imagem' | 'texto';
   categoria: string;
   dataUpload: string;
@@ -10,7 +10,7 @@ export interface Evidence {
   sexo: 'masculino' | 'feminino' | 'indeterminado';
   estadoCorpo: 'inteiro' | 'fragmentado' | 'carbonizado' | 'putrefacto' | 'esqueleto';
   lesoes?: string;
-  coletadoPor: Pick<User, 'nome' | 'email'>; // Populated from User model
+  coletadoPor: User | string; // Corrigido para usar a interface User
   conteudo?: string;
   imagemURL?: string;
   laudo?: string;

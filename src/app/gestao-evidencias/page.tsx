@@ -30,6 +30,11 @@ export default function EvidenceManagementPage() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("authToken");
+      console.log("Buscando evidências com params:", {
+        page: pagination.paginaAtual,
+        limit: pagination.porPagina,
+        casoReferencia: searchCasoReferencia || undefined,
+      });
       const response = await api.get<EvidenceListResponse>("/api/evidence", {
         headers: { Authorization: `Bearer ${token}` },
         params: {
@@ -39,14 +44,17 @@ export default function EvidenceManagementPage() {
         },
       });
 
+      console.log("Resposta do GET /api/evidence:", response.data);
       setEvidences(response.data.evidencias);
+      console.log("Evidências após setEvidences:", response.data.evidencias);
       setPagination(response.data.paginacao);
       setError("");
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
       setError(
-        axiosError.response?.data?.msg || "Erro ao buscar evidências do servidor."
+        axiosError.response?.data?.msg || `Erro ao buscar evidências do servidor: ${axiosError.message}`
       );
+      console.error("Erro ao buscar evidências:", axiosError);
     } finally {
       setIsLoading(false);
     }
@@ -130,7 +138,7 @@ export default function EvidenceManagementPage() {
       </div>
 
       <div className="mb-8">
-        <div className="relative max-w-md mx-auto">
+        <div className="relative max-w-md mx-auto flex items-center gap-3">
           <input
             type="text"
             placeholder="Buscar por Caso (Referência)"
@@ -142,6 +150,15 @@ export default function EvidenceManagementPage() {
             className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-teal-300 placeholder-gray-500"
           />
           <FaSearch className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500" />
+          <button
+            onClick={() => {
+              setSearchCasoReferencia("");
+              setPagination((prev) => ({ ...prev, paginaAtual: 1 }));
+            }}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            Limpar
+          </button>
         </div>
       </div>
 
@@ -178,7 +195,9 @@ export default function EvidenceManagementPage() {
                     </p>
                     <p className="text-gray-700">
                       <strong>Coletado por:</strong>{" "}
-                      {item.coletadoPor.nome} ({item.coletadoPor.email})
+                      {typeof item.coletadoPor === "string"
+                        ? item.coletadoPor
+                        : `${item.coletadoPor.nome} (${item.coletadoPor.email})`}
                     </p>
                     <p className="text-gray-700">
                       <strong>Data de Upload:</strong>{" "}
@@ -239,7 +258,9 @@ export default function EvidenceManagementPage() {
                     </p>
                     <p className="text-gray-700">
                       <strong>Coletado por:</strong>{" "}
-                      {item.coletadoPor.nome} ({item.coletadoPor.email})
+                      {typeof item.coletadoPor === "string"
+                        ? item.coletadoPor
+                        : `${item.coletadoPor.nome} (${item.coletadoPor.email})`}
                     </p>
                     <p className="text-gray-700">
                       <strong>Data de Upload:</strong>{" "}
