@@ -3,14 +3,14 @@ import { User } from "./User";
 export interface Evidence {
   _id: string;
   casoReferencia: string;
-  tipoEvidencia: 'imagem' | 'texto';
+  tipo: 'imagem' | 'texto'; // Renomeado de tipoEvidencia para tipo
   categoria: string;
   dataUpload: string;
   vitima: 'identificada' | 'não identificada';
   sexo: 'masculino' | 'feminino' | 'indeterminado';
   estadoCorpo: 'inteiro' | 'fragmentado' | 'carbonizado' | 'putrefacto' | 'esqueleto';
   lesoes?: string;
-  coletadoPor: User | string; // Corrigido para usar a interface User
+  coletadoPor: User | string;
   conteudo?: string;
   imagemURL?: string;
   laudo?: string;

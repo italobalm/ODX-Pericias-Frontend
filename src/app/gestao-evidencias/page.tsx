@@ -47,6 +47,10 @@ export default function EvidenceManagementPage() {
       console.log("Resposta do GET /api/evidence:", response.data);
       setEvidences(response.data.evidencias);
       console.log("Evidências após setEvidences:", response.data.evidencias);
+      console.log(
+        "Valores de tipo:",
+        response.data.evidencias.map((item) => item.tipo)
+      );
       setPagination(response.data.paginacao);
       setError("");
     } catch (err: unknown) {
@@ -91,11 +95,17 @@ export default function EvidenceManagementPage() {
   };
 
   const textEvidences = useMemo(
-    () => evidences.filter((item) => item.tipoEvidencia === "texto"),
+    () =>
+      evidences.filter((item) =>
+        item.tipo?.toLowerCase().trim() === "texto"
+      ),
     [evidences]
   );
   const imageEvidences = useMemo(
-    () => evidences.filter((item) => item.tipoEvidencia === "imagem"),
+    () =>
+      evidences.filter((item) =>
+        item.tipo?.toLowerCase().trim() === "imagem"
+      ),
     [evidences]
   );
 
@@ -175,50 +185,57 @@ export default function EvidenceManagementPage() {
               <p className="text-gray-600">Nenhuma evidência neste grupo.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {textEvidences.map((item) => (
-                  <motion.div
-                    key={item._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
-                  >
-                    <p className="text-gray-700">
-                      <strong>Caso (Referência):</strong> {item.casoReferencia}
-                    </p>
-                    <p className="text-gray-700">
-                      <strong>Categoria:</strong> {item.categoria}
-                    </p>
-                    <p className="text-gray-700">
-                      <strong>Conteúdo:</strong>{" "}
-                      {item.conteudo ? item.conteudo.substring(0, 100) + "..." : "N/A"}
-                    </p>
-                    <p className="text-gray-700">
-                      <strong>Coletado por:</strong>{" "}
-                      {typeof item.coletadoPor === "string"
-                        ? item.coletadoPor
-                        : `${item.coletadoPor.nome} (${item.coletadoPor.email})`}
-                    </p>
-                    <p className="text-gray-700">
-                      <strong>Data de Upload:</strong>{" "}
-                      {new Date(item.dataUpload).toLocaleDateString("pt-BR")}
-                    </p>
-                    <div className="mt-4 flex space-x-3">
-                      <Link
-                        href={`/editar-evidencia/${item._id}`}
-                        className="text-teal-500 hover:text-teal-700"
+                {textEvidences.map((item) => {
+                  try {
+                    return (
+                      <motion.div
+                        key={item._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
                       >
-                        <FaEdit className="text-xl" />
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(item._id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <FaTrash className="text-xl" />
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
+                        <p className="text-gray-700">
+                          <strong>Caso (Referência):</strong> {item.casoReferencia}
+                        </p>
+                        <p className="text-gray-700">
+                          <strong>Categoria:</strong> {item.categoria}
+                        </p>
+                        <p className="text-gray-700">
+                          <strong>Conteúdo:</strong>{" "}
+                          {item.conteudo ? item.conteudo.substring(0, 100) + "..." : "N/A"}
+                        </p>
+                        <p className="text-gray-700">
+                          <strong>Coletado por:</strong>{" "}
+                          {typeof item.coletadoPor === "string"
+                            ? item.coletadoPor
+                            : `${item.coletadoPor?.nome || "N/A"} (${item.coletadoPor?.email || "N/A"})`}
+                        </p>
+                        <p className="text-gray-700">
+                          <strong>Data de Upload:</strong>{" "}
+                          {new Date(item.dataUpload).toLocaleDateString("pt-BR")}
+                        </p>
+                        <div className="mt-4 flex space-x-3">
+                          <Link
+                            href={`/editar-evidencia/${item._id}`}
+                            className="text-teal-500 hover:text-teal-700"
+                          >
+                            <FaEdit className="text-xl" />
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(item._id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <FaTrash className="text-xl" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  } catch (error) {
+                    console.error("Erro ao renderizar evidência de texto:", item, error);
+                    return null;
+                  }
+                })}
               </div>
             )}
           </div>
@@ -231,57 +248,64 @@ export default function EvidenceManagementPage() {
               <p className="text-gray-600">Nenhuma evidência neste grupo.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {imageEvidences.map((item) => (
-                  <motion.div
-                    key={item._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
-                  >
-                    {item.imagemURL ? (
-                      <Image
-                        src={item.imagemURL}
-                        alt="Evidência"
-                        width={200}
-                        height={200}
-                        className="w-full h-48 object-cover rounded-md mb-4"
-                      />
-                    ) : (
-                      <p className="text-gray-600 mb-4">Imagem não disponível</p>
-                    )}
-                    <p className="text-gray-700">
-                      <strong>Caso (Referência):</strong> {item.casoReferencia}
-                    </p>
-                    <p className="text-gray-700">
-                      <strong>Categoria:</strong> {item.categoria}
-                    </p>
-                    <p className="text-gray-700">
-                      <strong>Coletado por:</strong>{" "}
-                      {typeof item.coletadoPor === "string"
-                        ? item.coletadoPor
-                        : `${item.coletadoPor.nome} (${item.coletadoPor.email})`}
-                    </p>
-                    <p className="text-gray-700">
-                      <strong>Data de Upload:</strong>{" "}
-                      {new Date(item.dataUpload).toLocaleDateString("pt-BR")}
-                    </p>
-                    <div className="mt-4 flex space-x-3">
-                      <Link
-                        href={`/editar-evidencia/${item._id}`}
-                        className="text-teal-500 hover:text-teal-700"
+                {imageEvidences.map((item) => {
+                  try {
+                    return (
+                      <motion.div
+                        key={item._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
                       >
-                        <FaEdit className="text-xl" />
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(item._id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <FaTrash className="text-xl" />
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
+                        {item.imagemURL ? (
+                          <Image
+                            src={item.imagemURL}
+                            alt="Evidência"
+                            width={200}
+                            height={200}
+                            className="w-full h-48 object-cover rounded-md mb-4"
+                          />
+                        ) : (
+                          <p className="text-gray-600 mb-4">Imagem não disponível</p>
+                        )}
+                        <p className="text-gray-700">
+                          <strong>Caso (Referência):</strong> {item.casoReferencia}
+                        </p>
+                        <p className="text-gray-700">
+                          <strong>Categoria:</strong> {item.categoria}
+                        </p>
+                        <p className="text-gray-700">
+                          <strong>Coletado por:</strong>{" "}
+                          {typeof item.coletadoPor === "string"
+                            ? item.coletadoPor
+                            : `${item.coletadoPor?.nome || "N/A"} (${item.coletadoPor?.email || "N/A"})`}
+                        </p>
+                        <p className="text-gray-700">
+                          <strong>Data de Upload:</strong>{" "}
+                          {new Date(item.dataUpload).toLocaleDateString("pt-BR")}
+                        </p>
+                        <div className="mt-4 flex space-x-3">
+                          <Link
+                            href={`/editar-evidencia/${item._id}`}
+                            className="text-teal-500 hover:text-teal-700"
+                          >
+                            <FaEdit className="text-xl" />
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(item._id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <FaTrash className="text-xl" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  } catch (error) {
+                    console.error("Erro ao renderizar evidência de imagem:", item, error);
+                    return null;
+                  }
+                })}
               </div>
             )}
           </div>
