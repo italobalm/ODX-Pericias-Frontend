@@ -8,6 +8,7 @@ import api from "@/lib/axiosConfig";
 import { useAuth } from "../providers/AuthProvider";
 import { Evidence } from "@/types/Evidence";
 import { AxiosError } from "axios";
+import Image from "next/image"; // Adicionado para prévia da imagem
 
 interface EvidenceResponse {
   msg: string;
@@ -19,7 +20,7 @@ export default function NewEvidencePage() {
   const { user, loading: authLoading, error: authError } = useAuth();
 
   const [casoReferencia, setCasoReferencia] = useState("");
-  const [tipo, setTipo] = useState<"imagem" | "texto">("texto"); // Renomeado de tipoEvidencia para tipo
+  const [tipo, setTipo] = useState<"imagem" | "texto">("texto");
   const [categoria, setCategoria] = useState("");
   const [vitima, setVitima] = useState<"identificada" | "não identificada">("identificada");
   const [sexo, setSexo] = useState<"masculino" | "feminino" | "indeterminado">("masculino");
@@ -32,6 +33,7 @@ export default function NewEvidencePage() {
   const [laudo, setLaudo] = useState("");
   const [conteudo, setConteudo] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null); // Para prévia da imagem
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,7 +43,26 @@ export default function NewEvidencePage() {
     categoria &&
     coletadoPorNome &&
     coletadoPorEmail &&
-    (tipo === "texto" ? conteudo : file); // Ajustado para usar tipo
+    (tipo === "texto" ? conteudo : file);
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files ? e.target.files[0] : null;
+    if (selectedFile) {
+      // Validar tipo de arquivo
+      if (!selectedFile.type.startsWith("image/")) {
+        setError("Por favor, selecione um arquivo de imagem válido.");
+        setFile(null);
+        setFilePreview(null);
+        return;
+      }
+      setFile(selectedFile);
+      setFilePreview(URL.createObjectURL(selectedFile)); // Criar URL para prévia
+      setError("");
+    } else {
+      setFile(null);
+      setFilePreview(null);
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -52,16 +73,16 @@ export default function NewEvidencePage() {
 
     const formData = new FormData();
     formData.append("casoReferencia", casoReferencia);
-    formData.append("tipo", tipo); // Renomeado de tipoEvidencia para tipo
+    formData.append("tipo", tipo);
     formData.append("categoria", categoria);
     formData.append("vitima", vitima);
     formData.append("sexo", sexo);
     formData.append("estadoCorpo", estadoCorpo);
     if (lesoes) formData.append("lesoes", lesoes);
     formData.append("coletadoPor", JSON.stringify({ nome: coletadoPorNome, email: coletadoPorEmail }));
-    if (tipo === "texto" && conteudo) formData.append("conteudo", conteudo); // Ajustado para usar tipo
+    if (tipo === "texto" && conteudo) formData.append("conteudo", conteudo);
     if (laudo) formData.append("laudo", laudo);
-    if (tipo === "imagem" && file) formData.append("file", file); // Ajustado para usar tipo
+    if (tipo === "imagem" && file) formData.append("file", file);
 
     setIsLoading(true);
     try {
@@ -76,18 +97,20 @@ export default function NewEvidencePage() {
       if (response.status >= 200 && response.status < 300) {
         setSubmitted(true);
         setError("");
+        // Resetar todos os campos
         setCasoReferencia("");
-        setTipo("texto"); // Ajustado para usar setTipo
+        setTipo("texto");
         setCategoria("");
         setVitima("identificada");
         setSexo("masculino");
         setEstadoCorpo("inteiro");
         setLesoes("");
-        setColetadoPorNome("Roberta Silva");
-        setColetadoPorEmail("roberta.silva@example.com");
+        setColetadoPorNome("");
+        setColetadoPorEmail("");
         setLaudo("");
         setConteudo("");
         setFile(null);
+        setFilePreview(null);
         setTimeout(() => router.push("/gestao-evidencias"), 1000);
       } else {
         setError("Erro ao enviar os dados para o servidor.");
@@ -147,8 +170,8 @@ export default function NewEvidencePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Select
                   label="Tipo de Evidência *"
-                  value={tipo} // Ajustado para usar tipo
-                  onChange={(e) => setTipo(e.target.value as "imagem" | "texto")} // Ajustado para usar setTipo
+                  value={tipo}
+                  onChange={(e) => setTipo(e.target.value as "imagem" | "texto")}
                   options={["texto", "imagem"]}
                   disabled={isLoading}
                 />
@@ -222,7 +245,7 @@ export default function NewEvidencePage() {
                   type="email"
                   disabled={isLoading}
                 />
-                {tipo === "texto" && ( // Ajustado para usar tipo
+                {tipo === "texto" && (
                   <Textarea
                     label="Conteúdo *"
                     value={conteudo}
@@ -231,7 +254,7 @@ export default function NewEvidencePage() {
                     disabled={isLoading}
                   />
                 )}
-                {tipo === "imagem" && ( // Ajustado para usar tipo
+                {tipo === "imagem" && (
                   <div className="col-span-1 md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Arquivo (Imagem) *
@@ -239,12 +262,24 @@ export default function NewEvidencePage() {
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setFile(e.target.files ? e.target.files[0] : null)
-                      }
+                      onChange={handleFileChange}
                       className="w-full p-3 border border-gray-300 rounded-xl"
                       disabled={isLoading}
                     />
+                    {filePreview && (
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Prévia da Imagem
+                        </label>
+                        <Image
+                          src={filePreview}
+                          alt="Prévia da Imagem"
+                          width={200}
+                          height={200}
+                          className="w-full h-48 object-cover rounded-md"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
                 <Input
