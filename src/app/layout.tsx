@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import { Geist } from "next/font/google";
 import { AuthProvider } from "./providers/AuthProvider";
 import type { Metadata } from "next";
+import ServiceWorkerWrapper from "@/components/ServiceWorkerWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,6 +40,7 @@ export default function RootLayout({
   return (
     <html lang="pt">
       <body className={`${geistSans.variable} antialiased bg-gray-100`}>
+        <ServiceWorkerWrapper />{" "}
         <AuthProvider>
           <Navbar />
           <main className="pt-28 px-4 max-w-6xl mx-auto">{children}</main>
