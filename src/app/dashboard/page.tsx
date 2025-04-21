@@ -43,7 +43,7 @@ export default function VisaoGeral() {
   useEffect(() => {
     const fetchDados = async () => {
       try {
-        const res = await fetch("/api/dashboardRoutes");
+        const res = await fetch("/api/dashboard");
         const json = await res.json();
         setDados(json);
       } catch (err) {
