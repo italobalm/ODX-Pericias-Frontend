@@ -36,7 +36,6 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Tailwind custom keyframes via style tag (caso ainda não esteja no tailwind.config.js) */}
       <style jsx>{`
         @keyframes pulseDots {
           0%,

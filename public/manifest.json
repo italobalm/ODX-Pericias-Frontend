@@ -1,28 +1,27 @@
 {
-    "name": "ODX PERÍCIAS",
-    "short_name": "ODX",
-    "description": "Gestão e elaboração de perícias odontológicas forenses",
-    "start_url": ".",
-    "display": "standalone",
-    "theme_color": "#5ed8b1",
-    "background_color": "#5ed8b1",
-    "icons": [
-      {
-        "src": "AppImages/android/android-launchericon-192-192.png",
-        "sizes": "192x192",
-        "type": "image/png"
-      },
-      {
-        "src": "AppImages/android/android-launchericon-512-512.png",
-        "sizes": "512x512",
-        "type": "image/png"
-      },
-      {
-        "src": "AppImages/ios/180.png",
-        "sizes": "180x180",
-        "type": "image/png",
-        "purpose": "any maskable"
-      }
-    ]
-  }
-  
+  "name": "ODX PERÍCIAS",
+  "short_name": "ODX",
+  "description": "Gestão e elaboração de perícias odontológicas forenses",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#5ed8b1",
+  "background_color": "#5ed8b1",
+  "icons": [
+    {
+      "src": "AppImages/android/android-launchericon-192-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "AppImages/android/android-launchericon-512-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "AppImages/ios/180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
