@@ -36,7 +36,7 @@ export default function Navbar() {
       allowed: ["admin", "perito", "assistente"],
     },
     {
-      label: "Gestão de Casos",
+      label: "Gestão geral",
       path: "/gestao-geral",
       allowed: ["admin", "perito", "assistente"],
     },
@@ -65,7 +65,7 @@ export default function Navbar() {
     return null;
   }
 
-  const handleMenuItemClick = async (item: typeof menuItems[number]) => {
+  const handleMenuItemClick = async (item: (typeof menuItems)[number]) => {
     setIsOpen(false);
     if (item.isLogout) {
       await logout();
@@ -134,7 +134,9 @@ export default function Navbar() {
           {isOpen && (
             <ul className="absolute right-0 top-12 mt-2 bg-white text-gray-800 rounded-md shadow-lg w-48 overflow-hidden z-50">
               {filteredItems.length === 0 ? (
-                <li className="px-4 py-2 text-gray-500">Nenhum item disponível</li>
+                <li className="px-4 py-2 text-gray-500">
+                  Nenhum item disponível
+                </li>
               ) : (
                 filteredItems.map((item) => (
                   <li
