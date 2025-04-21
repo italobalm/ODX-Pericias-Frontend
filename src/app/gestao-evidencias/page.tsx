@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, ChangeEvent, FormEvent } from "react";
+import { useState, useEffect, useMemo, ChangeEvent, FormEvent, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { FaArrowLeft, FaSearch, FaEdit, FaTrash } from "react-icons/fa";
@@ -26,6 +26,7 @@ export default function EvidenceManagementPage() {
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [editingEvidence, setEditingEvidence] = useState<Evidence | null>(null);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set()); // Track failed image loads
 
   // Estados para os campos do formulário de edição
   const [casoReferencia, setCasoReferencia] = useState("");
@@ -42,7 +43,7 @@ export default function EvidenceManagementPage() {
   const [laudo, setLaudo] = useState("");
   const [conteudo, setConteudo] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null); // Para prévia da nova imagem
+  const [filePreview, setFilePreview] = useState<string | null>(null);
 
   const isFormValid =
     casoReferencia &&
@@ -51,7 +52,7 @@ export default function EvidenceManagementPage() {
     coletadoPorEmail &&
     (tipo === "texto" ? conteudo : true);
 
-  const fetchEvidences = async () => {
+  const fetchEvidences = useCallback(async () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("authToken");
@@ -75,13 +76,13 @@ export default function EvidenceManagementPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [pagination.paginaAtual, pagination.porPagina, searchCasoReferencia]);
 
   useEffect(() => {
     if (user && !authLoading) {
       fetchEvidences();
     }
-  }, [user, authLoading, pagination.paginaAtual, pagination.porPagina, searchCasoReferencia]);
+  }, [user, authLoading, fetchEvidences]);
 
   const handleEditEvidence = (evidence: Evidence) => {
     setEditingEvidence(evidence);
@@ -125,7 +126,7 @@ export default function EvidenceManagementPage() {
     setConteudo("");
     setFile(null);
     if (filePreview) {
-      URL.revokeObjectURL(filePreview); // Limpar a URL temporária para evitar vazamento de memória
+      URL.revokeObjectURL(filePreview);
       setFilePreview(null);
     }
     setError("");
@@ -135,7 +136,6 @@ export default function EvidenceManagementPage() {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files ? e.target.files[0] : null;
     if (selectedFile) {
-      // Validar tipo de arquivo
       if (!selectedFile.type.startsWith("image/")) {
         setError("Por favor, selecione um arquivo de imagem válido.");
         setFile(null);
@@ -374,7 +374,6 @@ export default function EvidenceManagementPage() {
               )}
               {tipo === "imagem" && (
                 <div className="col-span-1 md:col-span-2">
-                  {/* Mostrar a imagem atual, se existir */}
                   {editingEvidence.imagemURL && (
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -386,18 +385,11 @@ export default function EvidenceManagementPage() {
                         width={200}
                         height={200}
                         className="w-full h-48 object-cover rounded-md"
-                        onError={(e) => {
+                        onError={() => {
                           console.error("Erro ao carregar imagem atual:", editingEvidence.imagemURL);
-                          e.currentTarget.style.display = "none";
-                          e.currentTarget.nextSibling.style.display = "block";
+                          setFailedImages((prev) => new Set(prev).add(editingEvidence._id));
                         }}
                       />
-                      <p
-                        className="text-gray-600 mt-2"
-                        style={{ display: "none" }}
-                      >
-                        Imagem atual não disponível
-                      </p>
                     </div>
                   )}
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -547,29 +539,24 @@ export default function EvidenceManagementPage() {
                     transition={{ duration: 0.3 }}
                     className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
                   >
-                    {item.imagemURL ? (
-                      <>
-                        <Image
-                          src={item.imagemURL}
-                          alt="Evidência"
-                          width={200}
-                          height={200}
-                          className="w-full h-48 object-cover rounded-md mb-4"
-                          onError={(e) => {
-                            console.error("Erro ao carregar imagem:", item.imagemURL);
-                            e.currentTarget.style.display = "none";
-                            e.currentTarget.nextSibling.style.display = "block";
-                          }}
-                        />
-                        <p
-                          className="text-gray-600 mb-4"
-                          style={{ display: "none" }}
-                        >
-                          Não foi possível carregar a imagem. Verifique o URL ou tente novamente.
-                        </p>
-                      </>
+                    {item.imagemURL && !failedImages.has(item._id) ? (
+                      <Image
+                        src={item.imagemURL}
+                        alt="Evidência"
+                        width={200}
+                        height={200}
+                        className="w-full h-48 object-cover rounded-md mb-4"
+                        onError={() => {
+                          console.error("Erro ao carregar imagem:", item.imagemURL);
+                          setFailedImages((prev) => new Set(prev).add(item._id));
+                        }}
+                      />
                     ) : (
-                      <p className="text-gray-600 mb-4">Imagem não disponível</p>
+                      <p className="text-gray-600 mb-4">
+                        {item.imagemURL
+                          ? "Não foi possível carregar a imagem. Verifique o URL ou tente novamente."
+                          : "Imagem não disponível"}
+                      </p>
                     )}
                     <p className="text-gray-700">
                       <strong>Caso (Referência):</strong> {item.casoReferencia}
