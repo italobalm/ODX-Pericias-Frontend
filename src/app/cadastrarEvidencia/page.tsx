@@ -19,7 +19,7 @@ export default function NewEvidencePage() {
   const { user, loading: authLoading, error: authError } = useAuth();
 
   const [casoReferencia, setCasoReferencia] = useState("");
-  const [tipoEvidencia, setTipoEvidencia] = useState<"imagem" | "texto">("texto");
+  const [tipo, setTipo] = useState<"imagem" | "texto">("texto"); // Renomeado de tipoEvidencia para tipo
   const [categoria, setCategoria] = useState("");
   const [vitima, setVitima] = useState<"identificada" | "não identificada">("identificada");
   const [sexo, setSexo] = useState<"masculino" | "feminino" | "indeterminado">("masculino");
@@ -27,8 +27,8 @@ export default function NewEvidencePage() {
     "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto"
   >("inteiro");
   const [lesoes, setLesoes] = useState("");
-  const [coletadoPorNome, setColetadoPorNome] = useState("Roberta Silva");
-  const [coletadoPorEmail, setColetadoPorEmail] = useState("roberta.silva@example.com");
+  const [coletadoPorNome, setColetadoPorNome] = useState("");
+  const [coletadoPorEmail, setColetadoPorEmail] = useState("");
   const [laudo, setLaudo] = useState("");
   const [conteudo, setConteudo] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -41,7 +41,7 @@ export default function NewEvidencePage() {
     categoria &&
     coletadoPorNome &&
     coletadoPorEmail &&
-    (tipoEvidencia === "texto" ? conteudo : file);
+    (tipo === "texto" ? conteudo : file); // Ajustado para usar tipo
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -52,16 +52,16 @@ export default function NewEvidencePage() {
 
     const formData = new FormData();
     formData.append("casoReferencia", casoReferencia);
-    formData.append("tipoEvidencia", tipoEvidencia);
+    formData.append("tipo", tipo); // Renomeado de tipoEvidencia para tipo
     formData.append("categoria", categoria);
     formData.append("vitima", vitima);
     formData.append("sexo", sexo);
     formData.append("estadoCorpo", estadoCorpo);
     if (lesoes) formData.append("lesoes", lesoes);
     formData.append("coletadoPor", JSON.stringify({ nome: coletadoPorNome, email: coletadoPorEmail }));
-    if (tipoEvidencia === "texto" && conteudo) formData.append("conteudo", conteudo);
+    if (tipo === "texto" && conteudo) formData.append("conteudo", conteudo); // Ajustado para usar tipo
     if (laudo) formData.append("laudo", laudo);
-    if (tipoEvidencia === "imagem" && file) formData.append("file", file);
+    if (tipo === "imagem" && file) formData.append("file", file); // Ajustado para usar tipo
 
     setIsLoading(true);
     try {
@@ -77,7 +77,7 @@ export default function NewEvidencePage() {
         setSubmitted(true);
         setError("");
         setCasoReferencia("");
-        setTipoEvidencia("texto");
+        setTipo("texto"); // Ajustado para usar setTipo
         setCategoria("");
         setVitima("identificada");
         setSexo("masculino");
@@ -147,8 +147,8 @@ export default function NewEvidencePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Select
                   label="Tipo de Evidência *"
-                  value={tipoEvidencia}
-                  onChange={(e) => setTipoEvidencia(e.target.value as "imagem" | "texto")}
+                  value={tipo} // Ajustado para usar tipo
+                  onChange={(e) => setTipo(e.target.value as "imagem" | "texto")} // Ajustado para usar setTipo
                   options={["texto", "imagem"]}
                   disabled={isLoading}
                 />
@@ -222,7 +222,7 @@ export default function NewEvidencePage() {
                   type="email"
                   disabled={isLoading}
                 />
-                {tipoEvidencia === "texto" && (
+                {tipo === "texto" && ( // Ajustado para usar tipo
                   <Textarea
                     label="Conteúdo *"
                     value={conteudo}
@@ -231,7 +231,7 @@ export default function NewEvidencePage() {
                     disabled={isLoading}
                   />
                 )}
-                {tipoEvidencia === "imagem" && (
+                {tipo === "imagem" && ( // Ajustado para usar tipo
                   <div className="col-span-1 md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Arquivo (Imagem) *
