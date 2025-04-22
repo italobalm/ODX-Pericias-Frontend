@@ -43,7 +43,7 @@ export default function ReportRegisterPage() {
     async function fetchCasos() {
       try {
         const response = await api.get("/api/cases");
-        setCasosDisponiveis(response.data);
+        setCasosDisponiveis(response.data.casos);
       } catch (error) {
         setError("Erro ao buscar casos.");
         console.error("Erro ao buscar casos:", error);
