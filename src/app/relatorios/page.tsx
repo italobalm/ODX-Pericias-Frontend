@@ -1,7 +1,7 @@
 "use client";
 
 import api from "@/lib/axiosConfig";
-import { useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent } from "react";
 import { FaArrowLeft } from "react-icons/fa";
 import { isAxiosError } from "axios";
 
@@ -17,13 +17,15 @@ export default function ReportRegisterPage() {
   const [examesRealizados, setExamesRealizados] = useState("");
   const [consideracoesTecnicoPericiais, setConsideracoesTecnicoPericiais] = useState("");
   const [conclusaoTecnica, setConclusaoTecnica] = useState("");
-  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [formData] = useState<Record<string, string>>({});
   const [evidencias, setEvidencias] = useState<string[]>([]);
   const [pdfUrl, setPdfUrl] = useState("");
   const [reportId, setReportId] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [signed, setSigned] = useState(false);
+  const [casosDisponiveis, setCasosDisponiveis] = useState<{ _id: string; titulo: string }[]>([]);
 
   const isFormValid =
     caso &&
@@ -38,14 +40,33 @@ export default function ReportRegisterPage() {
     consideracoesTecnicoPericiais &&
     conclusaoTecnica;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    if (name.startsWith("introducao") || name.startsWith("analise") || name.startsWith("conclusao")) {
-      setFormData((prevState) => ({ ...prevState, [name]: value }));
-    } else if (name === "evidencias") {
-      setEvidencias(value.split(",").map((id) => id.trim()).filter(Boolean));
-    }
-  };
+    useEffect(() => {
+      async function fetchCasos() {
+        try {
+          const response = await api.get("/api/case");
+          setCasosDisponiveis(response.data);
+        } catch (error) {
+          console.error("Erro ao buscar casos:", error);
+        }
+      }
+      fetchCasos();
+    }, []);
+
+
+    useEffect(() => {
+      async function buscarEvidencias() {
+        if (!formData.caso) return;
+        try {
+          const response = await api.get(`/api/report/${formData.caso}/evidences`);
+          const evidenciasIds = response.data.map((ev: { _id: string }) => ev._id);
+          setEvidencias(evidenciasIds);
+        } catch (error) {
+          console.error("Erro ao buscar evidências do caso:", error);
+        }
+      }
+      buscarEvidencias();
+    }, [formData.caso]);
+  
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -70,10 +91,8 @@ export default function ReportRegisterPage() {
       const response = await api.post("/api/report", payload);
       const { report, pdf } = response.data;
 
-      // Armazena o ID do relatório para a assinatura
       setReportId(report._id);
 
-      // Converte o PDF retornado para URL
       const blob = new Blob([pdf], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       setPdfUrl(url);
@@ -97,7 +116,6 @@ export default function ReportRegisterPage() {
       const response = await api.post(`/api/report/sign/${reportId}`);
       const { pdf } = response.data;
 
-      // Atualiza o PDF com a versão assinada
       const blob = new Blob([pdf], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       setPdfUrl(url);
@@ -126,17 +144,23 @@ export default function ReportRegisterPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <h2 className="text-xl font-bold mb-4">Relatório de Perícia</h2>
 
-        {/* Informações Básicas */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Informações Básicas</h3>
-          <input
-            type="text"
-            placeholder="Código do Caso"
+
+          <select
             value={caso}
             onChange={(e) => setCaso(e.target.value)}
-            className="input w-full p-2 border rounded"
+            className="select w-full p-2 border rounded"
             required
-          />
+          >
+            <option value="">Selecione um Caso</option>
+            {casosDisponiveis.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.titulo}
+              </option>
+            ))}
+          </select>
+
           <input
             type="text"
             placeholder="Título"
@@ -145,6 +169,7 @@ export default function ReportRegisterPage() {
             className="input w-full p-2 border rounded"
             required
           />
+
           <textarea
             placeholder="Descrição"
             value={descricao}
@@ -152,18 +177,15 @@ export default function ReportRegisterPage() {
             className="textarea w-full p-2 border rounded"
             required
           />
-        </div>
-
-        {/* Dados Periciais */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Dados Periciais</h3>
-          <textarea
+       
+       <textarea
             placeholder="Objeto da Perícia"
             value={objetoPericia}
             onChange={(e) => setObjetoPericia(e.target.value)}
             className="textarea w-full p-2 border rounded"
             required
           />
+
           <textarea
             placeholder="Análise Técnica"
             value={analiseTecnica}
@@ -171,27 +193,23 @@ export default function ReportRegisterPage() {
             className="textarea w-full p-2 border rounded"
             required
           />
-          <input
-            type="text"
+
+          <textarea
             placeholder="Método Utilizado"
             value={metodoUtilizado}
             onChange={(e) => setMetodoUtilizado(e.target.value)}
-            className="input w-full p-2 border rounded"
+            className="textarea w-full p-2 border rounded"
             required
           />
-          <input
-            type="text"
+
+          <textarea
             placeholder="Destinatário"
             value={destinatario}
             onChange={(e) => setDestinatario(e.target.value)}
-            className="input w-full p-2 border rounded"
+            className="textarea w-full p-2 border rounded"
             required
           />
-        </div>
 
-        {/* Detalhes Finais */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Detalhes Finais</h3>
           <textarea
             placeholder="Materiais Utilizados"
             value={materiaisUtilizados}
@@ -199,6 +217,7 @@ export default function ReportRegisterPage() {
             className="textarea w-full p-2 border rounded"
             required
           />
+
           <textarea
             placeholder="Exames Realizados"
             value={examesRealizados}
@@ -206,6 +225,7 @@ export default function ReportRegisterPage() {
             className="textarea w-full p-2 border rounded"
             required
           />
+
           <textarea
             placeholder="Considerações Técnico-Periciais"
             value={consideracoesTecnicoPericiais}
@@ -213,40 +233,13 @@ export default function ReportRegisterPage() {
             className="textarea w-full p-2 border rounded"
             required
           />
+
           <textarea
             placeholder="Conclusão Técnica"
             value={conclusaoTecnica}
             onChange={(e) => setConclusaoTecnica(e.target.value)}
             className="textarea w-full p-2 border rounded"
             required
-          />
-          <input
-            type="text"
-            name="introducao_pt"
-            placeholder="Introdução (PT)"
-            onChange={handleChange}
-            className="input w-full p-2 border rounded"
-          />
-          <input
-            type="text"
-            name="analise_en"
-            placeholder="Análise (EN)"
-            onChange={handleChange}
-            className="input w-full p-2 border rounded"
-          />
-          <input
-            type="text"
-            name="conclusao_es"
-            placeholder="Conclusão (ES)"
-            onChange={handleChange}
-            className="input w-full p-2 border rounded"
-          />
-          <input
-            type="text"
-            name="evidencias"
-            placeholder="IDs das Evidências (separados por vírgula)"
-            onChange={handleChange}
-            className="input w-full p-2 border rounded"
           />
         </div>
 
@@ -275,20 +268,9 @@ export default function ReportRegisterPage() {
             >
               Assinar Digitalmente
             </button>
-          ) : (
-            <p className="text-green-600">Relatório assinado digitalmente!</p>
-          )}
-          <a
-            href={pdfUrl}
-            download="relatorio.pdf"
-            className="btn bg-blue-600 text-white p-2 rounded"
-          >
-            Baixar PDF
-          </a>
+          ) : null}
         </div>
       )}
-
-      {error && <p className="text-red-600 mt-4">{error}</p>}
     </div>
   );
 }
