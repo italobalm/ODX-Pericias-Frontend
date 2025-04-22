@@ -183,7 +183,7 @@ export default function EvidenceManagementPage() {
       handleCancelEdit();
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
-      setError(axiosError.response?.data?.msg || `Erro ao ${editingEvidence ? "atualizar" : "adicionar"} a evidência.`);
+      setError(axiosError.response?.data?.msg || `Erro ao ${editingEvidence ? "atualizar" : "a evidência."}`);
     } finally {
       setIsLoading(false);
     }
@@ -248,10 +248,10 @@ export default function EvidenceManagementPage() {
       <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-6 space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-700">
-            {editingEvidence ? "Editar Evidência" : "Adicionar/Editar Evidência"}
+            {editingEvidence ? "Editar Evidência" : "Editar Evidência"}
           </h2>
           <button
-            onClick={() => router.push("/evidence/new")}
+            onClick={() => router.push("/cadastrarEvidencia")}
             className="flex items-center gap-2 bg-teal-600 text-white py-2 px-4 rounded-md hover:bg-teal-700 transition"
           >
             <FaPlus />
@@ -448,7 +448,7 @@ export default function EvidenceManagementPage() {
               className="bg-teal-600 text-white py-2 px-6 rounded-md hover:bg-teal-700 transition"
               disabled={isLoading || !isFormValid}
             >
-              {isLoading ? "Carregando..." : editingEvidence ? "Salvar Alterações" : "Adicionar Evidência"}
+              {isLoading ? "Carregando..." : editingEvidence ? "Salvar Alterações" : "Editar Evidência"}
             </button>
           </div>
         </form>
