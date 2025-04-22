@@ -44,7 +44,7 @@ export default function VisaoGeral() {
   useEffect(() => {
     const fetchDados = async () => {
       try {
-        const res = await api.get(`${process.env.NEXT_PUBLIC_API_URL}/api/dashboard`);
+        const res = await api.get("api/dashboard");
         setDados(res.data);
       } catch (err) {
         console.error("Erro ao buscar dados:", err);

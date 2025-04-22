@@ -13,15 +13,16 @@ export default function CaseManagementPage() {
   const { user, loading, error } = useAuth();
 
   const [cases, setCases] = useState<Case[]>([]);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [status, setStatus] = useState("");
-  const [cidade, setCidade] = useState("");
-  const [estado, setEstado] = useState("");
+  const [formData, setFormData] = useState({
+    titulo: "",
+    descricao: "",
+    status: "open",
+    cidade: "",
+    estado: ""
+  });
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
-
   const [editingCase, setEditingCase] = useState<Case | null>(null);
 
   const [pagination, setPagination] = useState({
@@ -50,9 +51,8 @@ export default function CaseManagementPage() {
           },
         });
 
-        setCases(res.data.casos); // Array de casos
-        setPagination(res.data.paginacao); // Informações de paginação
-
+        setCases(res.data.casos);
+        setPagination(res.data.paginacao);
       } catch (err) {
         const apiError = err as ApiError;
         setErrorMessage(apiError?.response?.data?.msg || "Erro ao carregar os casos.");
@@ -65,38 +65,28 @@ export default function CaseManagementPage() {
   }, [user, pagination.paginaAtual, pagination.porPagina]);
 
   const handleSaveCase = async () => {
-    if (!title || !description) {
+    if (!formData.titulo || !formData.descricao) {
       setErrorMessage("Preencha todos os campos obrigatórios.");
       return;
     }
-
-    const caseData = {
-      title,
-      description,
-      status,
-      cidade,
-      estado,
-    };
-
+  
     setIsLoading(true);
     try {
       if (editingCase) {
-        const res = await api.put<Case>(`/api/cases/${editingCase._id}`, caseData);
-        setCases((prev) =>
-          prev.map((c) => (c._id === editingCase._id ? res.data : c))
-        );
+        // Atualiza o caso no backend
+        const updatedCase = await api.put<Case>(`/api/cases/${editingCase._id}`, formData).then(res => res.data);
+        
+        // Atualiza a lista localmente sem precisar recarregar
+        setCases(prev => prev.map(c => 
+          c._id === editingCase._id ? { ...c, ...updatedCase } : c
+        ));
+        
         setSuccess("Caso atualizado com sucesso.");
+        setEditingCase(null);
+        resetForm();
       } else {
         setErrorMessage("Não é permitido adicionar novos casos.");
       }
-
-      setEditingCase(null);
-      setTitle("");
-      setDescription("");
-      setStatus("");
-      setCidade("");
-      setEstado("");
-      setErrorMessage("");
     } catch (err) {
       const apiError = err as ApiError;
       setErrorMessage(apiError?.response?.data?.msg || "Erro ao salvar o caso.");
@@ -105,31 +95,43 @@ export default function CaseManagementPage() {
     }
   };
 
+  const resetForm = () => {
+    setFormData({
+      titulo: "",
+      descricao: "",
+      status: "open",
+      cidade: "",
+      estado: ""
+    });
+  };
+
   const handleEditCase = (caseItem: Case) => {
     setEditingCase(caseItem);
-    setTitle(caseItem.titulo);
-    setDescription(caseItem.descricao);
-    setStatus(caseItem.status);
-    setCidade(caseItem.cidade);
-    setEstado(caseItem.estado);
+    setFormData({
+      titulo: caseItem.titulo,
+      descricao: caseItem.descricao,
+      status: caseItem.status,
+      cidade: caseItem.cidade,
+      estado: caseItem.estado
+    });
     setErrorMessage("");
     setSuccess("");
   };
 
   const handleCancelEdit = () => {
     setEditingCase(null);
-    setTitle("");
-    setDescription("");
-    setStatus("");
+    resetForm();
     setErrorMessage("");
     setSuccess("");
   };
 
   const handleRemoveCase = async (caseId: string) => {
+    if (!window.confirm("Tem certeza que deseja excluir este caso?")) return;
+    
     setIsLoading(true);
     try {
       await api.delete(`/api/cases/${caseId}`);
-      setCases((prev) => prev.filter((c) => c._id !== caseId));
+      setCases(prev => prev.filter(c => c._id !== caseId));
       setSuccess("Caso removido com sucesso.");
     } catch (err) {
       const apiError = err as ApiError;
@@ -139,8 +141,16 @@ export default function CaseManagementPage() {
     }
   };
 
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   const handlePaginationChange = (page: number) => {
-    setPagination((prev) => ({
+    setPagination(prev => ({
       ...prev,
       paginaAtual: page,
     }));
@@ -175,29 +185,30 @@ export default function CaseManagementPage() {
         <h2 className="text-lg font-semibold text-gray-700">
           {editingCase ? "Editar Caso" : "Editar Caso"}
         </h2>
-        {(errorMessage || error) && (
-          <p className="text-red-500">{errorMessage || error}</p>
-        )}
+        {errorMessage && <p className="text-red-500">{errorMessage}</p>}
         {success && <p className="text-green-500">{success}</p>}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <input
             type="text"
+            name="titulo"
             placeholder="Título *"
-            value={title}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
+            value={formData.titulo}
+            onChange={handleInputChange}
             className="w-full p-3 border border-gray-300 rounded-md"
             disabled={isLoading}
           />
           <textarea
+            name="descricao"
             placeholder="Descrição *"
-            value={description}
-            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
+            value={formData.descricao}
+            onChange={handleInputChange}
             className="w-full p-3 border border-gray-300 rounded-md"
             disabled={isLoading}
           />
           <select
-            value={status}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value)}
+            name="status"
+            value={formData.status}
+            onChange={handleInputChange}
             className="w-full p-3 border border-gray-300 rounded-md"
             disabled={isLoading}
           >
@@ -207,17 +218,19 @@ export default function CaseManagementPage() {
           </select>
           <input
             type="text"
+            name="cidade"
             placeholder="Cidade"
-            value={cidade}
-            onChange={(e) => setCidade(e.target.value)}
+            value={formData.cidade}
+            onChange={handleInputChange}
             className="w-full p-3 border border-gray-300 rounded-md"
             disabled={isLoading}
           />
           <input
             type="text"
+            name="estado"
             placeholder="Estado"
-            value={estado}
-            onChange={(e) => setEstado(e.target.value)}
+            value={formData.estado}
+            onChange={handleInputChange}
             className="w-full p-3 border border-gray-300 rounded-md"
             disabled={isLoading}
           />
@@ -235,9 +248,9 @@ export default function CaseManagementPage() {
           <button
             onClick={handleSaveCase}
             className="bg-teal-600 text-white py-2 px-6 rounded-md hover:bg-teal-700 transition"
-            disabled={isLoading}
+            disabled={isLoading || !formData.titulo || !formData.descricao}
           >
-            {isLoading ? "Carregando..." : editingCase ? "Salvar Alterações" : "Editar Caso"}
+            {isLoading ? "Carregando..." : editingCase ? "Salvar Alterações" : "Salvar Alterações"}
           </button>
         </div>
       </div>
@@ -265,6 +278,7 @@ export default function CaseManagementPage() {
                   <p className="text-gray-600">Responsável: {caseItem.responsavel}</p>
                   <p className="text-gray-600">Cidade: {caseItem.cidade}</p>
                   <p className="text-gray-600">Estado: {caseItem.estado}</p>
+                  <p className="text-gray-600">Caso Referencia: {caseItem.casoReferencia}</p>
                 </div>
                 <div className="flex items-center gap-4 mt-4 md:mt-0">
                   <button

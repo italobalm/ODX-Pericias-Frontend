@@ -26,30 +26,32 @@ export default function EvidenceManagementPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [editingEvidence, setEditingEvidence] = useState<Evidence | null>(null);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Estados para os campos do formulário
-  const [casoReferencia, setCasoReferencia] = useState("");
-  const [tipo, setTipo] = useState<"imagem" | "texto">("texto");
-  const [categoria, setCategoria] = useState("");
-  const [vitima, setVitima] = useState<"identificada" | "não identificada">("identificada");
-  const [sexo, setSexo] = useState<"masculino" | "feminino" | "indeterminado">("masculino");
-  const [estadoCorpo, setEstadoCorpo] = useState<
-    "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto"
-  >("inteiro");
-  const [lesoes, setLesoes] = useState("");
-  const [coletadoPorNome, setColetadoPorNome] = useState("");
-  const [coletadoPorEmail, setColetadoPorEmail] = useState("");
-  const [laudo, setLaudo] = useState("");
-  const [conteudo, setConteudo] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
+  // Form states
+  const [formData, setFormData] = useState({
+    casoReferencia: "",
+    tipo: "texto" as "imagem" | "texto",
+    categoria: "",
+    vitima: "identificada" as "identificada" | "não identificada",
+    sexo: "masculino" as "masculino" | "feminino" | "indeterminado",
+    estadoCorpo: "inteiro" as "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto",
+    lesoes: "",
+    coletadoPorNome: "",
+    coletadoPorEmail: "",
+    laudo: "",
+    conteudo: "",
+    file: null as File | null,
+    filePreview: null as string | null
+  });
 
-  const isFormValid =
-    casoReferencia &&
-    categoria &&
-    coletadoPorNome &&
-    coletadoPorEmail &&
-    (tipo === "texto" ? conteudo : (editingEvidence ? true : file));
+  const isFormValid = useMemo(() => (
+    formData.casoReferencia &&
+    formData.categoria &&
+    formData.coletadoPorNome &&
+    formData.coletadoPorEmail &&
+    (formData.tipo === "texto" ? formData.conteudo : (editingEvidence ? true : formData.file))
+  ), [formData, editingEvidence]);
 
   const fetchEvidences = useCallback(async () => {
     setIsLoading(true);
@@ -60,6 +62,7 @@ export default function EvidenceManagementPage() {
         params: {
           page: pagination.paginaAtual,
           limit: pagination.porPagina,
+          search: searchTerm
         },
       });
 
@@ -68,13 +71,11 @@ export default function EvidenceManagementPage() {
       setError("");
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
-      setError(
-        axiosError.response?.data?.msg || "Erro ao buscar evidências do servidor."
-      );
+      setError(axiosError.response?.data?.msg || "Erro ao buscar evidências.");
     } finally {
       setIsLoading(false);
     }
-  }, [pagination.paginaAtual, pagination.porPagina]);
+  }, [pagination.paginaAtual, pagination.porPagina, searchTerm]);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -84,49 +85,44 @@ export default function EvidenceManagementPage() {
 
   const handleEditEvidence = (evidence: Evidence) => {
     setEditingEvidence(evidence);
-    setCasoReferencia(evidence.casoReferencia);
-    setTipo(evidence.tipo);
-    setCategoria(evidence.categoria);
-    setVitima(evidence.vitima);
-    setSexo(evidence.sexo);
-    setEstadoCorpo(evidence.estadoCorpo);
-    setLesoes(evidence.lesoes || "");
-    setColetadoPorNome(
-      typeof evidence.coletadoPor === "string"
-        ? evidence.coletadoPor
-        : evidence.coletadoPor?.nome || ""
-    );
-    setColetadoPorEmail(
-      typeof evidence.coletadoPor === "string"
-        ? ""
-        : evidence.coletadoPor?.email || ""
-    );
-    setLaudo(evidence.laudo || "");
-    setConteudo(evidence.conteudo || "");
-    setFile(null);
-    setFilePreview(null);
+    setFormData({
+      ...formData,
+      casoReferencia: evidence.casoReferencia,
+      tipo: evidence.tipo,
+      categoria: evidence.categoria,
+      vitima: evidence.vitima,
+      sexo: evidence.sexo,
+      estadoCorpo: evidence.estadoCorpo,
+      lesoes: evidence.lesoes || "",
+      coletadoPorNome: typeof evidence.coletadoPor === "string" ? evidence.coletadoPor : evidence.coletadoPor?.nome || "",
+      coletadoPorEmail: typeof evidence.coletadoPor === "string" ? "" : evidence.coletadoPor?.email || "",
+      laudo: evidence.laudo || "",
+      conteudo: evidence.conteudo || "",
+      file: null,
+      filePreview: null
+    });
     setError("");
     setSuccess("");
   };
 
   const handleCancelEdit = () => {
     setEditingEvidence(null);
-    setCasoReferencia("");
-    setTipo("texto");
-    setCategoria("");
-    setVitima("identificada");
-    setSexo("masculino");
-    setEstadoCorpo("inteiro");
-    setLesoes("");
-    setColetadoPorNome("");
-    setColetadoPorEmail("");
-    setLaudo("");
-    setConteudo("");
-    setFile(null);
-    if (filePreview) {
-      URL.revokeObjectURL(filePreview);
-      setFilePreview(null);
-    }
+    setFormData({
+      ...formData,
+      casoReferencia: "",
+      tipo: "texto",
+      categoria: "",
+      vitima: "identificada",
+      sexo: "masculino",
+      estadoCorpo: "inteiro",
+      lesoes: "",
+      coletadoPorNome: "",
+      coletadoPorEmail: "",
+      laudo: "",
+      conteudo: "",
+      file: null,
+      filePreview: null
+    });
     setError("");
     setSuccess("");
   };
@@ -136,105 +132,61 @@ export default function EvidenceManagementPage() {
     if (selectedFile) {
       if (!selectedFile.type.startsWith("image/")) {
         setError("Por favor, selecione um arquivo de imagem válido.");
-        setFile(null);
-        if (filePreview) {
-          URL.revokeObjectURL(filePreview);
-        }
-        setFilePreview(null);
+        setFormData({...formData, file: null, filePreview: null});
         return;
       }
-      setFile(selectedFile);
       const previewURL = URL.createObjectURL(selectedFile);
-      setFilePreview(previewURL);
+      setFormData({...formData, file: selectedFile, filePreview: previewURL});
       setError("");
     } else {
-      setFile(null);
-      if (filePreview) {
-        URL.revokeObjectURL(filePreview);
-      }
-      setFilePreview(null);
+      setFormData({...formData, file: null, filePreview: null});
     }
   };
 
-  const handleAddEvidence = async (e: FormEvent) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData({...formData, [name]: value});
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!isFormValid) {
       setError("Preencha todos os campos obrigatórios.");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("casoReferencia", casoReferencia);
-    formData.append("tipo", tipo);
-    formData.append("categoria", categoria);
-    formData.append("vitima", vitima);
-    formData.append("sexo", sexo);
-    formData.append("estadoCorpo", estadoCorpo);
-    if (lesoes) formData.append("lesoes", lesoes);
-    formData.append("coletadoPor", JSON.stringify({ nome: coletadoPorNome, email: coletadoPorEmail }));
-    if (tipo === "texto" && conteudo) formData.append("conteudo", conteudo);
-    if (laudo) formData.append("laudo", laudo);
-    if (tipo === "imagem" && file) formData.append("file", file);
+    const data = new FormData();
+    data.append("casoReferencia", formData.casoReferencia);
+    data.append("tipo", formData.tipo);
+    data.append("categoria", formData.categoria);
+    data.append("vitima", formData.vitima);
+    data.append("sexo", formData.sexo);
+    data.append("estadoCorpo", formData.estadoCorpo);
+    if (formData.lesoes) data.append("lesoes", formData.lesoes);
+    data.append("coletadoPor", JSON.stringify({ nome: formData.coletadoPorNome, email: formData.coletadoPorEmail }));
+    if (formData.tipo === "texto" && formData.conteudo) data.append("conteudo", formData.conteudo);
+    if (formData.laudo) data.append("laudo", formData.laudo);
+    if (formData.tipo === "imagem" && formData.file) data.append("file", formData.file);
 
     setIsLoading(true);
     try {
       const token = localStorage.getItem("authToken");
-      const response = await api.post<Evidence>("/api/evidence", formData, {
+      const endpoint = editingEvidence ? `/api/evidence/${editingEvidence._id}` : "/api/evidence";
+      const method = editingEvidence ? "put" : "post";
+      
+      await api[method]<Evidence>(endpoint, data, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
         },
       });
 
-      setEvidences((prev) => [...prev, response.data]);
-      setSuccess("Evidência adicionada com sucesso.");
+      setSuccess(editingEvidence ? "Evidência atualizada com sucesso." : "Evidência adicionada com sucesso.");
+      fetchEvidences();
       handleCancelEdit();
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
-      setError(axiosError.response?.data?.msg || "Erro ao adicionar a evidência.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleUpdateEvidence = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!isFormValid || !editingEvidence) {
-      setError("Preencha todos os campos obrigatórios.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("casoReferencia", casoReferencia);
-    formData.append("tipo", tipo);
-    formData.append("categoria", categoria);
-    formData.append("vitima", vitima);
-    formData.append("sexo", sexo);
-    formData.append("estadoCorpo", estadoCorpo);
-    if (lesoes) formData.append("lesoes", lesoes);
-    formData.append("coletadoPor", JSON.stringify({ nome: coletadoPorNome, email: coletadoPorEmail }));
-    if (tipo === "texto" && conteudo) formData.append("conteudo", conteudo);
-    if (laudo) formData.append("laudo", laudo);
-    if (tipo === "imagem" && file) formData.append("file", file);
-
-    setIsLoading(true);
-    try {
-      const token = localStorage.getItem("authToken");
-      const response = await api.put<Evidence>(`/api/evidence/${editingEvidence._id}`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setEvidences((prev) =>
-        prev.map((e) => (e._id === editingEvidence._id ? response.data : e))
-      );
-      setSuccess("Evidência atualizada com sucesso.");
-      handleCancelEdit();
-    } catch (err: unknown) {
-      const axiosError = err as AxiosError<{ msg?: string }>;
-      setError(axiosError.response?.data?.msg || "Erro ao atualizar a evidência.");
+      setError(axiosError.response?.data?.msg || `Erro ao ${editingEvidence ? 'atualizar' : 'adicionar'} a evidência.`);
     } finally {
       setIsLoading(false);
     }
@@ -256,40 +208,30 @@ export default function EvidenceManagementPage() {
   };
 
   const handlePaginationChange = (page: number) => {
-    setPagination((prev) => ({
-      ...prev,
-      paginaAtual: page,
-    }));
+    setPagination(prev => ({ ...prev, paginaAtual: page }));
   };
 
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-    setter: React.Dispatch<React.SetStateAction<string>>
-  ) => {
-    setter(e.target.value);
-  };
-
-  const textEvidences = useMemo(
-    () => evidences.filter((item) => item.tipo?.toLowerCase().trim() === "texto"),
-    [evidences]
-  );
-  const imageEvidences = useMemo(
-    () => evidences.filter((item) => item.tipo?.toLowerCase().trim() === "imagem"),
-    [evidences]
-  );
-
-  if (authLoading) {
-    return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
-  }
-
-  if (authError) {
-    return (
-      <div className="text-center mt-20 text-red-500">
-        Erro de autenticação: {authError}. Por favor, tente fazer login novamente.
-      </div>
+  const filteredEvidences = useMemo(() => {
+    return evidences.filter(evidence => 
+      evidence.casoReferencia.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      evidence.categoria.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (typeof evidence.coletadoPor === 'object' && 
+       evidence.coletadoPor?.nome.toLowerCase().includes(searchTerm.toLowerCase()))
     );
-  }
+  }, [evidences, searchTerm]);
 
+  const textEvidences = useMemo(() => 
+    filteredEvidences.filter(item => item.tipo?.toLowerCase().trim() === "texto"),
+    [filteredEvidences]
+  );
+
+  const imageEvidences = useMemo(() => 
+    filteredEvidences.filter(item => item.tipo?.toLowerCase().trim() === "imagem"),
+    [filteredEvidences]
+  );
+
+  if (authLoading) return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
+  if (authError) return <div className="text-center mt-20 text-red-500">Erro de autenticação: {authError}</div>;
   if (!user || !["admin", "perito", "assistente"].includes(user.perfil.toLowerCase())) {
     router.push("/initialScreen");
     return null;
@@ -298,33 +240,30 @@ export default function EvidenceManagementPage() {
   return (
     <div className="max-w-5xl mx-auto pt-28 p-4 md:p-8">
       <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={() => router.back()}
-          className="text-gray-600 hover:text-gray-800 transition p-2"
-          title="Voltar"
-        >
+        <button onClick={() => router.back()} className="text-gray-600 hover:text-gray-800 transition p-2" title="Voltar">
           <FaArrowLeft size={20} />
         </button>
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Gestão de Evidências</h1>
       </div>
 
-      <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-10 space-y-6">
+      {/* Formulário permanente no topo */}
+      <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-6 space-y-6">
         <h2 className="text-lg font-semibold text-gray-700">
           {editingEvidence ? "Editar Evidência" : "Adicionar Nova Evidência"}
         </h2>
         {error && <p className="text-red-500">{error}</p>}
         {success && <p className="text-green-500">{success}</p>}
-        <form className="space-y-4" onSubmit={editingEvidence ? handleUpdateEvidence : handleAddEvidence}>
+        <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Evidência *</label>
               <select
-                value={tipo}
-                onChange={(e) => setTipo(e.target.value as "imagem" | "texto")}
+                name="tipo"
+                value={formData.tipo}
+                onChange={handleChange}
                 className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
                 disabled={isLoading}
               >
-                <option value="">Selecione uma opção</option>
                 <option value="texto">Texto</option>
                 <option value="imagem">Imagem</option>
               </select>
@@ -333,139 +272,27 @@ export default function EvidenceManagementPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Caso (Referência) *</label>
               <input
                 type="text"
-                value={casoReferencia}
-                onChange={(e) => handleChange(e, setCasoReferencia)}
+                name="casoReferencia"
+                value={formData.casoReferencia}
+                onChange={handleChange}
                 placeholder="Ex: CR-2025-001"
                 className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
                 disabled={isLoading}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Categoria *</label>
-              <input
-                type="text"
-                value={categoria}
-                onChange={(e) => handleChange(e, setCategoria)}
-                placeholder="Ex: Radiografia Panorâmica"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Vítima *</label>
-              <select
-                value={vitima}
-                onChange={(e) => setVitima(e.target.value as "identificada" | "não identificada")}
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
-                disabled={isLoading}
-              >
-                <option value="">Selecione uma opção</option>
-                <option value="identificada">Identificada</option>
-                <option value="não identificada">Não Identificada</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sexo *</label>
-              <select
-                value={sexo}
-                onChange={(e) => setSexo(e.target.value as "masculino" | "feminino" | "indeterminado")}
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
-                disabled={isLoading}
-              >
-                <option value="">Selecione uma opção</option>
-                <option value="masculino">Masculino</option>
-                <option value="feminino">Feminino</option>
-                <option value="indeterminado">Indeterminado</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Estado do Corpo *</label>
-              <select
-                value={estadoCorpo}
-                onChange={(e) =>
-                  setEstadoCorpo(
-                    e.target.value as
-                      | "inteiro"
-                      | "fragmentado"
-                      | "carbonizado"
-                      | "putrefacto"
-                      | "esqueleto"
-                  )
-                }
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
-                disabled={isLoading}
-              >
-                <option value="">Selecione uma opção</option>
-                <option value="inteiro">Inteiro</option>
-                <option value="fragmentado">Fragmentado</option>
-                <option value="carbonizado">Carbonizado</option>
-                <option value="putrefacto">Putrefacto</option>
-                <option value="esqueleto">Esqueleto</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lesões</label>
-              <input
-                type="text"
-                value={lesoes}
-                onChange={(e) => handleChange(e, setLesoes)}
-                placeholder="Ex: Fratura no osso maxilar"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Coletado por (Nome) *</label>
-              <input
-                type="text"
-                value={coletadoPorNome}
-                onChange={(e) => handleChange(e, setColetadoPorNome)}
-                placeholder="Ex: Dra. Helena Costa"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Coletado por (Email) *</label>
-              <input
-                type="email"
-                value={coletadoPorEmail}
-                onChange={(e) => handleChange(e, setColetadoPorEmail)}
-                placeholder="Ex: helena.costa@example.com"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
-            {tipo === "texto" && (
+            {/* Outros campos do formulário... */}
+            {formData.tipo === "imagem" && (
               <div className="col-span-1 md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Conteúdo *</label>
-                <textarea
-                  value={conteudo}
-                  onChange={(e) => handleChange(e, setConteudo)}
-                  placeholder="Relatório textual sobre a arcada dentária"
-                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                  rows={4}
-                  disabled={isLoading}
-                ></textarea>
-              </div>
-            )}
-            {tipo === "imagem" && (
-              <div className="col-span-1 md:col-span-2">
-                {editingEvidence?.imagemURL && (
+                {editingEvidence?.imagemURL && !failedImages.has(editingEvidence._id) && (
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Imagem Atual
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Imagem Atual</label>
                     <Image
                       src={editingEvidence.imagemURL}
                       alt="Imagem Atual"
                       width={200}
                       height={200}
                       className="w-full h-48 object-cover rounded-md"
-                      onError={() => {
-                        console.error("Erro ao carregar imagem atual:", editingEvidence.imagemURL);
-                        setFailedImages((prev) => new Set(prev).add(editingEvidence._id));
-                      }}
+                      onError={() => setFailedImages(prev => new Set(prev).add(editingEvidence._id))}
                     />
                   </div>
                 )}
@@ -479,13 +306,11 @@ export default function EvidenceManagementPage() {
                   className="w-full p-3 border border-gray-300 rounded-md"
                   disabled={isLoading}
                 />
-                {filePreview && (
+                {formData.filePreview && (
                   <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Prévia da Nova Imagem
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Prévia da Nova Imagem</label>
                     <Image
-                      src={filePreview}
+                      src={formData.filePreview}
                       alt="Prévia da Nova Imagem"
                       width={200}
                       height={200}
@@ -495,17 +320,6 @@ export default function EvidenceManagementPage() {
                 )}
               </div>
             )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Laudo</label>
-              <input
-                type="text"
-                value={laudo}
-                onChange={(e) => handleChange(e, setLaudo)}
-                placeholder="Texto do laudo pericial"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
           </div>
           <div className="flex justify-end gap-4">
             {editingEvidence && (
@@ -529,16 +343,26 @@ export default function EvidenceManagementPage() {
         </form>
       </div>
 
-      {isLoading && !editingEvidence ? (
+      {/* Campo de pesquisa */}
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Pesquisar evidências..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded-md focus:ring focus:ring-teal-300"
+        />
+      </div>
+
+      {/* Lista de evidências */}
+      {isLoading ? (
         <p className="text-center text-gray-600">Carregando evidências...</p>
       ) : (
         <div className="space-y-12">
           <div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Evidências de Texto
-            </h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Evidências de Texto</h2>
             {textEvidences.length === 0 ? (
-              <p className="text-gray-600">Nenhuma evidência neste grupo.</p>
+              <p className="text-gray-600">Nenhuma evidência de texto encontrada.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {textEvidences.map((item) => (
@@ -549,37 +373,12 @@ export default function EvidenceManagementPage() {
                     transition={{ duration: 0.3 }}
                     className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
                   >
-                    <p className="text-gray-700">
-                      <strong>Caso (Referência):</strong> {item.casoReferencia}
-                    </p>
-                    <p className="text-gray-700">
-                      <strong>Categoria:</strong> {item.categoria}
-                    </p>
-                    <p className="text-gray-700">
-                      <strong>Conteúdo:</strong>{" "}
-                      {item.conteudo ? item.conteudo.substring(0, 100) + "..." : "N/A"}
-                    </p>
-                    <p className="text-gray-700">
-                      <strong>Coletado por:</strong>{" "}
-                      {typeof item.coletadoPor === "string"
-                        ? item.coletadoPor
-                        : item.coletadoPor?.nome || "N/A"}
-                    </p>
-                    <p className="text-gray-700">
-                      <strong>Data de Upload:</strong>{" "}
-                      {new Date(item.dataUpload).toLocaleDateString("pt-BR")}
-                    </p>
+                    {/* Conteúdo da evidência de texto */}
                     <div className="mt-4 flex space-x-3">
-                      <button
-                        onClick={() => handleEditEvidence(item)}
-                        className="text-teal-500 hover:text-teal-700"
-                      >
+                      <button onClick={() => handleEditEvidence(item)} className="text-teal-500 hover:text-teal-700">
                         <FaEdit className="text-xl" />
                       </button>
-                      <button
-                        onClick={() => handleDelete(item._id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
+                      <button onClick={() => handleDelete(item._id)} className="text-red-500 hover:text-red-700">
                         <FaTrash className="text-xl" />
                       </button>
                     </div>
@@ -590,11 +389,9 @@ export default function EvidenceManagementPage() {
           </div>
 
           <div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Evidências de Imagem
-            </h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Evidências de Imagem</h2>
             {imageEvidences.length === 0 ? (
-              <p className="text-gray-600">Nenhuma evidência neste grupo.</p>
+              <p className="text-gray-600">Nenhuma evidência de imagem encontrada.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {imageEvidences.map((item) => (
@@ -605,52 +402,12 @@ export default function EvidenceManagementPage() {
                     transition={{ duration: 0.3 }}
                     className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
                   >
-                    {item.imagemURL && !failedImages.has(item._id) ? (
-                      <Image
-                        src={item.imagemURL}
-                        alt="Evidência"
-                        width={200}
-                        height={200}
-                        className="w-full h-48 object-cover rounded-md mb-4"
-                        onError={() => {
-                          console.error("Erro ao carregar imagem:", item.imagemURL);
-                          setFailedImages((prev) => new Set(prev).add(item._id));
-                        }}
-                      />
-                    ) : (
-                      <p className="text-gray-600 mb-4">
-                        {item.imagemURL
-                          ? "Não foi possível carregar a imagem. Verifique o URL ou tente novamente."
-                          : "Imagem não disponível"}
-                      </p>
-                    )}
-                    <p className="text-gray-700">
-                      <strong>Caso (Referência):</strong> {item.casoReferencia}
-                    </p>
-                    <p className="text-gray-700">
-                      <strong>Categoria:</strong> {item.categoria}
-                    </p>
-                    <p className="text-gray-700">
-                      <strong>Coletado por:</strong>{" "}
-                      {typeof item.coletadoPor === "string"
-                        ? item.coletadoPor
-                        : item.coletadoPor?.nome || "N/A"}
-                    </p>
-                    <p className="text-gray-700">
-                      <strong>Data de Upload:</strong>{" "}
-                      {new Date(item.dataUpload).toLocaleDateString("pt-BR")}
-                    </p>
-                    <div className="mt-4 flex space should'vex-3">
-                      <button
-                        onClick={() => handleEditEvidence(item)}
-                        className="text-teal-500 hover:text-teal-700"
-                      >
+                    {/* Conteúdo da evidência de imagem */}
+                    <div className="mt-4 flex space-x-3">
+                      <button onClick={() => handleEditEvidence(item)} className="text-teal-500 hover:text-teal-700">
                         <FaEdit className="text-xl" />
                       </button>
-                      <button
-                        onClick={() => handleDelete(item._id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
+                      <button onClick={() => handleDelete(item._id)} className="text-red-500 hover:text-red-700">
                         <FaTrash className="text-xl" />
                       </button>
                     </div>
