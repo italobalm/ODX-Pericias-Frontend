@@ -5,8 +5,15 @@ import { useEffect, useState, FormEvent } from "react";
 import { FaArrowLeft } from "react-icons/fa";
 import { isAxiosError } from "axios";
 
+interface Caso {
+  _id: string;
+  titulo: string;
+  codigoReferencia: string;
+}
+
 export default function ReportRegisterPage() {
   const [caso, setCaso] = useState("");
+  const [casoReferencia, setCasoReferencia] = useState(""); // Novo estado para o codigoReferencia
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [objetoPericia, setObjetoPericia] = useState("");
@@ -17,15 +24,13 @@ export default function ReportRegisterPage() {
   const [examesRealizados, setExamesRealizados] = useState("");
   const [consideracoesTecnicoPericiais, setConsideracoesTecnicoPericiais] = useState("");
   const [conclusaoTecnica, setConclusaoTecnica] = useState("");
-  const [formData] = useState<Record<string, string>>({});
   const [evidencias, setEvidencias] = useState<string[]>([]);
   const [pdfUrl, setPdfUrl] = useState("");
   const [reportId, setReportId] = useState("");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [signed, setSigned] = useState(false);
-  const [casosDisponiveis, setCasosDisponiveis] = useState<{ _id: string; titulo: string }[]>([]);
+  const [casosDisponiveis, setCasosDisponiveis] = useState<Caso[]>([]);
 
   const isFormValid =
     caso &&
@@ -40,33 +45,45 @@ export default function ReportRegisterPage() {
     consideracoesTecnicoPericiais &&
     conclusaoTecnica;
 
-    useEffect(() => {
-      async function fetchCasos() {
-        try {
-          const response = await api.get("/api/case");
-          setCasosDisponiveis(response.data);
-        } catch (error) {
-          console.error("Erro ao buscar casos:", error);
-        }
+  // Busca os casos disponíveis
+  useEffect(() => {
+    async function fetchCasos() {
+      try {
+        const response = await api.get("/api/cases");
+        setCasosDisponiveis(response.data);
+      } catch (error) {
+        console.error("Erro ao buscar casos:", error);
+        setError("Erro ao carregar os casos.");
       }
-      fetchCasos();
-    }, []);
+    }
+    fetchCasos();
+  }, []);
 
-
-    useEffect(() => {
-      async function buscarEvidencias() {
-        if (!formData.caso) return;
-        try {
-          const response = await api.get(`/api/report/${formData.caso}/evidences`);
-          const evidenciasIds = response.data.map((ev: { _id: string }) => ev._id);
-          setEvidencias(evidenciasIds);
-        } catch (error) {
-          console.error("Erro ao buscar evidências do caso:", error);
-        }
+  // Busca as evidências do caso selecionado
+  useEffect(() => {
+    async function buscarEvidencias() {
+      if (!caso) return;
+      try {
+        const response = await api.get(`/api/cases/${caso}/evidences`);
+        const evidenciasIds = response.data.map((ev: { _id: string }) => ev._id);
+        setEvidencias(evidenciasIds);
+      } catch (error) {
+        console.error("Erro ao buscar evidências do caso:", error);
+        setError("Erro ao buscar evidências do caso.");
       }
-      buscarEvidencias();
-    }, [formData.caso]);
-  
+    }
+    buscarEvidencias();
+  }, [caso]);
+
+  // Atualiza o casoReferencia quando o caso é selecionado
+  useEffect(() => {
+    const selectedCaso = casosDisponiveis.find((c) => c._id === caso);
+    if (selectedCaso) {
+      setCasoReferencia(selectedCaso.codigoReferencia);
+    } else {
+      setCasoReferencia("");
+    }
+  }, [caso, casosDisponiveis]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -83,13 +100,18 @@ export default function ReportRegisterPage() {
         examesRealizados,
         consideracoesTecnicoPericiais,
         conclusaoTecnica,
-        casoReferencia: caso,
+        casoReferencia,
         evidencias,
-        ...formData,
       };
 
-      const response = await api.post("/api/report", payload);
-      const { report, pdf } = response.data;
+      const response = await api.post("/api/report", payload, {
+        responseType: "arraybuffer", // Para lidar com o Buffer do PDF
+      });
+
+      // A resposta contém um JSON com msg, report e pdf
+      const text = new TextDecoder().decode(response.data);
+      const data = JSON.parse(text);
+      const { report, pdf } = data;
 
       setReportId(report._id);
 
@@ -113,8 +135,12 @@ export default function ReportRegisterPage() {
       return;
     }
     try {
-      const response = await api.post(`/api/report/sign/${reportId}`);
-      const { pdf } = response.data;
+      const response = await api.post(`/api/report/sign/${reportId}`, {
+        responseType: "arraybuffer",
+      });
+      const text = new TextDecoder().decode(response.data);
+      const data = JSON.parse(text);
+      const { pdf } = data;
 
       const blob = new Blob([pdf], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
@@ -177,8 +203,8 @@ export default function ReportRegisterPage() {
             className="textarea w-full p-2 border rounded"
             required
           />
-       
-       <textarea
+
+          <textarea
             placeholder="Objeto da Perícia"
             value={objetoPericia}
             onChange={(e) => setObjetoPericia(e.target.value)}
