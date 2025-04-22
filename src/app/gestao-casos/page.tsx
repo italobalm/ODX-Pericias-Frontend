@@ -32,7 +32,6 @@ export default function CaseManagementPage() {
   });
 
   useEffect(() => {
-    // Apenas efetua o redirecionamento se o usuário não for "admin" ou "perito" e o carregamento foi concluído
     if (!loading && user && !["admin", "perito"].includes(user.perfil.toLowerCase())) {
       router.push("/initialScreen");
     }
@@ -50,11 +49,10 @@ export default function CaseManagementPage() {
             limit: pagination.porPagina,
           },
         });
-        
-        // Aqui você pega tanto os casos quanto a informação de paginação
+
         setCases(res.data.casos); // Array de casos
         setPagination(res.data.paginacao); // Informações de paginação
-        
+
       } catch (err) {
         const apiError = err as ApiError;
         setErrorMessage(apiError?.response?.data?.msg || "Erro ao carregar os casos.");
@@ -89,9 +87,7 @@ export default function CaseManagementPage() {
         );
         setSuccess("Caso atualizado com sucesso.");
       } else {
-        const res = await api.post<Case>("/api/cases", caseData);
-        setCases((prev) => [...prev, res.data]);
-        setSuccess("Caso adicionado com sucesso.");
+        setErrorMessage("Não é permitido adicionar novos casos.");
       }
 
       setEditingCase(null);
@@ -184,47 +180,21 @@ export default function CaseManagementPage() {
         )}
         {success && <p className="text-green-500">{success}</p>}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <input
-          type="text"
-          placeholder="Título *"
-          value={title}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-md"
-          disabled={isLoading}
-        />
-        <textarea
-          placeholder="Descrição *"
-          value={description}
-          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-md"
-          disabled={isLoading}
-        />
-        <select
-          value={status}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-md"
-          disabled={isLoading}
-        >
-          <option value="open">Em Andamento</option>
-          <option value="closed">Finalizado</option>
-          <option value="archived">Arquivado</option>
-        </select>
-        <input
-          type="text"
-          placeholder="Cidade"
-          value={cidade}
-          onChange={(e) => setCidade(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-md"
-          disabled={isLoading}
-        />
-        <input
-          type="text"
-          placeholder="Estado"
-          value={estado}
-          onChange={(e) => setEstado(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-md"
-          disabled={isLoading}
-        />
+          <input
+            type="text"
+            placeholder="Título *"
+            value={title}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
+            className="w-full p-3 border border-gray-300 rounded-md"
+            disabled={isLoading}
+          />
+          <textarea
+            placeholder="Descrição *"
+            value={description}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
+            className="w-full p-3 border border-gray-300 rounded-md"
+            disabled={isLoading}
+          />
           <select
             value={status}
             onChange={(e: ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value)}
@@ -235,6 +205,22 @@ export default function CaseManagementPage() {
             <option value="closed">Finalizado</option>
             <option value="archived">Arquivado</option>
           </select>
+          <input
+            type="text"
+            placeholder="Cidade"
+            value={cidade}
+            onChange={(e) => setCidade(e.target.value)}
+            className="w-full p-3 border border-gray-300 rounded-md"
+            disabled={isLoading}
+          />
+          <input
+            type="text"
+            placeholder="Estado"
+            value={estado}
+            onChange={(e) => setEstado(e.target.value)}
+            className="w-full p-3 border border-gray-300 rounded-md"
+            disabled={isLoading}
+          />
         </div>
         <div className="flex justify-end gap-4">
           {editingCase && (
@@ -273,52 +259,48 @@ export default function CaseManagementPage() {
                 className="py-6 flex flex-col md:flex-row md:justify-between md:items-center gap-4"
               >
                 <div>
-                <p className="font-semibold text-gray-800">Título: {caseItem.titulo}</p>
-                <p className="text-gray-600">Descrição: {caseItem.descricao}</p>
-                <p className="text-gray-600">Status: {caseItem.status}</p>
-                <p className="text-gray-600">Responsável: {caseItem.responsavel}</p>
-                <p className="text-gray-600">Data de Criação: {new Date(caseItem.dataCriacao).toLocaleDateString()}</p>
-                <p className="text-gray-600">Cidade: {caseItem.cidade}</p>
-                <p className="text-gray-600">Estado: {caseItem.estado}</p>
-                <p className="text-gray-600">Caso Referência: {caseItem.casoReferencia}</p>
+                  <p className="font-semibold text-gray-800">Título: {caseItem.titulo}</p>
+                  <p className="text-gray-600">Descrição: {caseItem.descricao}</p>
+                  <p className="text-gray-600">Status: {caseItem.status}</p>
+                  <p className="text-gray-600">Responsável: {caseItem.responsavel}</p>
+                  <p className="text-gray-600">Cidade: {caseItem.cidade}</p>
+                  <p className="text-gray-600">Estado: {caseItem.estado}</p>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex items-center gap-4 mt-4 md:mt-0">
                   <button
                     onClick={() => handleEditCase(caseItem)}
-                    className="text-teal-600 hover:text-teal-800 transition"
+                    className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition"
                   >
-                    <FaEdit />
+                    <FaEdit size={20} />
                   </button>
                   <button
                     onClick={() => handleRemoveCase(caseItem._id)}
-                    className="text-red-600 hover:text-red-800 transition"
+                    className="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition"
                   >
-                    <FaTrashAlt />
+                    <FaTrashAlt size={20} />
                   </button>
                 </div>
               </li>
             ))}
           </ul>
         )}
-        <div className="mt-6 flex justify-between items-center">
-          <button
-            onClick={() => handlePaginationChange(pagination.paginaAtual - 1)}
-            disabled={pagination.paginaAtual === 1}
-            className="text-gray-500 disabled:text-gray-300"
-          >
-            Anterior
-          </button>
-          <span>
-            Página {pagination.paginaAtual} de {pagination.totalPaginas}
-          </span>
-          <button
-            onClick={() => handlePaginationChange(pagination.paginaAtual + 1)}
-            disabled={pagination.paginaAtual === pagination.totalPaginas}
-            className="text-gray-500 disabled:text-gray-300"
-          >
-            Próxima
-          </button>
-        </div>
+      </div>
+
+      <div className="mt-6 flex justify-between">
+        <button
+          onClick={() => handlePaginationChange(pagination.paginaAtual - 1)}
+          className="bg-gray-500 text-white py-2 px-6 rounded-md hover:bg-gray-600 transition"
+          disabled={pagination.paginaAtual === 1}
+        >
+          Anterior
+        </button>
+        <button
+          onClick={() => handlePaginationChange(pagination.paginaAtual + 1)}
+          className="bg-gray-500 text-white py-2 px-6 rounded-md hover:bg-gray-600 transition"
+          disabled={pagination.paginaAtual === pagination.totalPaginas}
+        >
+          Próximo
+        </button>
       </div>
     </div>
   );

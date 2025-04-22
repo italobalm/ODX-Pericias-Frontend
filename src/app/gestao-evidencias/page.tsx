@@ -49,7 +49,7 @@ export default function EvidenceManagementPage() {
     categoria &&
     coletadoPorNome &&
     coletadoPorEmail &&
-    (tipo === "texto" ? conteudo : true);
+    (tipo === "texto" ? conteudo : (editingEvidence ? true : file));
 
   const fetchEvidences = useCallback(async () => {
     setIsLoading(true);
@@ -316,91 +316,138 @@ export default function EvidenceManagementPage() {
         {success && <p className="text-green-500">{success}</p>}
         <form className="space-y-4" onSubmit={editingEvidence ? handleUpdateEvidence : handleAddEvidence}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Select
-              label="Tipo de Evidência *"
-              value={tipo}
-              onChange={(e) => setTipo(e.target.value as "imagem" | "texto")}
-              options={["texto", "imagem"]}
-              disabled={isLoading}
-            />
-            <Input
-              label="Caso (Referência) *"
-              value={casoReferencia}
-              placeholder="Ex: CR-2025-001"
-              onChange={(e) => handleChange(e, setCasoReferencia)}
-              disabled={isLoading}
-            />
-            <Input
-              label="Categoria *"
-              value={categoria}
-              placeholder="Ex: Radiografia Panorâmica"
-              onChange={(e) => handleChange(e, setCategoria)}
-              disabled={isLoading}
-            />
-            <Select
-              label="Vítima *"
-              value={vitima}
-              onChange={(e) =>
-                setVitima(e.target.value as "identificada" | "não identificada")
-              }
-              options={["identificada", "não identificada"]}
-              disabled={isLoading}
-            />
-            <Select
-              label="Sexo *"
-              value={sexo}
-              onChange={(e) =>
-                setSexo(e.target.value as "masculino" | "feminino" | "indeterminado")
-              }
-              options={["masculino", "feminino", "indeterminado"]}
-              disabled={isLoading}
-            />
-            <Select
-              label="Estado do Corpo *"
-              value={estadoCorpo}
-              onChange={(e) =>
-                setEstadoCorpo(
-                  e.target.value as
-                    | "inteiro"
-                    | "fragmentado"
-                    | "carbonizado"
-                    | "putrefacto"
-                    | "esqueleto"
-                )
-              }
-              options={["inteiro", "fragmentado", "carbonizado", "putrefacto", "esqueleto"]}
-              disabled={isLoading}
-            />
-            <Input
-              label="Lesões"
-              value={lesoes}
-              placeholder="Ex: Fratura no osso maxilar"
-              onChange={(e) => handleChange(e, setLesoes)}
-              disabled={isLoading}
-            />
-            <Input
-              label="Coletado por (Nome) *"
-              value={coletadoPorNome}
-              placeholder="Ex: Dra. Helena Costa"
-              onChange={(e) => handleChange(e, setColetadoPorNome)}
-              disabled={isLoading}
-            />
-            <Input
-              label="Coletado por (Email) *"
-              value={coletadoPorEmail}
-              placeholder="Ex: helena.costa@example.com"
-              onChange={(e) => handleChange(e, setColetadoPorEmail)}
-              type="email"
-              disabled={isLoading}
-            />
-            {tipo === "texto" && (
-              <Textarea
-                label="Conteúdo *"
-                value={conteudo}
-                placeholder="Relatório textual sobre a arcada dentária"
-                onChange={(e) => handleChange(e, setConteudo)}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Evidência *</label>
+              <select
+                value={tipo}
+                onChange={(e) => setTipo(e.target.value as "imagem" | "texto")}
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
+                disabled={isLoading}
+              >
+                <option value="">Selecione uma opção</option>
+                <option value="texto">Texto</option>
+                <option value="imagem">Imagem</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Caso (Referência) *</label>
+              <input
+                type="text"
+                value={casoReferencia}
+                onChange={(e) => handleChange(e, setCasoReferencia)}
+                placeholder="Ex: CR-2025-001"
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
                 disabled={isLoading}
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Categoria *</label>
+              <input
+                type="text"
+                value={categoria}
+                onChange={(e) => handleChange(e, setCategoria)}
+                placeholder="Ex: Radiografia Panorâmica"
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Vítima *</label>
+              <select
+                value={vitima}
+                onChange={(e) => setVitima(e.target.value as "identificada" | "não identificada")}
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
+                disabled={isLoading}
+              >
+                <option value="">Selecione uma opção</option>
+                <option value="identificada">Identificada</option>
+                <option value="não identificada">Não Identificada</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sexo *</label>
+              <select
+                value={sexo}
+                onChange={(e) => setSexo(e.target.value as "masculino" | "feminino" | "indeterminado")}
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
+                disabled={isLoading}
+              >
+                <option value="">Selecione uma opção</option>
+                <option value="masculino">Masculino</option>
+                <option value="feminino">Feminino</option>
+                <option value="indeterminado">Indeterminado</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Estado do Corpo *</label>
+              <select
+                value={estadoCorpo}
+                onChange={(e) =>
+                  setEstadoCorpo(
+                    e.target.value as
+                      | "inteiro"
+                      | "fragmentado"
+                      | "carbonizado"
+                      | "putrefacto"
+                      | "esqueleto"
+                  )
+                }
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
+                disabled={isLoading}
+              >
+                <option value="">Selecione uma opção</option>
+                <option value="inteiro">Inteiro</option>
+                <option value="fragmentado">Fragmentado</option>
+                <option value="carbonizado">Carbonizado</option>
+                <option value="putrefacto">Putrefacto</option>
+                <option value="esqueleto">Esqueleto</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Lesões</label>
+              <input
+                type="text"
+                value={lesoes}
+                onChange={(e) => handleChange(e, setLesoes)}
+                placeholder="Ex: Fratura no osso maxilar"
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Coletado por (Nome) *</label>
+              <input
+                type="text"
+                value={coletadoPorNome}
+                onChange={(e) => handleChange(e, setColetadoPorNome)}
+                placeholder="Ex: Dra. Helena Costa"
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Coletado por (Email) *</label>
+              <input
+                type="email"
+                value={coletadoPorEmail}
+                onChange={(e) => handleChange(e, setColetadoPorEmail)}
+                placeholder="Ex: helena.costa@example.com"
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                disabled={isLoading}
+              />
+            </div>
+            {tipo === "texto" && (
+              <div className="col-span-1 md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Conteúdo *</label>
+                <textarea
+                  value={conteudo}
+                  onChange={(e) => handleChange(e, setConteudo)}
+                  placeholder="Relatório textual sobre a arcada dentária"
+                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                  rows={4}
+                  disabled={isLoading}
+                ></textarea>
+              </div>
             )}
             {tipo === "imagem" && (
               <div className="col-span-1 md:col-span-2">
@@ -423,7 +470,7 @@ export default function EvidenceManagementPage() {
                   </div>
                 )}
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nova Imagem (opcional)
+                  {editingEvidence ? "Nova Imagem (opcional)" : "Imagem *"}
                 </label>
                 <input
                   type="file"
@@ -448,23 +495,29 @@ export default function EvidenceManagementPage() {
                 )}
               </div>
             )}
-            <Input
-              label="Laudo"
-              value={laudo}
-              placeholder="Texto do laudo pericial"
-              onChange={(e) => handleChange(e, setLaudo)}
-              disabled={isLoading}
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Laudo</label>
+              <input
+                type="text"
+                value={laudo}
+                onChange={(e) => handleChange(e, setLaudo)}
+                placeholder="Texto do laudo pericial"
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                disabled={isLoading}
+              />
+            </div>
           </div>
           <div className="flex justify-end gap-4">
-            <button
-              type="button"
-              onClick={handleCancelEdit}
-              className="bg-gray-500 text-white py-2 px-6 rounded-md hover:bg-gray-600 transition"
-              disabled={isLoading}
-            >
-              Cancelar
-            </button>
+            {editingEvidence && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="bg-gray-500 text-white py-2 px-6 rounded-md hover:bg-gray-600 transition"
+                disabled={isLoading}
+              >
+                Cancelar
+              </button>
+            )}
             <button
               type="submit"
               className="bg-teal-600 text-white py-2 px-6 rounded-md hover:bg-teal-700 transition"
@@ -505,7 +558,7 @@ export default function EvidenceManagementPage() {
                     <p className="text-gray-700">
                       <strong>Conteúdo:</strong>{" "}
                       {item.conteudo ? item.conteudo.substring(0, 100) + "..." : "N/A"}
- registro                    </p>
+                    </p>
                     <p className="text-gray-700">
                       <strong>Coletado por:</strong>{" "}
                       {typeof item.coletadoPor === "string"
@@ -587,7 +640,7 @@ export default function EvidenceManagementPage() {
                       <strong>Data de Upload:</strong>{" "}
                       {new Date(item.dataUpload).toLocaleDateString("pt-BR")}
                     </p>
-                    <div className="mt-4 flex space-x-3">
+                    <div className="mt-4 flex space should'vex-3">
                       <button
                         onClick={() => handleEditEvidence(item)}
                         className="text-teal-500 hover:text-teal-700"
@@ -630,97 +683,6 @@ export default function EvidenceManagementPage() {
           </button>
         </div>
       )}
-    </div>
-  );
-}
-
-function Input({
-  label,
-  value,
-  placeholder,
-  onChange,
-  type = "text",
-  disabled = false,
-}: {
-  label: string;
-  value: string;
-  placeholder?: string;
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  type?: string;
-  disabled?: boolean;
-}) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-        disabled={disabled}
-      />
-    </div>
-  );
-}
-
-function Textarea({
-  label,
-  value,
-  placeholder,
-  onChange,
-  disabled = false,
-}: {
-  label: string;
-  value: string;
-  placeholder?: string;
-  onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <div className="col-span-1 md:col-span-2">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <textarea
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-        rows={4}
-        disabled={disabled}
-      ></textarea>
-    </div>
-  );
-}
-
-function Select({
-  label,
-  value,
-  onChange,
-  options,
-  disabled = false,
-}: {
-  label: string;
-  value: string;
-  onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
-  options: string[];
-  disabled?: boolean;
-}) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <select
-        value={value}
-        onChange={onChange}
-        className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
-        disabled={disabled}
-      >
-        <option value="">Selecione uma opção</option>
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }
