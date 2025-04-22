@@ -3,9 +3,7 @@
 import api from "@/lib/axiosConfig";
 import { useState, FormEvent } from "react";
 import { FaArrowLeft } from "react-icons/fa";
-import { isAxiosError } from "axios"; 
-
-
+import { isAxiosError } from "axios";
 
 export default function ReportRegisterPage() {
   const [step, setStep] = useState(1);
@@ -20,10 +18,7 @@ export default function ReportRegisterPage() {
   const [examesRealizados, setExamesRealizados] = useState("");
   const [consideracoesTecnicoPericiais, setConsideracoesTecnicoPericiais] = useState("");
   const [conclusaoTecnica, setConclusaoTecnica] = useState("");
-
-  // 👇 Aqui está o formData corretamente definido
   const [formData, setFormData] = useState<Record<string, string>>({});
-
   const [evidencias, setEvidencias] = useState<string[]>([]);
   const [pdfUrl, setPdfUrl] = useState("");
   const [error, setError] = useState("");
@@ -36,12 +31,8 @@ export default function ReportRegisterPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-
     if (name.startsWith("introducao") || name.startsWith("analise") || name.startsWith("conclusao")) {
-      setFormData((prevState) => ({
-        ...prevState,
-        [name]: value,
-      }));
+      setFormData((prevState) => ({ ...prevState, [name]: value }));
     } else if (name === "evidencias") {
       setEvidencias(value.split(",").map(id => id.trim()).filter(Boolean));
     }
@@ -75,8 +66,6 @@ export default function ReportRegisterPage() {
       setPdfUrl(url);
       setSubmitted(true);
 
-      const reportId = "id-do-relatorio-gerado"; // ajustar com base na resposta do backend
-      await api.post(`/api/report/sign/${reportId}`);
     } catch (err: unknown) {
       if (isAxiosError(err)) {
         setError(err.response?.data?.message || "Erro ao gerar o relatório.");
@@ -120,6 +109,7 @@ export default function ReportRegisterPage() {
           <input type="text" name="introducao_pt" placeholder="Introdução (PT)" onChange={handleChange} className="input" />
           <input type="text" name="analise_en" placeholder="Análise (EN)" onChange={handleChange} className="input" />
           <input type="text" name="conclusao_es" placeholder="Conclusão (ES)" onChange={handleChange} className="input" />
+          <input type="text" name="evidencias" placeholder="IDs das Evidências (separados por vírgula)" onChange={handleChange} className="input" />
           <button className="btn">Finalizar e Gerar PDF</button>
         </form>
       )}
