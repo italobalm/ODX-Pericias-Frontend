@@ -177,44 +177,54 @@ export default function CaseManagementPage() {
 
       <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-10 space-y-6">
         <h2 className="text-lg font-semibold text-gray-700">
-          {editingCase ? "Editar Caso" : "Adicionar Novo Caso"}
+          {editingCase ? "Editar Caso" : "Editar Caso"}
         </h2>
         {(errorMessage || error) && (
           <p className="text-red-500">{errorMessage || error}</p>
         )}
         {success && <p className="text-green-500">{success}</p>}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <input
-            type="text"
-            placeholder="Título *"
-            value={title}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-md"
-            disabled={isLoading}
-          />
-           <input
-              type="text"
-              placeholder="Cidade"
-              value={cidade}
-              onChange={(e) => setCidade(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md"
-              disabled={isLoading}
-            />
-            <input
-              type="text"
-              placeholder="Estado"
-              value={estado}
-              onChange={(e) => setEstado(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md"
-              disabled={isLoading}
-            />
-          <textarea
-            placeholder="Descrição *"
-            value={description}
-            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-md"
-            disabled={isLoading}
-          />
+        <input
+          type="text"
+          placeholder="Título *"
+          value={title}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded-md"
+          disabled={isLoading}
+        />
+        <textarea
+          placeholder="Descrição *"
+          value={description}
+          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded-md"
+          disabled={isLoading}
+        />
+        <select
+          value={status}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded-md"
+          disabled={isLoading}
+        >
+          <option value="open">Em Andamento</option>
+          <option value="closed">Finalizado</option>
+          <option value="archived">Arquivado</option>
+        </select>
+        <input
+          type="text"
+          placeholder="Cidade"
+          value={cidade}
+          onChange={(e) => setCidade(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded-md"
+          disabled={isLoading}
+        />
+        <input
+          type="text"
+          placeholder="Estado"
+          value={estado}
+          onChange={(e) => setEstado(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded-md"
+          disabled={isLoading}
+        />
           <select
             value={status}
             onChange={(e: ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value)}
@@ -241,7 +251,7 @@ export default function CaseManagementPage() {
             className="bg-teal-600 text-white py-2 px-6 rounded-md hover:bg-teal-700 transition"
             disabled={isLoading}
           >
-            {isLoading ? "Carregando..." : editingCase ? "Salvar Alterações" : "Adicionar Caso"}
+            {isLoading ? "Carregando..." : editingCase ? "Salvar Alterações" : "Editar Caso"}
           </button>
         </div>
       </div>
@@ -270,6 +280,7 @@ export default function CaseManagementPage() {
                 <p className="text-gray-600">Data de Criação: {new Date(caseItem.dataCriacao).toLocaleDateString()}</p>
                 <p className="text-gray-600">Cidade: {caseItem.cidade}</p>
                 <p className="text-gray-600">Estado: {caseItem.estado}</p>
+                <p className="text-gray-600">Caso Referência: {caseItem.casoReferencia}</p>
                 </div>
                 <div className="flex gap-4">
                   <button

@@ -1,5 +1,6 @@
 "use client";
 
+import api from "@/lib/axiosConfig";
 import { useEffect, useState } from "react";
 import {
   BarChart,
@@ -43,9 +44,8 @@ export default function VisaoGeral() {
   useEffect(() => {
     const fetchDados = async () => {
       try {
-        const res = await fetch("/api/dashboard");
-        const json = await res.json();
-        setDados(json);
+        const res = await api.get("/api/dashboard");
+        setDados(res.data);
       } catch (err) {
         console.error("Erro ao buscar dados:", err);
       }
@@ -53,6 +53,7 @@ export default function VisaoGeral() {
 
     fetchDados();
   }, []);
+
 
   // Garante que, se não houver dados para o filtro selecionado, use um array vazio.
   const dadosAtuais: DadosItem[] = (dados[filtroSelecionado] as DadosItem[]) || [];

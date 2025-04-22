@@ -29,6 +29,7 @@ export default function LoginPage() {
     setErrorMessage(null);
     try {
       await login(email, senha);
+      
     } catch (err) {
       const errorTyped = err as ApiError;
       setErrorMessage(errorTyped.response?.data?.msg || "Erro ao fazer login.");
