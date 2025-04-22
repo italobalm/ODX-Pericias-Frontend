@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, ChangeEvent, FormEvent, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { FaArrowLeft, FaEdit, FaTrash } from "react-icons/fa";
+import { FaArrowLeft, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import api from "@/lib/axiosConfig";
 import { useAuth } from "../providers/AuthProvider";
 import { Evidence, EvidenceListResponse } from "@/types/Evidence";
@@ -38,19 +38,21 @@ export default function EvidenceManagementPage() {
     estadoCorpo: "inteiro" as "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto",
     lesoes: "",
     coletadoPorNome: "",
-    coletadoPorEmail: "",
     laudo: "",
     conteudo: "",
     file: null as File | null,
-    filePreview: null as string | null
+    filePreview: null as string | null,
   });
 
-  const isFormValid = useMemo(() => (
-    formData.casoReferencia &&
-    formData.categoria &&
-    formData.coletadoPorNome &&
-    (formData.tipo === "texto" ? formData.conteudo : (editingEvidence ? true : formData.file))
-  ), [formData, editingEvidence]);
+  const isFormValid = useMemo(
+    () => (
+      formData.casoReferencia &&
+      formData.categoria &&
+      formData.coletadoPorNome &&
+      (formData.tipo === "texto" ? formData.conteudo : editingEvidence ? true : formData.file)
+    ),
+    [formData, editingEvidence]
+  );
 
   const fetchEvidences = useCallback(async () => {
     setIsLoading(true);
@@ -61,7 +63,7 @@ export default function EvidenceManagementPage() {
         params: {
           page: pagination.paginaAtual,
           limit: pagination.porPagina,
-          search: searchTerm
+          search: searchTerm,
         },
       });
 
@@ -93,11 +95,10 @@ export default function EvidenceManagementPage() {
       estadoCorpo: evidence.estadoCorpo,
       lesoes: evidence.lesoes || "",
       coletadoPorNome: typeof evidence.coletadoPor === "string" ? evidence.coletadoPor : evidence.coletadoPor?.nome || "",
-      coletadoPorEmail: typeof evidence.coletadoPor === "string" ? "" : evidence.coletadoPor?.email || "",
       laudo: evidence.laudo || "",
       conteudo: evidence.conteudo || "",
       file: null,
-      filePreview: null
+      filePreview: null,
     });
     setError("");
     setSuccess("");
@@ -114,11 +115,10 @@ export default function EvidenceManagementPage() {
       estadoCorpo: "inteiro",
       lesoes: "",
       coletadoPorNome: "",
-      coletadoPorEmail: "",
       laudo: "",
       conteudo: "",
       file: null,
-      filePreview: null
+      filePreview: null,
     });
     setError("");
     setSuccess("");
@@ -129,20 +129,20 @@ export default function EvidenceManagementPage() {
     if (selectedFile) {
       if (!selectedFile.type.startsWith("image/")) {
         setError("Por favor, selecione um arquivo de imagem válido.");
-        setFormData({...formData, file: null, filePreview: null});
+        setFormData({ ...formData, file: null, filePreview: null });
         return;
       }
       const previewURL = URL.createObjectURL(selectedFile);
-      setFormData({...formData, file: selectedFile, filePreview: previewURL});
+      setFormData({ ...formData, file: selectedFile, filePreview: previewURL });
       setError("");
     } else {
-      setFormData({...formData, file: null, filePreview: null});
+      setFormData({ ...formData, file: null, filePreview: null });
     }
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData({...formData, [name]: value});
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -160,10 +160,7 @@ export default function EvidenceManagementPage() {
     data.append("sexo", formData.sexo);
     data.append("estadoCorpo", formData.estadoCorpo);
     if (formData.lesoes) data.append("lesoes", formData.lesoes);
-    data.append("coletadoPor", JSON.stringify({ 
-      nome: formData.coletadoPorNome,
-      email: formData.coletadoPorEmail 
-    }));
+    data.append("coletadoPor", JSON.stringify({ nome: formData.coletadoPorNome }));
     if (formData.tipo === "texto" && formData.conteudo) data.append("conteudo", formData.conteudo);
     if (formData.laudo) data.append("laudo", formData.laudo);
     if (formData.tipo === "imagem" && formData.file) data.append("file", formData.file);
@@ -173,7 +170,7 @@ export default function EvidenceManagementPage() {
       const token = localStorage.getItem("authToken");
       const endpoint = editingEvidence ? `/api/evidence/${editingEvidence._id}` : "/api/evidence";
       const method = editingEvidence ? "put" : "post";
-      
+
       await api[method]<Evidence>(endpoint, data, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -186,7 +183,7 @@ export default function EvidenceManagementPage() {
       handleCancelEdit();
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
-      setError(axiosError.response?.data?.msg || `Erro ao ${editingEvidence ? 'atualizar' : 'adicionar'} a evidência.`);
+      setError(axiosError.response?.data?.msg || `Erro ao ${editingEvidence ? "atualizar" : "adicionar"} a evidência.`);
     } finally {
       setIsLoading(false);
     }
@@ -208,25 +205,26 @@ export default function EvidenceManagementPage() {
   };
 
   const handlePaginationChange = (page: number) => {
-    setPagination(prev => ({ ...prev, paginaAtual: page }));
+    setPagination((prev) => ({ ...prev, paginaAtual: page }));
   };
 
   const filteredEvidences = useMemo(() => {
-    return evidences.filter(evidence => 
-      evidence.casoReferencia.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      evidence.categoria.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (typeof evidence.coletadoPor === 'object' && 
-       evidence.coletadoPor?.nome.toLowerCase().includes(searchTerm.toLowerCase()))
+    return evidences.filter(
+      (evidence) =>
+        evidence.casoReferencia.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        evidence.categoria.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (typeof evidence.coletadoPor === "object" &&
+          evidence.coletadoPor?.nome.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [evidences, searchTerm]);
 
-  const textEvidences = useMemo(() => 
-    filteredEvidences.filter(item => item.tipo?.toLowerCase().trim() === "texto"),
+  const textEvidences = useMemo(
+    () => filteredEvidences.filter((item) => item.tipo?.toLowerCase().trim() === "texto"),
     [filteredEvidences]
   );
 
-  const imageEvidences = useMemo(() => 
-    filteredEvidences.filter(item => item.tipo?.toLowerCase().trim() === "imagem"),
+  const imageEvidences = useMemo(
+    () => filteredEvidences.filter((item) => item.tipo?.toLowerCase().trim() === "imagem"),
     [filteredEvidences]
   );
 
@@ -246,11 +244,20 @@ export default function EvidenceManagementPage() {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Gestão de Evidências</h1>
       </div>
 
-      {/* Formulário permanente no topo */}
+      {/* Formulário fixo abaixo do título */}
       <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-6 space-y-6">
-        <h2 className="text-lg font-semibold text-gray-700">
-          {editingEvidence ? "Editar Evidência" : "Adicionar Nova Evidência"}
-        </h2>
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-semibold text-gray-700">
+            {editingEvidence ? "Editar Evidência" : "Adicionar/Editar Evidência"}
+          </h2>
+          <button
+            onClick={() => router.push("/evidence/new")}
+            className="flex items-center gap-2 bg-teal-600 text-white py-2 px-4 rounded-md hover:bg-teal-700 transition"
+          >
+            <FaPlus />
+            Nova Evidência
+          </button>
+        </div>
         {error && <p className="text-red-500">{error}</p>}
         {success && <p className="text-green-500">{success}</p>}
         <form className="space-y-4" onSubmit={handleSubmit}>
@@ -359,18 +366,6 @@ export default function EvidenceManagementPage() {
                 disabled={isLoading}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Coletado por (Email)</label>
-              <input
-                type="email"
-                name="coletadoPorEmail"
-                value={formData.coletadoPorEmail}
-                onChange={handleChange}
-                placeholder="Ex: helena.costa@example.com"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
             {formData.tipo === "texto" && (
               <div className="col-span-1 md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Conteúdo *</label>
@@ -396,7 +391,7 @@ export default function EvidenceManagementPage() {
                       width={200}
                       height={200}
                       className="w-full h-48 object-cover rounded-md"
-                      onError={() => setFailedImages(prev => new Set(prev).add(editingEvidence._id))}
+                      onError={() => setFailedImages((prev) => new Set(prev).add(editingEvidence._id))}
                     />
                   </div>
                 )}
