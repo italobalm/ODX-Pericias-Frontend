@@ -29,7 +29,6 @@ export default function NewEvidencePage() {
   >("inteiro");
   const [lesoes, setLesoes] = useState("");
   const [coletadoPorNome, setColetadoPorNome] = useState("");
-  const [coletadoPorEmail, setColetadoPorEmail] = useState("");
   const [laudo, setLaudo] = useState("");
   const [conteudo, setConteudo] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -42,7 +41,6 @@ export default function NewEvidencePage() {
     casoReferencia &&
     categoria &&
     coletadoPorNome &&
-    coletadoPorEmail &&
     (tipo === "texto" ? conteudo : file);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -79,7 +77,7 @@ export default function NewEvidencePage() {
     formData.append("sexo", sexo);
     formData.append("estadoCorpo", estadoCorpo);
     if (lesoes) formData.append("lesoes", lesoes);
-    formData.append("coletadoPor", JSON.stringify({ nome: coletadoPorNome, email: coletadoPorEmail }));
+    formData.append("coletadoPor", coletadoPorNome);
     if (tipo === "texto" && conteudo) formData.append("conteudo", conteudo);
     if (laudo) formData.append("laudo", laudo);
     if (tipo === "imagem" && file) formData.append("file", file);
@@ -106,7 +104,6 @@ export default function NewEvidencePage() {
         setEstadoCorpo("inteiro");
         setLesoes("");
         setColetadoPorNome("");
-        setColetadoPorEmail("");
         setLaudo("");
         setConteudo("");
         setFile(null);
@@ -235,14 +232,6 @@ export default function NewEvidencePage() {
                   value={coletadoPorNome}
                   placeholder="Ex: Dra. Helena Costa"
                   onChange={(e) => handleChange(e, setColetadoPorNome)}
-                  disabled={isLoading}
-                />
-                <Input
-                  label="Coletado por (Email) *"
-                  value={coletadoPorEmail}
-                  placeholder="Ex: helena.costa@example.com"
-                  onChange={(e) => handleChange(e, setColetadoPorEmail)}
-                  type="email"
                   disabled={isLoading}
                 />
                 {tipo === "texto" && (

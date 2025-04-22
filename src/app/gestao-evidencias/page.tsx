@@ -38,7 +38,6 @@ export default function EvidenceManagementPage() {
     estadoCorpo: "inteiro" as "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto",
     lesoes: "",
     coletadoPorNome: "",
-    coletadoPorEmail: "",
     laudo: "",
     conteudo: "",
     file: null as File | null,
@@ -49,7 +48,6 @@ export default function EvidenceManagementPage() {
     formData.casoReferencia &&
     formData.categoria &&
     formData.coletadoPorNome &&
-    formData.coletadoPorEmail &&
     (formData.tipo === "texto" ? formData.conteudo : (editingEvidence ? true : formData.file))
   ), [formData, editingEvidence]);
 
@@ -95,7 +93,6 @@ export default function EvidenceManagementPage() {
       estadoCorpo: evidence.estadoCorpo,
       lesoes: evidence.lesoes || "",
       coletadoPorNome: typeof evidence.coletadoPor === "string" ? evidence.coletadoPor : evidence.coletadoPor?.nome || "",
-      coletadoPorEmail: typeof evidence.coletadoPor === "string" ? "" : evidence.coletadoPor?.email || "",
       laudo: evidence.laudo || "",
       conteudo: evidence.conteudo || "",
       file: null,
@@ -117,7 +114,6 @@ export default function EvidenceManagementPage() {
       estadoCorpo: "inteiro",
       lesoes: "",
       coletadoPorNome: "",
-      coletadoPorEmail: "",
       laudo: "",
       conteudo: "",
       file: null,
@@ -163,7 +159,7 @@ export default function EvidenceManagementPage() {
     data.append("sexo", formData.sexo);
     data.append("estadoCorpo", formData.estadoCorpo);
     if (formData.lesoes) data.append("lesoes", formData.lesoes);
-    data.append("coletadoPor", JSON.stringify({ nome: formData.coletadoPorNome, email: formData.coletadoPorEmail }));
+    data.append("coletadoPor", JSON.stringify({ nome: formData.coletadoPorNome}));
     if (formData.tipo === "texto" && formData.conteudo) data.append("conteudo", formData.conteudo);
     if (formData.laudo) data.append("laudo", formData.laudo);
     if (formData.tipo === "imagem" && formData.file) data.append("file", formData.file);
@@ -246,7 +242,7 @@ export default function EvidenceManagementPage() {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Gestão de Evidências</h1>
       </div>
 
-      {/* Formulário permanente no topo */}
+      {/* Formulário */}
       <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-6 space-y-6">
         <h2 className="text-lg font-semibold text-gray-700">
           {editingEvidence ? "Editar Evidência" : "Adicionar Nova Evidência"}
@@ -261,7 +257,7 @@ export default function EvidenceManagementPage() {
                 name="tipo"
                 value={formData.tipo}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800"
                 disabled={isLoading}
               >
                 <option value="texto">Texto</option>
@@ -276,11 +272,10 @@ export default function EvidenceManagementPage() {
                 value={formData.casoReferencia}
                 onChange={handleChange}
                 placeholder="Ex: CR-2025-001"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                className="w-full p-3 border border-gray-300 rounded-md"
                 disabled={isLoading}
               />
             </div>
-            {/* Outros campos do formulário... */}
             {formData.tipo === "imagem" && (
               <div className="col-span-1 md:col-span-2">
                 {editingEvidence?.imagemURL && !failedImages.has(editingEvidence._id) && (
@@ -326,7 +321,7 @@ export default function EvidenceManagementPage() {
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="bg-gray-500 text-white py-2 px-6 rounded-md hover:bg-gray-600 transition"
+                className="bg-gray-500 text-white py-2 px-6 rounded-md hover:bg-gray-600"
                 disabled={isLoading}
               >
                 Cancelar
@@ -334,7 +329,7 @@ export default function EvidenceManagementPage() {
             )}
             <button
               type="submit"
-              className="bg-teal-600 text-white py-2 px-6 rounded-md hover:bg-teal-700 transition"
+              className="bg-teal-600 text-white py-2 px-6 rounded-md hover:bg-teal-700"
               disabled={isLoading || !isFormValid}
             >
               {isLoading ? "Carregando..." : editingEvidence ? "Salvar Alterações" : "Adicionar Evidência"}
@@ -350,81 +345,78 @@ export default function EvidenceManagementPage() {
           placeholder="Pesquisar evidências..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-md focus:ring focus:ring-teal-300"
+          className="w-full p-3 border border-gray-300 rounded-md"
         />
       </div>
 
-      {/* Lista de evidências */}
-      {isLoading ? (
-        <p className="text-center text-gray-600">Carregando evidências...</p>
-      ) : (
-        <div className="space-y-12">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Evidências de Texto</h2>
-            {textEvidences.length === 0 ? (
-              <p className="text-gray-600">Nenhuma evidência de texto encontrada.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {textEvidences.map((item) => (
-                  <motion.div
-                    key={item._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
-                  >
-                    {/* Conteúdo da evidência de texto */}
-                    <div className="mt-4 flex space-x-3">
-                      <button onClick={() => handleEditEvidence(item)} className="text-teal-500 hover:text-teal-700">
-                        <FaEdit className="text-xl" />
-                      </button>
-                      <button onClick={() => handleDelete(item._id)} className="text-red-500 hover:text-red-700">
-                        <FaTrash className="text-xl" />
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Evidências de Imagem</h2>
-            {imageEvidences.length === 0 ? (
-              <p className="text-gray-600">Nenhuma evidência de imagem encontrada.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {imageEvidences.map((item) => (
-                  <motion.div
-                    key={item._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
-                  >
-                    {/* Conteúdo da evidência de imagem */}
-                    <div className="mt-4 flex space-x-3">
-                      <button onClick={() => handleEditEvidence(item)} className="text-teal-500 hover:text-teal-700">
-                        <FaEdit className="text-xl" />
-                      </button>
-                      <button onClick={() => handleDelete(item._id)} className="text-red-500 hover:text-red-700">
-                        <FaTrash className="text-xl" />
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
+      {/* Listagem */}
+      <div className="space-y-12">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Evidências de Texto</h2>
+          {textEvidences.length === 0 ? (
+            <p className="text-gray-600">Nenhuma evidência de texto encontrada.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {textEvidences.map((item) => (
+                <motion.div
+                  key={item._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md"
+                >
+                  {/* Conteúdo */}
+                  <div className="mt-4 flex space-x-3">
+                    <button onClick={() => handleEditEvidence(item)} className="text-teal-500 hover:text-teal-700">
+                      <FaEdit className="text-xl" />
+                    </button>
+                    <button onClick={() => handleDelete(item._id)} className="text-red-500 hover:text-red-700">
+                      <FaTrash className="text-xl" />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
 
+        <div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Evidências de Imagem</h2>
+          {imageEvidences.length === 0 ? (
+            <p className="text-gray-600">Nenhuma evidência de imagem encontrada.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {imageEvidences.map((item) => (
+                <motion.div
+                  key={item._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md"
+                >
+                  {/* Conteúdo */}
+                  <div className="mt-4 flex space-x-3">
+                    <button onClick={() => handleEditEvidence(item)} className="text-teal-500 hover:text-teal-700">
+                      <FaEdit className="text-xl" />
+                    </button>
+                    <button onClick={() => handleDelete(item._id)} className="text-red-500 hover:text-red-700">
+                      <FaTrash className="text-xl" />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Paginação */}
       {pagination.totalPaginas > 1 && (
         <div className="mt-6 flex justify-center items-center gap-4">
           <button
             onClick={() => handlePaginationChange(pagination.paginaAtual - 1)}
             disabled={pagination.paginaAtual === 1}
-            className="text-gray-500 disabled:text-gray-300 px-4 py-2 bg-gray-200 rounded-xl hover:bg-gray-300 transition"
+            className="text-gray-500 disabled:text-gray-300 px-4 py-2 bg-gray-200 rounded-xl hover:bg-gray-300"
           >
             Anterior
           </button>
@@ -434,7 +426,7 @@ export default function EvidenceManagementPage() {
           <button
             onClick={() => handlePaginationChange(pagination.paginaAtual + 1)}
             disabled={pagination.paginaAtual === pagination.totalPaginas}
-            className="text-gray-500 disabled:text-gray-300 px-4 py-2 bg-gray-200 rounded-xl hover:bg-gray-300 transition"
+            className="text-gray-500 disabled:text-gray-300 px-4 py-2 bg-gray-200 rounded-xl hover:bg-gray-300"
           >
             Próxima
           </button>

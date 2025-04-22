@@ -73,10 +73,8 @@ export default function CaseManagementPage() {
     setIsLoading(true);
     try {
       if (editingCase) {
-        // Atualiza o caso no backend
-        const updatedCase = await api.put<Case>(`/api/cases/${editingCase._id}`, formData).then(res => res.data);
+        const updatedCase = await api.put(`/api/cases/${editingCase._id}`, formData).then(res => res.data.caso);
         
-        // Atualiza a lista localmente sem precisar recarregar
         setCases(prev => prev.map(c => 
           c._id === editingCase._id ? { ...c, ...updatedCase } : c
         ));
@@ -85,7 +83,7 @@ export default function CaseManagementPage() {
         setEditingCase(null);
         resetForm();
       } else {
-        setErrorMessage("Não é permitido adicionar novos casos.");
+        setErrorMessage("Não é permitido editar casos no momento.");
       }
     } catch (err) {
       const apiError = err as ApiError;
@@ -212,9 +210,9 @@ export default function CaseManagementPage() {
             className="w-full p-3 border border-gray-300 rounded-md"
             disabled={isLoading}
           >
-            <option value="open">Em Andamento</option>
-            <option value="closed">Finalizado</option>
-            <option value="archived">Arquivado</option>
+            <option value="Em Andamento">Em Andamento</option>
+            <option value="Finalizado">Finalizado</option>
+            <option value="Arquivado">Arquivado</option>
           </select>
           <input
             type="text"
