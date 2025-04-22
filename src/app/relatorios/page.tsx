@@ -6,7 +6,7 @@ import { FaArrowLeft } from "react-icons/fa";
 import { isAxiosError } from "axios";
 
 export default function ReportRegisterPage() {
-  const [caso, setCaso] = useState("");
+  const [casoReferencia, setCasoReferencia] = useState("");
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [objetoPericia, setObjetoPericia] = useState("");
@@ -17,18 +17,16 @@ export default function ReportRegisterPage() {
   const [examesRealizados, setExamesRealizados] = useState("");
   const [consideracoesTecnicoPericiais, setConsideracoesTecnicoPericiais] = useState("");
   const [conclusaoTecnica, setConclusaoTecnica] = useState("");
-  const [formData] = useState<Record<string, string>>({});
-  const [evidencias, setEvidencias] = useState<string[]>([]);
+  const [evidencias, setEvidencias] = useState<{ _id: string; tipo: string; categoria: string }[]>([]);
   const [pdfUrl, setPdfUrl] = useState("");
   const [reportId, setReportId] = useState("");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [signed, setSigned] = useState(false);
   const [casosDisponiveis, setCasosDisponiveis] = useState<{ _id: string; titulo: string }[]>([]);
 
   const isFormValid =
-    caso &&
+    casoReferencia &&
     titulo &&
     descricao &&
     objetoPericia &&
@@ -40,33 +38,37 @@ export default function ReportRegisterPage() {
     consideracoesTecnicoPericiais &&
     conclusaoTecnica;
 
-    useEffect(() => {
-      async function fetchCasos() {
-        try {
-          const response = await api.get("/api/case");
-          setCasosDisponiveis(response.data);
-        } catch (error) {
-          console.error("Erro ao buscar casos:", error);
-        }
+  // Buscar casos disponíveis
+  useEffect(() => {
+    async function fetchCasos() {
+      try {
+        const response = await api.get("/api/cases");
+        setCasosDisponiveis(response.data);
+      } catch (error) {
+        setError("Erro ao buscar casos.");
+        console.error("Erro ao buscar casos:", error);
       }
-      fetchCasos();
-    }, []);
+    }
+    fetchCasos();
+  }, []);
 
-
-    useEffect(() => {
-      async function buscarEvidencias() {
-        if (!formData.caso) return;
-        try {
-          const response = await api.get(`/api/report/${formData.caso}/evidences`);
-          const evidenciasIds = response.data.map((ev: { _id: string }) => ev._id);
-          setEvidencias(evidenciasIds);
-        } catch (error) {
-          console.error("Erro ao buscar evidências do caso:", error);
-        }
+  // Buscar evidências quando um caso é selecionado
+  useEffect(() => {
+    async function buscarEvidencias() {
+      if (!casoReferencia) {
+        setEvidencias([]);
+        return;
       }
-      buscarEvidencias();
-    }, [formData.caso]);
-  
+      try {
+        const response = await api.get(`/api/cases/${casoReferencia}/evidences`);
+        setEvidencias(response.data);
+      } catch (error) {
+        setError("Erro ao buscar evidências do caso.");
+        console.error("Erro ao buscar evidências:", error);
+      }
+    }
+    buscarEvidencias();
+  }, [casoReferencia]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -83,9 +85,8 @@ export default function ReportRegisterPage() {
         examesRealizados,
         consideracoesTecnicoPericiais,
         conclusaoTecnica,
-        casoReferencia: caso,
-        evidencias,
-        ...formData,
+        casoReferencia,
+        evidencias: evidencias.map((ev) => ev._id),
       };
 
       const response = await api.post("/api/report", payload);
@@ -141,6 +142,12 @@ export default function ReportRegisterPage() {
         Voltar
       </button>
 
+      {error && (
+        <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
+          {error}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <h2 className="text-xl font-bold mb-4">Relatório de Perícia</h2>
 
@@ -148,8 +155,8 @@ export default function ReportRegisterPage() {
           <h3 className="text-lg font-semibold">Informações Básicas</h3>
 
           <select
-            value={caso}
-            onChange={(e) => setCaso(e.target.value)}
+            value={casoReferencia}
+            onChange={(e) => setCasoReferencia(e.target.value)}
             className="select w-full p-2 border rounded"
             required
           >
@@ -160,6 +167,19 @@ export default function ReportRegisterPage() {
               </option>
             ))}
           </select>
+
+          {evidencias.length > 0 && (
+            <div className="bg-gray-100 p-4 rounded">
+              <h4 className="font-semibold">Evidências Associadas:</h4>
+              <ul className="list-disc pl-5">
+                {evidencias.map((ev) => (
+                  <li key={ev._id}>
+                    {ev.categoria} ({ev.tipo})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <input
             type="text"
@@ -177,8 +197,8 @@ export default function ReportRegisterPage() {
             className="textarea w-full p-2 border rounded"
             required
           />
-       
-       <textarea
+
+          <textarea
             placeholder="Objeto da Perícia"
             value={objetoPericia}
             onChange={(e) => setObjetoPericia(e.target.value)}
@@ -246,7 +266,9 @@ export default function ReportRegisterPage() {
         <button
           type="submit"
           disabled={!isFormValid}
-          className={`btn w-full p-2 rounded ${!isFormValid ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 text-white"}`}
+          className={`btn w-full p-2 rounded ${
+            !isFormValid ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 text-white"
+          }`}
         >
           Gerar Relatório
         </button>
@@ -268,7 +290,9 @@ export default function ReportRegisterPage() {
             >
               Assinar Digitalmente
             </button>
-          ) : null}
+          ) : (
+            <p className="text-green-600">Relatório assinado digitalmente.</p>
+          )}
         </div>
       )}
     </div>
