@@ -33,6 +33,11 @@ self.addEventListener("activate", (event) => {
 
 // Interceptação de Requisições
 self.addEventListener("fetch", (event) => {
+  const url = event.request.url;
+
+  // Ignora requisições que não são HTTP/HTTPS (como chrome-extension://)
+  if (!url.startsWith("http")) return;
+
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
