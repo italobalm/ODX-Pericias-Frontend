@@ -122,7 +122,7 @@ export default function VisaoGeral() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {dadosAtuais.map((item: DadosItem, index: number) => (
-                <tr key={index} className="hover:bg-gray-50">
+                <tr key={index} className="hover:bg-gray-600">
                   <td className="px-4 py-2 whitespace-nowrap">
                     {item.categoria}
                   </td>
