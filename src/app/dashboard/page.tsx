@@ -94,7 +94,7 @@ export default function VisaoGeral() {
       <div className="flex flex-col xl:flex-row gap-4">
         {/* Gráfico */}
         <div className="xl:w-1/2 w-full h-80 bg-white rounded-xl shadow p-4">
-          <h2 className="font-semibold mb-2 text-center xl:text-left">
+          <h2 className="font-semibold mb-2 text-center xl:text-left text-gray-500">
             Comparações
           </h2>
           <ResponsiveContainer width="100%" height="100%">
@@ -112,17 +112,17 @@ export default function VisaoGeral() {
 
         {/* Tabela */}
         <div className="xl:w-1/2 w-full bg-white rounded-xl shadow p-4 overflow-x-auto">
-          <h2 className="font-semibold mb-2 text-center xl:text-left">Dados</h2>
+          <h2 className="font-semibold mb-2 text-center xl:text-left text-gray-500">Dados</h2>
           <table className="min-w-full text-sm text-left border border-gray-200 rounded-lg overflow-hidden">
             <thead className="bg-gray-100 text-gray-700">
               <tr>
-                <th className="px-4 py-3 border-b">Categoria</th>
-                <th className="px-4 py-3 border-b">Quantidade</th>
+                <th className="px-4 py-3 border-b text-gray-600">Categoria</th>
+                <th className="px-4 py-3 border-b text-gray-600">Quantidade</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {dadosAtuais.map((item: DadosItem, index: number) => (
-                <tr key={index} className="hover:bg-gray-600">
+                <tr key={index} className="hover:bg-white">
                   <td className="px-4 py-2 whitespace-nowrap">
                     {item.categoria}
                   </td>
