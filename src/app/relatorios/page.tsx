@@ -4,6 +4,7 @@ import api from "@/lib/axiosConfig";
 import { useEffect, useState, FormEvent } from "react";
 import { FaArrowLeft } from "react-icons/fa";
 import { isAxiosError } from "axios";
+import { Evidence } from "@/types/Evidence";
 
 export default function ReportRegisterPage() {
   const [casoReferencia, setCasoReferencia] = useState("");
@@ -17,13 +18,14 @@ export default function ReportRegisterPage() {
   const [examesRealizados, setExamesRealizados] = useState("");
   const [consideracoesTecnicoPericiais, setConsideracoesTecnicoPericiais] = useState("");
   const [conclusaoTecnica, setConclusaoTecnica] = useState("");
-  const [evidencias, setEvidencias] = useState<{ _id: string; tipo: string; categoria: string }[]>([]);
+  const [evidencias, setEvidencias] = useState<Evidence[]>([]);
   const [pdfUrl, setPdfUrl] = useState("");
   const [reportId, setReportId] = useState("");
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [signed, setSigned] = useState(false);
   const [casosDisponiveis, setCasosDisponiveis] = useState<{ _id: string; titulo: string }[]>([]);
+  
 
   const isFormValid =
     casoReferencia &&
@@ -53,60 +55,66 @@ export default function ReportRegisterPage() {
   }, []);
 
   // Buscar evidências quando um caso é selecionado
-  useEffect(() => {
-    async function buscarEvidencias() {
-      if (!casoReferencia) {
-        setEvidencias([]);
-        return;
-      }
-      try {
-        const response = await api.get(`/api/cases/${casoReferencia}/evidences`);
-        setEvidencias(response.data);
-      } catch (error) {
-        setError("Erro ao buscar evidências do caso.");
-        console.error("Erro ao buscar evidências:", error);
-      }
+// Frontend
+useEffect(() => {
+  async function buscarEvidencias() {
+    if (!casoReferencia) {
+      setEvidencias([]);
+      return;
     }
-    buscarEvidencias();
-  }, [casoReferencia]);
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError("");
     try {
-      const payload = {
-        titulo,
-        descricao,
-        objetoPericia,
-        analiseTecnica,
-        metodoUtilizado,
-        destinatario,
-        materiaisUtilizados,
-        examesRealizados,
-        consideracoesTecnicoPericiais,
-        conclusaoTecnica,
-        casoReferencia,
-        evidencias: evidencias.map((ev) => ev._id),
-      };
-
-      const response = await api.post("/api/report", payload);
-      const { report, pdf } = response.data;
-
-      setReportId(report._id);
-
-      const blob = new Blob([pdf], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      setPdfUrl(url);
-      setSubmitted(true);
-    } catch (err: unknown) {
-      if (isAxiosError(err)) {
-        setError(err.response?.data?.msg || "Erro ao gerar o relatório.");
-      } else {
-        setError("Erro ao gerar o relatório.");
-      }
-      console.error(err);
+      const response = await api.get(`/api/cases/${casoReferencia}/evidences`);
+      setEvidencias(response.data.evidencias);
+    } catch (error) {
+      setError("Erro ao buscar evidências do caso.");
+      console.error("Erro ao buscar evidências:", error);
     }
-  };
+  }
+  buscarEvidencias();
+}, [casoReferencia]);
+
+const handleSubmit = async (e: FormEvent) => {
+  e.preventDefault();
+  setError("");
+  try {
+    // Sanitizar e validar
+    const trimmedPayload = {
+      titulo: titulo.trim(),
+      descricao: descricao.trim(),
+      objetoPericia: objetoPericia.trim(),
+      analiseTecnica: analiseTecnica.trim(),
+      metodoUtilizado: metodoUtilizado.trim(),
+      destinatario: destinatario.trim(),
+      materiaisUtilizados: materiaisUtilizados.trim(),
+      examesRealizados: examesRealizados.trim(),
+      consideracoesTecnicoPericiais: consideracoesTecnicoPericiais.trim(),
+      conclusaoTecnica: conclusaoTecnica.trim(),
+      casoReferencia: casoReferencia.trim(),
+    };
+
+    // Validar comprimento mínimo ou outros critérios
+    if (Object.values(trimmedPayload).some((value) => !value)) {
+      setError("Todos os campos devem ser preenchidos.");
+      return;
+    }
+
+    const response = await api.post("/api/report", trimmedPayload);
+    const { report, pdf } = response.data;
+
+    setReportId(report._id);
+    const blob = new Blob([pdf], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    setPdfUrl(url);
+    setSubmitted(true);
+  } catch (err: unknown) {
+    if (isAxiosError(err)) {
+      setError(err.response?.data?.msg || "Erro ao gerar o relatório.");
+    } else {
+      setError("Erro ao gerar o relatório.");
+    }
+    console.error(err);
+  }
+};
 
   const handleSign = async () => {
     if (!reportId) {
