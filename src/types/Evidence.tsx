@@ -3,6 +3,7 @@ import { User } from "./User";
 export interface Evidence {
   _id: string;
   caso: string;
+  casoReferencia: string; // Renomeado de caso para casoReferencia
   tipo: 'imagem' | 'texto'; // Renomeado de tipoEvidencia para tipo
   categoria: string;
   dataUpload: string;
