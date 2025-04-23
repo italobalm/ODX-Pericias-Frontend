@@ -185,12 +185,6 @@ export default function NewCasePage() {
                   placeholder="Digite o estado"
                   onChange={(e) => handleChange(e, setEstado)}
                 />
-                {/* <Input
-                  label="Caso Referência"
-                  value={casoReferencia}
-                  placeholder="Digite o caso referência"
-                  onChange={(e) => handleChange(e, setCasoReferencia)}
-                /> */}
                 <div className="flex justify-between gap-4 mt-4">
                   <button
                     type="button"
@@ -213,7 +207,7 @@ export default function NewCasePage() {
 
             {step === 3 && (
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="bg-teal-50 p-4 rounded-xl border border-teal-200 space-y-2">
+                <div className="bg-teal-50 p-4 rounded-xl border border-teal-200 space-y-2 text-gray-900">
                   <p>
                     <strong>Título:</strong> {titulo}
                   </p>
