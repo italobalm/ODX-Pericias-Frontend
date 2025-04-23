@@ -123,10 +123,10 @@ export default function VisaoGeral() {
             <tbody className="divide-y divide-gray-200">
               {dadosAtuais.map((item: DadosItem, index: number) => (
                 <tr key={index} className="hover:bg-white">
-                  <td className="px-4 py-2 whitespace-nowrap">
+                  <td className="px-4 py-2 whitespace-nowrap text-gray-600">
                     {item.categoria}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
+                  <td className="px-4 py-2 whitespace-nowrap text-gray-600">
                     {item.quantidade}
                   </td>
                 </tr>
