@@ -25,7 +25,6 @@ export default function ReportRegisterPage() {
   const [submitted, setSubmitted] = useState(false);
   const [signed, setSigned] = useState(false);
   const [casosDisponiveis, setCasosDisponiveis] = useState<{ _id: string; titulo: string }[]>([]);
-  
 
   const isFormValid =
     casoReferencia &&
@@ -55,66 +54,73 @@ export default function ReportRegisterPage() {
   }, []);
 
   // Buscar evidências quando um caso é selecionado
-// Frontend
-useEffect(() => {
-  async function buscarEvidencias() {
-    if (!casoReferencia) {
-      setEvidencias([]);
-      return;
+  useEffect(() => {
+    async function buscarEvidencias() {
+      if (!casoReferencia) {
+        setEvidencias([]);
+        return;
+      }
+      try {
+        const response = await api.get(`/api/cases/${casoReferencia}/evidences`);
+        setEvidencias(response.data.evidencias);
+      } catch (error) {
+        setError("Erro ao buscar evidências do caso.");
+        console.error("Erro ao buscar evidências:", error);
+      }
     }
+    buscarEvidencias();
+  }, [casoReferencia]);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
     try {
-      const response = await api.get(`/api/cases/${casoReferencia}/evidences`);
-      setEvidencias(response.data.evidencias);
-    } catch (error) {
-      setError("Erro ao buscar evidências do caso.");
-      console.error("Erro ao buscar evidências:", error);
+      const trimmedPayload = {
+        titulo: titulo.trim(),
+        descricao: descricao.trim(),
+        objetoPericia: objetoPericia.trim(),
+        analiseTecnica: analiseTecnica.trim(),
+        metodoUtilizado: metodoUtilizado.trim(),
+        destinatario: destinatario.trim(),
+        materiaisUtilizados: materiaisUtilizados.trim(),
+        examesRealizados: examesRealizados.trim(),
+        consideracoesTecnicoPericiais: consideracoesTecnicoPericiais.trim(),
+        conclusaoTecnica: conclusaoTecnica.trim(),
+        casoReferencia: casoReferencia.trim(),
+      };
+
+      if (Object.values(trimmedPayload).some((value) => !value)) {
+        setError("Todos os campos devem ser preenchidos.");
+        return;
+      }
+
+      const response = await api.post("/api/report", trimmedPayload);
+      const { report, pdf } = response.data;
+
+      setReportId(report._id);
+
+      // Converter base64 para Blob
+      const byteCharacters = atob(pdf);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+
+      console.log("PDF URL:", url);
+      setPdfUrl(url);
+      setSubmitted(true);
+    } catch (err: unknown) {
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.msg || "Erro ao gerar o relatório.");
+      } else {
+        setError("Erro ao gerar o relatório.");
+      }
+      console.error(err);
     }
-  }
-  buscarEvidencias();
-}, [casoReferencia]);
-
-const handleSubmit = async (e: FormEvent) => {
-  e.preventDefault();
-  setError("");
-  try {
-    // Sanitizar e validar
-    const trimmedPayload = {
-      titulo: titulo.trim(),
-      descricao: descricao.trim(),
-      objetoPericia: objetoPericia.trim(),
-      analiseTecnica: analiseTecnica.trim(),
-      metodoUtilizado: metodoUtilizado.trim(),
-      destinatario: destinatario.trim(),
-      materiaisUtilizados: materiaisUtilizados.trim(),
-      examesRealizados: examesRealizados.trim(),
-      consideracoesTecnicoPericiais: consideracoesTecnicoPericiais.trim(),
-      conclusaoTecnica: conclusaoTecnica.trim(),
-      casoReferencia: casoReferencia.trim(),
-    };
-
-    // Validar comprimento mínimo ou outros critérios
-    if (Object.values(trimmedPayload).some((value) => !value)) {
-      setError("Todos os campos devem ser preenchidos.");
-      return;
-    }
-
-    const response = await api.post("/api/report", trimmedPayload);
-    const { report, pdf } = response.data;
-
-    setReportId(report._id);
-    const blob = new Blob([pdf], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-    setPdfUrl(url);
-    setSubmitted(true);
-  } catch (err: unknown) {
-    if (isAxiosError(err)) {
-      setError(err.response?.data?.msg || "Erro ao gerar o relatório.");
-    } else {
-      setError("Erro ao gerar o relatório.");
-    }
-    console.error(err);
-  }
-};
+  };
 
   const handleSign = async () => {
     if (!reportId) {
@@ -125,8 +131,17 @@ const handleSubmit = async (e: FormEvent) => {
       const response = await api.post(`/api/report/sign/${reportId}`);
       const { pdf } = response.data;
 
-      const blob = new Blob([pdf], { type: "application/pdf" });
+      // Converter base64 para Blob
+      const byteCharacters = atob(pdf);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
+
+      console.log("PDF Assinado URL:", url);
       setPdfUrl(url);
       setSigned(true);
       setError("");
@@ -138,6 +153,14 @@ const handleSubmit = async (e: FormEvent) => {
       }
       console.error(err);
     }
+  };
+
+  const handleDownload = () => {
+    if (!pdfUrl) return;
+    const link = document.createElement("a");
+    link.href = pdfUrl;
+    link.download = signed ? "report_signed.pdf" : "report.pdf";
+    link.click();
   };
 
   return (
@@ -290,17 +313,26 @@ const handleSubmit = async (e: FormEvent) => {
             width="100%"
             height="600px"
             className="border rounded"
+            title="Visualização do Relatório"
           />
-          {!signed ? (
+          <div className="flex space-x-4">
             <button
-              onClick={handleSign}
-              className="btn bg-green-600 text-white p-2 rounded"
+              onClick={handleDownload}
+              className="btn bg-blue-600 text-white p-2 rounded"
             >
-              Assinar Digitalmente
+              Baixar PDF
             </button>
-          ) : (
-            <p className="text-green-600">Relatório assinado digitalmente.</p>
-          )}
+            {!signed ? (
+              <button
+                onClick={handleSign}
+                className="btn bg-green-600 text-white p-2 rounded"
+              >
+                Assinar Digitalmente
+              </button>
+            ) : (
+              <p className="text-green-600">Relatório assinado digitalmente.</p>
+            )}
+          </div>
         </div>
       )}
     </div>
