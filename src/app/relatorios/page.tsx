@@ -1,13 +1,15 @@
 "use client";
 
 import api from "@/lib/axiosConfig";
+import { useRouter } from "next/navigation";
+
 import { useEffect, useState, FormEvent } from "react";
 import { FaArrowLeft } from "react-icons/fa";
 import { isAxiosError } from "axios";
 import { Evidence } from "@/types/Evidence";
-import router from "next/router";
 
 export default function ReportRegisterPage() {
+  const router = useRouter();
   const [casoReferencia, setCasoReferencia] = useState("");
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -164,9 +166,12 @@ export default function ReportRegisterPage() {
     link.click();
   };
 
+
   return (
-    <div className="p-6">
-      <button
+    <div className="max-w-5xl mx-auto pt-28 p-4 md:p-8">
+      {/* Cabeçalho com seta de voltar e título */}
+      <div className="flex items-center gap-4 mb-10">
+        <button
           onClick={() => router.back()}
           className="text-gray-700 hover:text-gray-900 transition"
           title="Voltar"
@@ -176,7 +181,9 @@ export default function ReportRegisterPage() {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
           Relatórios
         </h1>
+      </div>
 
+      {/* Bloco de erro */}
       {error && (
         <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
           {error}
