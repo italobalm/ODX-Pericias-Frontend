@@ -5,6 +5,7 @@ import { useEffect, useState, FormEvent } from "react";
 import { FaArrowLeft } from "react-icons/fa";
 import { isAxiosError } from "axios";
 import { Evidence } from "@/types/Evidence";
+import router from "next/router";
 
 export default function ReportRegisterPage() {
   const [casoReferencia, setCasoReferencia] = useState("");
@@ -166,12 +167,15 @@ export default function ReportRegisterPage() {
   return (
     <div className="p-6">
       <button
-        onClick={() => window.history.back()}
-        className="text-sm text-blue-600 flex items-center mb-4"
-      >
-        <FaArrowLeft className="mr-2" />
-        Voltar
-      </button>
+          onClick={() => router.back()}
+          className="text-gray-700 hover:text-gray-900 transition"
+          title="Voltar"
+        >
+          <FaArrowLeft className="w-6 h-6" />
+        </button>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+          Relatórios
+        </h1>
 
       {error && (
         <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
