@@ -6,9 +6,14 @@ import { motion } from "framer-motion";
 import { FaArrowLeft, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import api from "@/lib/axiosConfig";
 import { useAuth } from "../providers/AuthProvider";
-import { Evidence, EvidenceListResponse } from "@/types/Evidence";
+import { Evidence, EvidenceListResponse, IVitima } from "@/types/Evidence";
 import { AxiosError } from "axios";
 import Image from "next/image";
+
+interface VitimaResponse {
+  msg: string;
+  vitima: IVitima;
+}
 
 export default function EvidenceManagementPage() {
   const router = useRouter();
@@ -33,15 +38,20 @@ export default function EvidenceManagementPage() {
     casoReferencia: "",
     tipo: "texto" as "imagem" | "texto",
     categoria: "",
-    vitima: "identificada" as "identificada" | "não identificada",
-    sexo: "masculino" as "masculino" | "feminino" | "indeterminado",
-    estadoCorpo: "inteiro" as "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto",
-    lesoes: "",
     coletadoPorNome: "",
-    laudo: "",
     conteudo: "",
     file: null as File | null,
     filePreview: null as string | null,
+    vitimaNome: "",
+    vitimaDataNascimento: "",
+    vitimaIdadeAproximada: "",
+    vitimaNacionalidade: "",
+    vitimaCidade: "",
+    vitimaSexo: "masculino" as "masculino" | "feminino" | "indeterminado",
+    vitimaEstadoCorpo: "inteiro" as "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto",
+    vitimaLesoes: "",
+    vitimaIdentificada: false,
+    vitimaId: "",
   });
 
   const isFormValid = useMemo(
@@ -49,6 +59,7 @@ export default function EvidenceManagementPage() {
       formData.casoReferencia &&
       formData.categoria &&
       formData.coletadoPorNome &&
+      formData.vitimaEstadoCorpo &&
       (formData.tipo === "texto" ? formData.conteudo : editingEvidence ? true : formData.file)
     ),
     [formData, editingEvidence]
@@ -84,24 +95,40 @@ export default function EvidenceManagementPage() {
     }
   }, [user, authLoading, fetchEvidences]);
 
-  const handleEditEvidence = (evidence: Evidence) => {
+  const handleEditEvidence = async (evidence: Evidence) => {
     setEditingEvidence(evidence);
-    setFormData({
-      casoReferencia: evidence.casoReferencia,
-      tipo: evidence.tipo,
-      categoria: evidence.categoria,
-      vitima: evidence.vitima,
-      sexo: evidence.sexo,
-      estadoCorpo: evidence.estadoCorpo,
-      lesoes: evidence.lesoes || "",
-      coletadoPorNome: typeof evidence.coletadoPor === "string" ? evidence.coletadoPor : evidence.coletadoPor?.nome || "",
-      laudo: evidence.laudo || "",
-      conteudo: evidence.conteudo || "",
-      file: null,
-      filePreview: null,
-    });
-    setError("");
-    setSuccess("");
+    try {
+      const token = localStorage.getItem("authToken");
+      const vitimaResponse = await api.get<VitimaResponse>(`/api/vitima/${evidence.vitima}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const vitima = vitimaResponse.data.vitima;
+
+      setFormData({
+        casoReferencia: evidence.casoReferencia,
+        tipo: evidence.tipo,
+        categoria: evidence.categoria,
+        coletadoPorNome: typeof evidence.coletadoPor === "string" ? evidence.coletadoPor : evidence.coletadoPor?.nome || "",
+        conteudo: evidence.conteudo || "",
+        file: null,
+        filePreview: null,
+        vitimaNome: vitima.nome || "",
+        vitimaDataNascimento: vitima.dataNascimento ? new Date(vitima.dataNascimento).toISOString().split("T")[0] : "",
+        vitimaIdadeAproximada: vitima.idadeAproximada ? vitima.idadeAproximada.toString() : "",
+        vitimaNacionalidade: vitima.nacionalidade || "",
+        vitimaCidade: vitima.cidade || "",
+        vitimaSexo: vitima.sexo || "masculino",
+        vitimaEstadoCorpo: vitima.estadoCorpo || "inteiro",
+        vitimaLesoes: vitima.lesoes?.join(", ") || "",
+        vitimaIdentificada: vitima.identificada || false,
+        vitimaId: vitima._id,
+      });
+      setError("");
+      setSuccess("");
+    } catch (err: unknown) {
+      const axiosError = err as AxiosError<{ msg?: string }>;
+      setError(axiosError.response?.data?.msg || "Erro ao buscar dados da vítima.");
+    }
   };
 
   const handleCancelEdit = () => {
@@ -110,15 +137,20 @@ export default function EvidenceManagementPage() {
       casoReferencia: "",
       tipo: "texto",
       categoria: "",
-      vitima: "identificada",
-      sexo: "masculino",
-      estadoCorpo: "inteiro",
-      lesoes: "",
       coletadoPorNome: "",
-      laudo: "",
       conteudo: "",
       file: null,
       filePreview: null,
+      vitimaNome: "",
+      vitimaDataNascimento: "",
+      vitimaIdadeAproximada: "",
+      vitimaNacionalidade: "",
+      vitimaCidade: "",
+      vitimaSexo: "masculino",
+      vitimaEstadoCorpo: "inteiro",
+      vitimaLesoes: "",
+      vitimaIdentificada: false,
+      vitimaId: "",
     });
     setError("");
     setSuccess("");
@@ -152,22 +184,45 @@ export default function EvidenceManagementPage() {
       return;
     }
 
-    const data = new FormData();
-    data.append("casoReferencia", formData.casoReferencia);
-    data.append("tipo", formData.tipo);
-    data.append("categoria", formData.categoria);
-    data.append("vitima", formData.vitima);
-    data.append("sexo", formData.sexo);
-    data.append("estadoCorpo", formData.estadoCorpo);
-    if (formData.lesoes) data.append("lesoes", formData.lesoes);
-    data.append("coletadoPor", JSON.stringify({ nome: formData.coletadoPorNome }));
-    if (formData.tipo === "texto" && formData.conteudo) data.append("conteudo", formData.conteudo);
-    if (formData.laudo) data.append("laudo", formData.laudo);
-    if (formData.tipo === "imagem" && formData.file) data.append("file", formData.file);
-
     setIsLoading(true);
     try {
       const token = localStorage.getItem("authToken");
+
+      // Criar ou atualizar a vítima
+      const vitimaData = {
+        nome: formData.vitimaNome || undefined,
+        dataNascimento: formData.vitimaDataNascimento ? new Date(formData.vitimaDataNascimento) : undefined,
+        idadeAproximada: formData.vitimaIdadeAproximada ? Number(formData.vitimaIdadeAproximada) : undefined,
+        nacionalidade: formData.vitimaNacionalidade || undefined,
+        cidade: formData.vitimaCidade || undefined,
+        sexo: formData.vitimaSexo,
+        estadoCorpo: formData.vitimaEstadoCorpo,
+        lesoes: formData.vitimaLesoes ? [formData.vitimaLesoes] : undefined,
+        identificada: formData.vitimaIdentificada,
+      };
+
+      let vitimaId = formData.vitimaId;
+      if (editingEvidence && vitimaId) {
+        await api.put(`/api/vitima/${vitimaId}`, vitimaData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } else {
+        const vitimaResponse = await api.post<VitimaResponse>("/api/vitima", vitimaData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        vitimaId = vitimaResponse.data.vitima._id;
+      }
+
+      // Criar ou atualizar a evidência
+      const data = new FormData();
+      data.append("casoReferencia", formData.casoReferencia);
+      data.append("tipo", formData.tipo);
+      data.append("categoria", formData.categoria);
+      data.append("vitima", vitimaId);
+      data.append("coletadoPor", formData.coletadoPorNome);
+      if (formData.tipo === "texto" && formData.conteudo) data.append("conteudo", formData.conteudo);
+      if (formData.tipo === "imagem" && formData.file) data.append("file", formData.file);
+
       const endpoint = editingEvidence ? `/api/evidence/${editingEvidence._id}` : "/api/evidence";
       const method = editingEvidence ? "put" : "post";
 
@@ -180,10 +235,9 @@ export default function EvidenceManagementPage() {
 
       setSuccess(editingEvidence ? "Evidência atualizada com sucesso." : "Evidência adicionada com sucesso.");
       fetchEvidences();
-      handleCancelEdit();
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
-      setError(axiosError.response?.data?.msg || `Erro ao ${editingEvidence ? "atualizar" : "a evidência."}`);
+      setError(axiosError.response?.data?.msg || `Erro ao ${editingEvidence ? "atualizar" : "adicionar"} a evidência.`);
     } finally {
       setIsLoading(false);
     }
@@ -244,11 +298,10 @@ export default function EvidenceManagementPage() {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Gestão de Evidências</h1>
       </div>
 
-      {/* Formulário fixo abaixo do título */}
       <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-6 space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-700">
-            {editingEvidence ? "Editar Evidência" : "Editar Evidência"}
+            {editingEvidence ? "Editar Evidência" : "Adicionar Evidência"}
           </h2>
           <button
             onClick={() => router.push("/cadastrarEvidencia")}
@@ -259,7 +312,17 @@ export default function EvidenceManagementPage() {
           </button>
         </div>
         {error && <p className="text-red-500">{error}</p>}
-        {success && <p className="text-green-500">{success}</p>}
+        {success && (
+          <div className="space-y-4">
+            <p className="text-green-500">{success}</p>
+            <button
+              onClick={() => router.push(`/gerar-laudo/${editingEvidence?._id}`)}
+              className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
+            >
+              Gerar Laudo
+            </button>
+          </div>
+        )}
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -300,23 +363,82 @@ export default function EvidenceManagementPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Vítima *</label>
-              <select
-                name="vitima"
-                value={formData.vitima}
+              <label className="block text-sm font-medium text-gray-700 mb-1">Coletado por (Nome) *</label>
+              <input
+                type="text"
+                name="coletadoPorNome"
+                value={formData.coletadoPorNome}
+                onChange={handleChange}
+                placeholder="Ex: Dra. Helena Costa"
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                disabled={isLoading}
+              />
+            </div>
+            {/* Campos da Vítima */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Vítima</label>
+              <input
+                type="text"
+                name="vitimaNome"
+                value={formData.vitimaNome}
+                onChange={handleChange}
+                placeholder="Ex: João Silva"
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
+              <input
+                type="date"
+                name="vitimaDataNascimento"
+                value={formData.vitimaDataNascimento}
                 onChange={handleChange}
                 className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
                 disabled={isLoading}
-              >
-                <option value="identificada">Identificada</option>
-                <option value="não identificada">Não Identificada</option>
-              </select>
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Idade Aproximada</label>
+              <input
+                type="number"
+                name="vitimaIdadeAproximada"
+                value={formData.vitimaIdadeAproximada}
+                onChange={handleChange}
+                placeholder="Ex: 30"
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nacionalidade</label>
+              <input
+                type="text"
+                name="vitimaNacionalidade"
+                value={formData.vitimaNacionalidade}
+                onChange={handleChange}
+                placeholder="Ex: Brasileira"
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+              <input
+                type="text"
+                name="vitimaCidade"
+                value={formData.vitimaCidade}
+                onChange={handleChange}
+                placeholder="Ex: São Paulo"
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                disabled={isLoading}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Sexo *</label>
               <select
-                name="sexo"
-                value={formData.sexo}
+                name="vitimaSexo"
+                value={formData.vitimaSexo}
                 onChange={handleChange}
                 className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
                 disabled={isLoading}
@@ -329,8 +451,8 @@ export default function EvidenceManagementPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Estado do Corpo *</label>
               <select
-                name="estadoCorpo"
-                value={formData.estadoCorpo}
+                name="vitimaEstadoCorpo"
+                value={formData.vitimaEstadoCorpo}
                 onChange={handleChange}
                 className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
                 disabled={isLoading}
@@ -346,23 +468,22 @@ export default function EvidenceManagementPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Lesões</label>
               <input
                 type="text"
-                name="lesoes"
-                value={formData.lesoes}
+                name="vitimaLesoes"
+                value={formData.vitimaLesoes}
                 onChange={handleChange}
                 placeholder="Ex: Fratura no osso maxilar"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
                 disabled={isLoading}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Coletado por (Nome) *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Identificada</label>
               <input
-                type="text"
-                name="coletadoPorNome"
-                value={formData.coletadoPorNome}
-                onChange={handleChange}
-                placeholder="Ex: Dra. Helena Costa"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                type="checkbox"
+                name="vitimaIdentificada"
+                checked={formData.vitimaIdentificada}
+                onChange={(e) => setFormData({ ...formData, vitimaIdentificada: e.target.checked })}
+                className="p-3 border border-gray-300 rounded-xl"
                 disabled={isLoading}
               />
             </div>
@@ -419,18 +540,6 @@ export default function EvidenceManagementPage() {
                 )}
               </div>
             )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Laudo</label>
-              <input
-                type="text"
-                name="laudo"
-                value={formData.laudo}
-                onChange={handleChange}
-                placeholder="Texto do laudo pericial"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
           </div>
           <div className="flex justify-end gap-4">
             {editingEvidence && (
@@ -448,13 +557,12 @@ export default function EvidenceManagementPage() {
               className="bg-teal-600 text-white py-2 px-6 rounded-md hover:bg-teal-700 transition"
               disabled={isLoading || !isFormValid}
             >
-              {isLoading ? "Carregando..." : editingEvidence ? "Salvar Alterações" : "Editar Evidência"}
+              {isLoading ? "Carregando..." : editingEvidence ? "Salvar Alterações" : "Adicionar Evidência"}
             </button>
           </div>
         </form>
       </div>
 
-      {/* Campo de pesquisa */}
       <div className="mb-6">
         <input
           type="text"
@@ -465,7 +573,6 @@ export default function EvidenceManagementPage() {
         />
       </div>
 
-      {/* Lista de evidências */}
       {isLoading ? (
         <p className="text-center text-gray-600">Carregando evidências...</p>
       ) : (

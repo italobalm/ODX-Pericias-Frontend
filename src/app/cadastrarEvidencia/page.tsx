@@ -6,13 +6,18 @@ import { motion } from "framer-motion";
 import { FaArrowLeft } from "react-icons/fa";
 import api from "@/lib/axiosConfig";
 import { useAuth } from "../providers/AuthProvider";
-import { Evidence } from "@/types/Evidence";
+import { Evidence, IVitima } from "@/types/Evidence";
 import { AxiosError } from "axios";
-import Image from "next/image"; // Adicionado para prévia da imagem
+import Image from "next/image";
 
 interface EvidenceResponse {
   msg: string;
   evidence: Evidence;
+}
+
+interface VitimaResponse {
+  msg: string;
+  vitima: IVitima;
 }
 
 export default function NewEvidencePage() {
@@ -22,31 +27,36 @@ export default function NewEvidencePage() {
   const [casoReferencia, setCasoReferencia] = useState("");
   const [tipo, setTipo] = useState<"imagem" | "texto">("texto");
   const [categoria, setCategoria] = useState("");
-  const [vitima, setVitima] = useState<"identificada" | "não identificada">("identificada");
-  const [sexo, setSexo] = useState<"masculino" | "feminino" | "indeterminado">("masculino");
-  const [estadoCorpo, setEstadoCorpo] = useState<
-    "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto"
-  >("inteiro");
-  const [lesoes, setLesoes] = useState("");
   const [coletadoPorNome, setColetadoPorNome] = useState("");
-  const [laudo, setLaudo] = useState("");
   const [conteudo, setConteudo] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null); // Para prévia da imagem
+  const [filePreview, setFilePreview] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [evidenceId, setEvidenceId] = useState<string | null>(null);
+
+  // Campos do schema Vitima
+  const [vitimaNome, setVitimaNome] = useState("");
+  const [vitimaDataNascimento, setVitimaDataNascimento] = useState("");
+  const [vitimaIdadeAproximada, setVitimaIdadeAproximada] = useState("");
+  const [vitimaNacionalidade, setVitimaNacionalidade] = useState("");
+  const [vitimaCidade, setVitimaCidade] = useState("");
+  const [vitimaSexo, setVitimaSexo] = useState<"masculino" | "feminino" | "indeterminado">("masculino");
+  const [vitimaEstadoCorpo, setVitimaEstadoCorpo] = useState<"inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto">("inteiro");
+  const [vitimaLesoes, setVitimaLesoes] = useState("");
+  const [vitimaIdentificada, setVitimaIdentificada] = useState(false);
 
   const isFormValid =
     casoReferencia &&
     categoria &&
     coletadoPorNome &&
+    vitimaEstadoCorpo &&
     (tipo === "texto" ? conteudo : file);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files ? e.target.files[0] : null;
     if (selectedFile) {
-      // Validar tipo de arquivo
       if (!selectedFile.type.startsWith("image/")) {
         setError("Por favor, selecione um arquivo de imagem válido.");
         setFile(null);
@@ -54,7 +64,7 @@ export default function NewEvidencePage() {
         return;
       }
       setFile(selectedFile);
-      setFilePreview(URL.createObjectURL(selectedFile)); // Criar URL para prévia
+      setFilePreview(URL.createObjectURL(selectedFile));
       setError("");
     } else {
       setFile(null);
@@ -69,22 +79,41 @@ export default function NewEvidencePage() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("casoReferencia", casoReferencia);
-    formData.append("tipo", tipo);
-    formData.append("categoria", categoria);
-    formData.append("vitima", vitima);
-    formData.append("sexo", sexo);
-    formData.append("estadoCorpo", estadoCorpo);
-    if (lesoes) formData.append("lesoes", lesoes);
-    formData.append("coletadoPor", coletadoPorNome);
-    if (tipo === "texto" && conteudo) formData.append("conteudo", conteudo);
-    if (laudo) formData.append("laudo", laudo);
-    if (tipo === "imagem" && file) formData.append("file", file);
-
     setIsLoading(true);
     try {
       const token = localStorage.getItem("authToken");
+
+      // Criar a vítima
+      const vitimaData = {
+        nome: vitimaNome || undefined,
+        dataNascimento: vitimaDataNascimento ? new Date(vitimaDataNascimento) : undefined,
+        idadeAproximada: vitimaIdadeAproximada ? Number(vitimaIdadeAproximada) : undefined,
+        nacionalidade: vitimaNacionalidade || undefined,
+        cidade: vitimaCidade || undefined,
+        sexo: vitimaSexo,
+        estadoCorpo: vitimaEstadoCorpo,
+        lesoes: vitimaLesoes ? [vitimaLesoes] : undefined,
+        identificada: vitimaIdentificada,
+      };
+
+      const vitimaResponse = await api.post<VitimaResponse>("/api/vitima", vitimaData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const vitimaId = vitimaResponse.data.vitima._id;
+
+      // Criar a evidência
+      const formData = new FormData();
+      formData.append("casoReferencia", casoReferencia);
+      formData.append("tipo", tipo);
+      formData.append("categoria", categoria);
+      formData.append("vitima", vitimaId);
+      formData.append("coletadoPor", coletadoPorNome);
+      if (tipo === "texto" && conteudo) formData.append("conteudo", conteudo);
+      if (tipo === "imagem" && file) formData.append("file", file);
+
       const response = await api.post<EvidenceResponse>("/api/evidence", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -94,21 +123,24 @@ export default function NewEvidencePage() {
 
       if (response.status >= 200 && response.status < 300) {
         setSubmitted(true);
+        setEvidenceId(response.data.evidence._id);
         setError("");
-        // Resetar todos os campos
         setCasoReferencia("");
         setTipo("texto");
         setCategoria("");
-        setVitima("identificada");
-        setSexo("masculino");
-        setEstadoCorpo("inteiro");
-        setLesoes("");
         setColetadoPorNome("");
-        setLaudo("");
         setConteudo("");
         setFile(null);
         setFilePreview(null);
-        setTimeout(() => router.push("/gestao-evidencias"), 1000);
+        setVitimaNome("");
+        setVitimaDataNascimento("");
+        setVitimaIdadeAproximada("");
+        setVitimaNacionalidade("");
+        setVitimaCidade("");
+        setVitimaSexo("masculino");
+        setVitimaEstadoCorpo("inteiro");
+        setVitimaLesoes("");
+        setVitimaIdentificada(false);
       } else {
         setError("Erro ao enviar os dados para o servidor.");
       }
@@ -186,47 +218,6 @@ export default function NewEvidencePage() {
                   onChange={(e) => handleChange(e, setCategoria)}
                   disabled={isLoading}
                 />
-                <Select
-                  label="Vítima *"
-                  value={vitima}
-                  onChange={(e) =>
-                    setVitima(e.target.value as "identificada" | "não identificada")
-                  }
-                  options={["identificada", "não identificada"]}
-                  disabled={isLoading}
-                />
-                <Select
-                  label="Sexo *"
-                  value={sexo}
-                  onChange={(e) =>
-                    setSexo(e.target.value as "masculino" | "feminino" | "indeterminado")
-                  }
-                  options={["masculino", "feminino", "indeterminado"]}
-                  disabled={isLoading}
-                />
-                <Select
-                  label="Estado do Corpo *"
-                  value={estadoCorpo}
-                  onChange={(e) =>
-                    setEstadoCorpo(
-                      e.target.value as
-                        | "inteiro"
-                        | "fragmentado"
-                        | "carbonizado"
-                        | "putrefacto"
-                        | "esqueleto"
-                    )
-                  }
-                  options={["inteiro", "fragmentado", "carbonizado", "putrefacto", "esqueleto"]}
-                  disabled={isLoading}
-                />
-                <Input
-                  label="Lesões"
-                  value={lesoes}
-                  placeholder="Ex: Fratura no osso maxilar"
-                  onChange={(e) => handleChange(e, setLesoes)}
-                  disabled={isLoading}
-                />
                 <Input
                   label="Coletado por (Nome) *"
                   value={coletadoPorNome}
@@ -234,6 +225,80 @@ export default function NewEvidencePage() {
                   onChange={(e) => handleChange(e, setColetadoPorNome)}
                   disabled={isLoading}
                 />
+                {/* Campos da Vítima */}
+                <Input
+                  label="Nome da Vítima"
+                  value={vitimaNome}
+                  placeholder="Ex: João Silva"
+                  onChange={(e) => handleChange(e, setVitimaNome)}
+                  disabled={isLoading}
+                />
+                <Input
+                  label="Data de Nascimento"
+                  value={vitimaDataNascimento}
+                  type="date"
+                  onChange={(e) => handleChange(e, setVitimaDataNascimento)}
+                  disabled={isLoading}
+                />
+                <Input
+                  label="Idade Aproximada"
+                  value={vitimaIdadeAproximada}
+                  type="number"
+                  placeholder="Ex: 30"
+                  onChange={(e) => handleChange(e, setVitimaIdadeAproximada)}
+                  disabled={isLoading}
+                />
+                <Input
+                  label="Nacionalidade"
+                  value={vitimaNacionalidade}
+                  placeholder="Ex: Brasileira"
+                  onChange={(e) => handleChange(e, setVitimaNacionalidade)}
+                  disabled={isLoading}
+                />
+                <Input
+                  label="Cidade"
+                  value={vitimaCidade}
+                  placeholder="Ex: São Paulo"
+                  onChange={(e) => handleChange(e, setVitimaCidade)}
+                  disabled={isLoading}
+                />
+                <Select
+                  label="Sexo *"
+                  value={vitimaSexo}
+                  onChange={(e) =>
+                    setVitimaSexo(e.target.value as "masculino" | "feminino" | "indeterminado")
+                  }
+                  options={["masculino", "feminino", "indeterminado"]}
+                  disabled={isLoading}
+                />
+                <Select
+                  label="Estado do Corpo *"
+                  value={vitimaEstadoCorpo}
+                  onChange={(e) =>
+                    setVitimaEstadoCorpo(
+                      e.target.value as "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto"
+                    )
+                  }
+                  options={["inteiro", "fragmentado", "carbonizado", "putrefacto", "esqueleto"]}
+                  disabled={isLoading}
+                />
+                <Input
+                  label="Lesões"
+                  value={vitimaLesoes}
+                  placeholder="Ex: Fratura no osso maxilar"
+                  onChange={(e) => handleChange(e, setVitimaLesoes)}
+                  disabled={isLoading}
+                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Identificada</label>
+                  <input
+                    type="checkbox"
+                    checked={vitimaIdentificada}
+                    onChange={(e) => setVitimaIdentificada(e.target.checked)}
+                    className="p-3 border border-gray-300 rounded-xl"
+                    disabled={isLoading}
+                  />
+                </div>
                 {tipo === "texto" && (
                   <Textarea
                     label="Conteúdo *"
@@ -271,17 +336,18 @@ export default function NewEvidencePage() {
                     )}
                   </div>
                 )}
-                <Input
-                  label="Laudo"
-                  value={laudo}
-                  placeholder="Texto do laudo pericial"
-                  onChange={(e) => handleChange(e, setLaudo)}
-                  disabled={isLoading}
-                />
               </div>
               {error && <p className="text-red-500 text-sm">{error}</p>}
               {submitted && (
-                <p className="text-green-600 text-sm">Evidência cadastrada com sucesso!</p>
+                <div className="space-y-4">
+                  <p className="text-green-600 text-sm">Evidência cadastrada com sucesso!</p>
+                  <button
+                    onClick={() => router.push(`/gerar-laudo/${evidenceId}`)}
+                    className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
+                  >
+                    Gerar Laudo
+                  </button>
+                </div>
               )}
               <PrimaryButton
                 text={isLoading ? "Carregando..." : "Cadastrar Evidência"}
