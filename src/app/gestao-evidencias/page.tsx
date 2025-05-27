@@ -19,7 +19,7 @@ export default function EvidenceManagementPage() {
   const router = useRouter();
   const { user, loading: authLoading, error: authError } = useAuth();
 
-  const [evidences, setEvidences] = useState<Evidence[]>([]);
+  const [evidences, setEvidences] = useState<(Evidence & { vitimaDetails?: IVitima })[]>([]);
   const [pagination, setPagination] = useState({
     total: 0,
     paginaAtual: 1,
@@ -75,10 +75,25 @@ export default function EvidenceManagementPage() {
           page: pagination.paginaAtual,
           limit: pagination.porPagina,
           search: searchTerm,
+          populate: "vitima", // Popula o campo vitima
         },
       });
 
-      setEvidences(response.data.evidencias);
+      // Mapear evidências e buscar detalhes da vítima
+      const evidencesWithVitima = await Promise.all(
+        response.data.evidencias.map(async (evidence) => {
+          try {
+            const vitimaResponse = await api.get<VitimaResponse>(`/api/vitima/${evidence.vitima}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            return { ...evidence, vitimaDetails: vitimaResponse.data.vitima };
+          } catch (err) {
+            return { ...evidence, vitimaDetails: undefined };
+          }
+        })
+      );
+
+      setEvidences(evidencesWithVitima);
       setPagination(response.data.paginacao);
       setError("");
     } catch (err: unknown) {
@@ -95,7 +110,7 @@ export default function EvidenceManagementPage() {
     }
   }, [user, authLoading, fetchEvidences]);
 
-  const handleEditEvidence = async (evidence: Evidence) => {
+  const handleEditEvidence = async (evidence: Evidence & { vitimaDetails?: IVitima }) => {
     setEditingEvidence(evidence);
     try {
       const token = localStorage.getItem("authToken");
@@ -263,13 +278,18 @@ export default function EvidenceManagementPage() {
   };
 
   const filteredEvidences = useMemo(() => {
-    return evidences.filter(
-      (evidence) =>
+    return evidences.filter((evidence) => {
+      const vitima = evidence.vitimaDetails;
+      return (
         evidence.casoReferencia.toLowerCase().includes(searchTerm.toLowerCase()) ||
         evidence.categoria.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (typeof evidence.coletadoPor === "object" &&
-          evidence.coletadoPor?.nome.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+          evidence.coletadoPor?.nome.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (vitima?.nome && vitima.nome.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (vitima?.nacionalidade && vitima.nacionalidade.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (vitima?.cidade && vitima.cidade.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    });
   }, [evidences, searchTerm]);
 
   const textEvidences = useMemo(
@@ -315,12 +335,14 @@ export default function EvidenceManagementPage() {
         {success && (
           <div className="space-y-4">
             <p className="text-green-500">{success}</p>
-            <button
-              onClick={() => router.push(`/gerar-laudo/${editingEvidence?._id}`)}
-              className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
-            >
-              Gerar Laudo
-            </button>
+            {editingEvidence && (
+              <button
+                onClick={() => router.push(`/gerar-laudo/${editingEvidence._id}`)}
+                className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
+              >
+                Gerar Laudo
+              </button>
+            )}
           </div>
         )}
         <form className="space-y-4" onSubmit={handleSubmit}>
@@ -611,6 +633,15 @@ export default function EvidenceManagementPage() {
                       <strong>Data de Upload:</strong>{" "}
                       {new Date(item.dataUpload).toLocaleDateString("pt-BR")}
                     </p>
+                    <p className="text-gray-700">
+                      <strong>Vítima:</strong> {item.vitimaDetails?.nome || "Não identificada"}
+                    </p>
+                    <p className="text-gray-700">
+                      <strong>Sexo:</strong> {item.vitimaDetails?.sexo || "Indeterminado"}
+                    </p>
+                    <p className="text-gray-700">
+                      <strong>Estado do Corpo:</strong> {item.vitimaDetails?.estadoCorpo || "Inteiro"}
+                    </p>
                     <div className="mt-4 flex space-x-3">
                       <button
                         onClick={() => handleEditEvidence(item)}
@@ -679,6 +710,15 @@ export default function EvidenceManagementPage() {
                     <p className="text-gray-700">
                       <strong>Data de Upload:</strong>{" "}
                       {new Date(item.dataUpload).toLocaleDateString("pt-BR")}
+                    </p>
+                    <p className="text-gray-700">
+                      <strong>Vítima:</strong> {item.vitimaDetails?.nome || "Não identificada"}
+                    </p>
+                    <p className="text-gray-700">
+                      <strong>Sexo:</strong> {item.vitimaDetails?.sexo || "Indeterminado"}
+                    </p>
+                    <p className="text-gray-700">
+                      <strong>Estado do Corpo:</strong> {item.vitimaDetails?.estadoCorpo || "Inteiro"}
                     </p>
                     <div className="mt-4 flex space-x-3">
                       <button
