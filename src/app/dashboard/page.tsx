@@ -12,6 +12,8 @@ import {
   LineChart,
   CartesianGrid,
   Line,
+  PieChart,
+  Pie,
 } from "recharts";
 
 // Definindo os tipos para os dados
@@ -86,7 +88,7 @@ export default function VisaoGeral() {
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={dados.casoPorMes}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="mes" tick={{fontSize = 12}} /> 
+          <XAxis dataKey="mes" tick={{fontSize : 12}} /> 
           <YAxis />
           <Tooltip />
           <Line>
@@ -98,7 +100,8 @@ export default function VisaoGeral() {
           </Line>
         </LineChart>
       </ResponsiveContainer>
-      
+        </div>
+      )}
 
       {/* Filtros */}
       <div className="flex flex-wrap justify-start gap-2">
@@ -126,6 +129,19 @@ export default function VisaoGeral() {
             Comparações
           </h2>
           <ResponsiveContainer width="100%" height="100%">
+            <>
+            <PieChart>
+              <Pie data={dadosAtuais}
+              dataKey="quantidade"
+              nameKey="categoria"
+              outerRadius={80}
+              fill= "#3b82f6"
+              label={({ name, percent }) =>
+                    `${name} (${(percent * 100).toFixed(0)}%)`
+                  }
+                />
+                <Tooltip />
+            </PieChart>
             <BarChart
               data={dadosAtuais}
               margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
@@ -135,6 +151,7 @@ export default function VisaoGeral() {
               <Tooltip />
               <Bar dataKey="quantidade" fill="#34d399" radius={[6, 6, 0, 0]} />
             </BarChart>
+            </>
           </ResponsiveContainer>
         </div>
 
