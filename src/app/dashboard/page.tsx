@@ -9,6 +9,9 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  LineChart,
+  CartesianGrid,
+  Line,
 } from "recharts";
 
 // Definindo os tipos para os dados
@@ -59,7 +62,9 @@ export default function VisaoGeral() {
 
   // Garante que, se não houver dados para o filtro selecionado, use um array vazio.
   const dadosAtuais: DadosItem[] = (dados[filtroSelecionado] as DadosItem[]) || [];
-  const totalCasos: number = dados.totalCasos || 0;
+  const tipoGrafico = dadosAtuais[0]?.tipoGrafico || "barra";
+
+
 
   return (
     <div className="p-4 space-y-6">
@@ -71,8 +76,29 @@ export default function VisaoGeral() {
         <p className="text-lg font-semibold text-gray-700">
           Total de Casos Registrados
         </p>
-        <p className="text-3xl font-bold text-green-500 mt-1">{totalCasos}</p>
+        <p className="text-3xl font-bold text-green-500 mt-1">{dados.totalCasos}</p>
       </div>
+
+
+      {dados.casoPorMes && dados.casoPorMes.length > 0 && (
+        <div className="bg-white rounded-xl shadow p-4"> 
+        <h2 className="font semibold mb-2 text-center xl:text-left">Casos aos longos dos meses </h2>
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart data={dados.casoPorMes}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="mes" tick={{fontSize = 12}} /> 
+          <YAxis />
+          <Tooltip />
+          <Line>
+            type="monotome"
+            dataKey="quantidade"
+            stroke = #3b82f6
+            strokeWidth={2}
+            dot
+          </Line>
+        </LineChart>
+      </ResponsiveContainer>
+      
 
       {/* Filtros */}
       <div className="flex flex-wrap justify-start gap-2">
