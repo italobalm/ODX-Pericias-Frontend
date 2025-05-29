@@ -17,6 +17,7 @@ type FiltroKey = "vitima" | "sexo" | "estado" | "lesoes" | "cidade";
 interface DadosItem {
   categoria: string;
   quantidade: number;
+  tipoGrafico?: "barra | pizza"
 }
 
 interface DashboardData {
