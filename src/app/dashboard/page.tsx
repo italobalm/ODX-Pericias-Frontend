@@ -18,11 +18,12 @@ interface DadosItem {
   categoria: string;
   quantidade: number;
   tipoGrafico?: "barra | pizza"
+
 }
 
 interface DashboardData {
   totalCasos: number;
-  // Os demais campos são opcionais, pois podem vir ausentes até que o fetch seja concluído.
+  casoPorMes?: {mes: string, quantidade: number}[];
   vitima?: DadosItem[];
   sexo?: DadosItem[];
   estado?: DadosItem[];
