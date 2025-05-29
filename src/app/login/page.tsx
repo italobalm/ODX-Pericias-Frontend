@@ -113,7 +113,7 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-4 flex justify-end text-sm">
-            <a href="/forgot-password" className="text-teal-500 hover:underline">
+            <a href="/forgotPassword" className="text-teal-500 hover:underline">
               Esqueci minha senha
             </a>
           </div>

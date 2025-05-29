@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
       setError("");
       setSuccess("");
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password-simple`,
+        `${process.env.NEXT_PUBLIC_API_URL}api/auth/forgot-password-simple`,
         { email, newPassword }
       );
       setSuccess(response.data.msg);
