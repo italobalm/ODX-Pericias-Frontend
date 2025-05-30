@@ -4,17 +4,34 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { FaArrowLeft } from "react-icons/fa";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 
 export default function ForgotPasswordPage() {
-  const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const router = useRouter();
 
   const handleGoBack = () => {
-    if (step === 1) {
-      router.back();
-    } else {
-      setStep(step - 1);
+    router.back();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setError("");
+      setSuccess("");
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}api/auth/forgot-password-simple`,
+        { email, newPassword }
+      );
+      setSuccess(response.data.msg);
+      setTimeout(() => router.push("/login"), 2000);
+    } catch (err: any) {
+      setError(
+        err.response?.data?.msg || "Erro ao redefinir a senha. Tente novamente."
+      );
     }
   };
 
@@ -37,7 +54,7 @@ export default function ForgotPasswordPage() {
         <div className="hidden lg:flex flex-col justify-center items-start bg-teal-600 text-white p-10 w-1/2">
           <h1 className="text-4xl font-bold">Recuperar Senha</h1>
           <p className="text-lg mt-2">
-            Enviaremos um link para redefinir sua senha
+            Insira seu e-mail e a nova senha
           </p>
         </div>
 
@@ -49,79 +66,57 @@ export default function ForgotPasswordPage() {
               Recuperar Senha
             </h1>
             <p className="text-md text-gray-600 mt-1">
-              Enviaremos um link para redefinir sua senha
+              Insira seu e-mail e a nova senha
             </p>
           </div>
 
-          {/* Etapas */}
-          <div className="flex justify-center mb-4 space-x-2">
-            {[1, 2].map((s) => (
-              <span
-                key={s}
-                className={`text-lg font-semibold px-4 py-2 rounded-full ${
-                  step === s
-                    ? "bg-teal-500 text-white"
-                    : "bg-gray-300 text-gray-600"
-                }`}
-              >
-                {s}
-              </span>
-            ))}
-          </div>
-          <p className="text-sm text-gray-600 text-center mb-6">
-            {step === 1 ? "Digite seu e-mail" : "Verifique seu e-mail"}
-          </p>
+          {/* Mensagens de erro/sucesso */}
+          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+          {success && (
+            <p className="text-green-500 text-center mb-4">{success}</p>
+          )}
 
-          {/* Conteúdo das etapas */}
+          {/* Formulário */}
           <motion.div
-            key={step}
-            initial={{ opacity: 0, x: step === 1 ? -50 : 50 }}
+            initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: step === 1 ? 50 : -50 }}
             transition={{ duration: 0.4 }}
           >
-            {/* Etapa 1 */}
-            {step === 1 && (
-              <form className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    E-mail cadastrado
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-blue-300 placeholder-gray-500"
-                    placeholder="Digite seu e-mail"
-                    required
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => email.trim() !== "" && setStep(2)}
-                  className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition disabled:opacity-50"
-                  disabled={email.trim() === ""}
-                >
-                  Enviar
-                </button>
-              </form>
-            )}
-
-            {/* Etapa 2 */}
-            {step === 2 && (
-              <div className="text-center space-y-4">
-                <p className="text-gray-700 text-lg">
-                  Pronto! Verifique o link enviado para seu e-mail.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => router.push("/login")}
-                  className="bg-gray-400 text-white p-3 rounded-xl hover:bg-gray-500 transition"
-                >
-                  Voltar para o login
-                </button>
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  E-mail cadastrado
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-blue-300 placeholder-gray-500"
+                  placeholder="Digite seu e-mail"
+                  required
+                />
               </div>
-            )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Nova Senha
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-blue-300 placeholder-gray-500"
+                  placeholder="Digite sua nova senha"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition disabled:opacity-50"
+                disabled={email.trim() === "" || newPassword.trim() === ""}
+              >
+                Redefinir Senha
+              </button>
+            </form>
           </motion.div>
         </div>
       </div>
