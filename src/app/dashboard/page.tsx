@@ -16,19 +16,17 @@ import {
   Pie,
 } from "recharts";
 
-// Definindo os tipos para os dados
 type FiltroKey = "vitima" | "sexo" | "estado" | "lesoes" | "cidade";
 
 interface DadosItem {
   categoria: string;
   quantidade: number;
-  tipoGrafico?: "barra | pizza"
-
+  tipoGrafico?: "barra" | "pizza";
 }
 
 interface DashboardData {
   totalCasos: number;
-  casoPorMes?: {mes: string, quantidade: number}[];
+  casoPorMes?: { mes: string; quantidade: number }[];
   vitima?: DadosItem[];
   sexo?: DadosItem[];
   estado?: DadosItem[];
@@ -51,29 +49,27 @@ export default function VisaoGeral() {
   useEffect(() => {
     const fetchDados = async () => {
       try {
-        const res = await api.get("api/dashboard");
+        console.log("Iniciando requisição para /dashboard");
+        const res = await api.get("/dashboard");
+        console.log("Dados recebidos:", res.data);
         setDados(res.data);
       } catch (err) {
-        console.error("Erro ao buscar dados:", err);
+        console.error("Erro ao buscar dados:", {
+        
+        });
       }
     };
 
     fetchDados();
   }, []);
 
-
-  // Garante que, se não houver dados para o filtro selecionado, use um array vazio.
   const dadosAtuais: DadosItem[] = (dados[filtroSelecionado] as DadosItem[]) || [];
   const tipoGrafico = dadosAtuais[0]?.tipoGrafico || "barra";
 
-
-
   return (
     <div className="p-4 space-y-6">
-      {/* Título alinhado à esquerda */}
       <h1 className="text-2xl font-bold text-gray-800">Visão Geral</h1>
 
-      {/* Destaques */}
       <div className="bg-white rounded-xl shadow p-4 text-center xl:text-left">
         <p className="text-lg font-semibold text-gray-700">
           Total de Casos Registrados
@@ -81,81 +77,86 @@ export default function VisaoGeral() {
         <p className="text-3xl font-bold text-green-500 mt-1">{dados.totalCasos}</p>
       </div>
 
-
       {dados.casoPorMes && dados.casoPorMes.length > 0 && (
-        <div className="bg-white rounded-xl shadow p-4"> 
-        <h2 className="font semibold mb-2 text-center xl:text-left">Casos aos longos dos meses </h2>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={dados.casoPorMes}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="mes" tick={{fontSize : 12}} /> 
-          <YAxis />
-          <Tooltip />
-          <Line>
-            type="monotome"
-            dataKey="quantidade"
-            stroke = #3b82f6
-            strokeWidth={2}
-            dot
-          </Line>
-        </LineChart>
-      </ResponsiveContainer>
+        <div className="bg-white rounded-xl shadow p-4">
+          <h2 className="font-semibold mb-2 text-center xl:text-left">
+            Casos ao longo dos meses
+          </h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={dados.casoPorMes}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
+              <YAxis />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="quantidade"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                dot
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       )}
 
-      {/* Filtros */}
       <div className="flex flex-wrap justify-start gap-2">
         {filtros.map((filtro) => (
           <button
             key={filtro.key}
             onClick={() => setFiltroSelecionado(filtro.key as FiltroKey)}
-            className={`px-4 py-2 rounded-md border text-sm transition 
-              ${
-                filtroSelecionado === filtro.key
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-              }`}
+            className={`px-4 py-2 rounded-md border text-sm transition ${
+              filtroSelecionado === filtro.key
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+            }`}
           >
             {filtro.label}
           </button>
         ))}
       </div>
 
-      {/* Gráfico e Tabela */}
       <div className="flex flex-col xl:flex-row gap-4">
-        {/* Gráfico */}
         <div className="xl:w-1/2 w-full h-80 bg-white rounded-xl shadow p-4">
           <h2 className="font-semibold mb-2 text-center xl:text-left">
             Comparações
           </h2>
           <ResponsiveContainer width="100%" height="100%">
             <>
-            <PieChart>
-              <Pie data={dadosAtuais}
-              dataKey="quantidade"
-              nameKey="categoria"
-              outerRadius={80}
-              fill= "#3b82f6"
-              label={({ name, percent }) =>
-                    `${name} (${(percent * 100).toFixed(0)}%)`
-                  }
-                />
-                <Tooltip />
-            </PieChart>
-            <BarChart
-              data={dadosAtuais}
-              margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
-            >
-              <XAxis dataKey="categoria" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="quantidade" fill="#34d399" radius={[6, 6, 0, 0]} />
-            </BarChart>
+              {tipoGrafico === "pizza" && (
+                <PieChart>
+                  <Pie
+                    data={dadosAtuais}
+                    dataKey="quantidade"
+                    nameKey="categoria"
+                    outerRadius={80}
+                    fill="#3b82f6"
+                    label={({ name, percent }) =>
+                      `${name} (${(percent * 100).toFixed(0)}%)`
+                    }
+                  />
+                  <Tooltip />
+                </PieChart>
+              )}
+              {tipoGrafico === "barra" && (
+                <BarChart
+                  data={dadosAtuais}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
+                >
+                  <XAxis dataKey="categoria" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Bar
+                    dataKey="quantidade"
+                    fill="#34d399"
+                    radius={[6, 6, 0, 0]}
+                  />
+                </BarChart>
+              )}
             </>
           </ResponsiveContainer>
         </div>
 
-        {/* Tabela */}
         <div className="xl:w-1/2 w-full bg-white rounded-xl shadow p-4 overflow-x-auto">
           <h2 className="font-semibold mb-2 text-center xl:text-left">Dados</h2>
           <table className="min-w-full text-sm text-left border border-gray-200 rounded-lg overflow-hidden">
