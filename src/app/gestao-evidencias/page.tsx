@@ -15,11 +15,16 @@ interface VitimaResponse {
   vitima: IVitima;
 }
 
+interface VitimaListResponse {
+  vitimas: IVitima[];
+}
+
 export default function EvidenceManagementPage() {
   const router = useRouter();
   const { user, loading: authLoading, error: authError } = useAuth();
 
   const [evidences, setEvidences] = useState<(Evidence & { vitimaDetails?: IVitima })[]>([]);
+  const [vitimas, setVitimas] = useState<IVitima[]>([]);
   const [pagination, setPagination] = useState({
     total: 0,
     paginaAtual: 1,
@@ -32,6 +37,7 @@ export default function EvidenceManagementPage() {
   const [editingEvidence, setEditingEvidence] = useState<Evidence | null>(null);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
+  const [submittedEvidenceId, setSubmittedEvidenceId] = useState<string | null>(null);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -42,27 +48,31 @@ export default function EvidenceManagementPage() {
     conteudo: "",
     file: null as File | null,
     filePreview: null as string | null,
-    vitimaNome: "",
-    vitimaDataNascimento: "",
-    vitimaIdadeAproximada: "",
-    vitimaNacionalidade: "",
-    vitimaCidade: "",
-    vitimaSexo: "masculino" as "masculino" | "feminino" | "indeterminado",
-    vitimaEstadoCorpo: "inteiro" as "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto",
-    vitimaLesoes: "",
-    vitimaIdentificada: false,
-    vitimaId: "",
   });
+
+  // Estados para a vítima
+  const [selectedVitimaId, setSelectedVitimaId] = useState<string>("");
+  const [createNewVitima, setCreateNewVitima] = useState(false);
+  const [vitimaNome, setVitimaNome] = useState("");
+  const [vitimaDataNascimento, setVitimaDataNascimento] = useState("");
+  const [vitimaIdadeAproximada, setVitimaIdadeAproximada] = useState("");
+  const [vitimaNacionalidade, setVitimaNacionalidade] = useState("");
+  const [vitimaCidade, setVitimaCidade] = useState("");
+  const [vitimaSexo, setVitimaSexo] = useState<"masculino" | "feminino" | "indeterminado">("masculino");
+  const [vitimaEstadoCorpo, setVitimaEstadoCorpo] = useState<"inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto">("inteiro");
+  const [vitimaLesoes, setVitimaLesoes] = useState("");
+  const [vitimaIdentificada, setVitimaIdentificada] = useState(false);
+  const [editingVitimaId, setEditingVitimaId] = useState<string | null>(null);
 
   const isFormValid = useMemo(
     () => (
       formData.casoReferencia &&
       formData.categoria &&
       formData.coletadoPorNome &&
-      formData.vitimaEstadoCorpo &&
+      (createNewVitima ? vitimaEstadoCorpo : selectedVitimaId) &&
       (formData.tipo === "texto" ? formData.conteudo : editingEvidence ? true : formData.file)
     ),
-    [formData, editingEvidence]
+    [formData, editingEvidence, createNewVitima, vitimaEstadoCorpo, selectedVitimaId]
   );
 
   const fetchEvidences = useCallback(async () => {
@@ -75,11 +85,10 @@ export default function EvidenceManagementPage() {
           page: pagination.paginaAtual,
           limit: pagination.porPagina,
           search: searchTerm,
-          populate: "vitima", // Popula o campo vitima
+          populate: "vitima",
         },
       });
 
-      // Mapear evidências e buscar detalhes da vítima
       const evidencesWithVitima = await Promise.all(
         response.data.evidencias.map(async (evidence) => {
           try {
@@ -104,11 +113,24 @@ export default function EvidenceManagementPage() {
     }
   }, [pagination.paginaAtual, pagination.porPagina, searchTerm]);
 
+  const fetchVitimas = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await api.get<VitimaListResponse>("/api/vitima", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setVitimas(response.data.vitimas);
+    } catch (err) {
+      setError("Erro ao buscar vítimas.");
+    }
+  }, []);
+
   useEffect(() => {
     if (user && !authLoading) {
       fetchEvidences();
+      fetchVitimas();
     }
-  }, [user, authLoading, fetchEvidences]);
+  }, [user, authLoading, fetchEvidences, fetchVitimas]);
 
   const handleEditEvidence = async (evidence: Evidence & { vitimaDetails?: IVitima }) => {
     setEditingEvidence(evidence);
@@ -127,17 +149,20 @@ export default function EvidenceManagementPage() {
         conteudo: evidence.conteudo || "",
         file: null,
         filePreview: null,
-        vitimaNome: vitima.nome || "",
-        vitimaDataNascimento: vitima.dataNascimento ? new Date(vitima.dataNascimento).toISOString().split("T")[0] : "",
-        vitimaIdadeAproximada: vitima.idadeAproximada ? vitima.idadeAproximada.toString() : "",
-        vitimaNacionalidade: vitima.nacionalidade || "",
-        vitimaCidade: vitima.cidade || "",
-        vitimaSexo: vitima.sexo || "masculino",
-        vitimaEstadoCorpo: vitima.estadoCorpo || "inteiro",
-        vitimaLesoes: vitima.lesoes?.join(", ") || "",
-        vitimaIdentificada: vitima.identificada || false,
-        vitimaId: vitima._id,
       });
+
+      setSelectedVitimaId(vitima._id);
+      setEditingVitimaId(vitima._id);
+      setVitimaNome(vitima.nome || "");
+      setVitimaDataNascimento(vitima.dataNascimento ? new Date(vitima.dataNascimento).toISOString().split("T")[0] : "");
+      setVitimaIdadeAproximada(vitima.idadeAproximada ? vitima.idadeAproximada.toString() : "");
+      setVitimaNacionalidade(vitima.nacionalidade || "");
+      setVitimaCidade(vitima.cidade || "");
+      setVitimaSexo(vitima.sexo || "masculino");
+      setVitimaEstadoCorpo(vitima.estadoCorpo || "inteiro");
+      setVitimaLesoes(vitima.lesoes?.join(", ") || "");
+      setVitimaIdentificada(vitima.identificada || false);
+
       setError("");
       setSuccess("");
     } catch (err: unknown) {
@@ -156,17 +181,19 @@ export default function EvidenceManagementPage() {
       conteudo: "",
       file: null,
       filePreview: null,
-      vitimaNome: "",
-      vitimaDataNascimento: "",
-      vitimaIdadeAproximada: "",
-      vitimaNacionalidade: "",
-      vitimaCidade: "",
-      vitimaSexo: "masculino",
-      vitimaEstadoCorpo: "inteiro",
-      vitimaLesoes: "",
-      vitimaIdentificada: false,
-      vitimaId: "",
     });
+    setSelectedVitimaId("");
+    setCreateNewVitima(false);
+    setVitimaNome("");
+    setVitimaDataNascimento("");
+    setVitimaIdadeAproximada("");
+    setVitimaNacionalidade("");
+    setVitimaCidade("");
+    setVitimaSexo("masculino");
+    setVitimaEstadoCorpo("inteiro");
+    setVitimaLesoes("");
+    setVitimaIdentificada(false);
+    setEditingVitimaId(null);
     setError("");
     setSuccess("");
   };
@@ -203,29 +230,37 @@ export default function EvidenceManagementPage() {
     try {
       const token = localStorage.getItem("authToken");
 
+      let vitimaId = selectedVitimaId;
+
       // Criar ou atualizar a vítima
       const vitimaData = {
-        nome: formData.vitimaNome || undefined,
-        dataNascimento: formData.vitimaDataNascimento ? new Date(formData.vitimaDataNascimento) : undefined,
-        idadeAproximada: formData.vitimaIdadeAproximada ? Number(formData.vitimaIdadeAproximada) : undefined,
-        nacionalidade: formData.vitimaNacionalidade || undefined,
-        cidade: formData.vitimaCidade || undefined,
-        sexo: formData.vitimaSexo,
-        estadoCorpo: formData.vitimaEstadoCorpo,
-        lesoes: formData.vitimaLesoes ? [formData.vitimaLesoes] : undefined,
-        identificada: formData.vitimaIdentificada,
+        nome: vitimaNome || undefined,
+        dataNascimento: vitimaDataNascimento ? new Date(vitimaDataNascimento) : undefined,
+        idadeAproximada: vitimaIdadeAproximada ? Number(vitimaIdadeAproximada) : undefined,
+        nacionalidade: vitimaNacionalidade || undefined,
+        cidade: vitimaCidade || undefined,
+        sexo: vitimaSexo,
+        estadoCorpo: vitimaEstadoCorpo,
+        lesoes: vitimaLesoes ? [vitimaLesoes] : undefined,
+        identificada: vitimaIdentificada,
       };
 
-      let vitimaId = formData.vitimaId;
-      if (editingEvidence && vitimaId) {
-        await api.put(`/api/vitima/${vitimaId}`, vitimaData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-      } else {
+      if (createNewVitima) {
         const vitimaResponse = await api.post<VitimaResponse>("/api/vitima", vitimaData, {
           headers: { Authorization: `Bearer ${token}` },
         });
         vitimaId = vitimaResponse.data.vitima._id;
+      } else if (editingVitimaId) {
+        await api.put(`/api/vitima/${editingVitimaId}`, vitimaData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        vitimaId = editingVitimaId;
+      }
+
+      if (!vitimaId) {
+        setError("Selecione ou crie uma vítima para associar à evidência.");
+        setIsLoading(false);
+        return;
       }
 
       // Criar ou atualizar a evidência
@@ -241,7 +276,7 @@ export default function EvidenceManagementPage() {
       const endpoint = editingEvidence ? `/api/evidence/${editingEvidence._id}` : "/api/evidence";
       const method = editingEvidence ? "put" : "post";
 
-      await api[method]<Evidence>(endpoint, data, {
+      const response = await api[method]<Evidence>(endpoint, data, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
@@ -249,7 +284,9 @@ export default function EvidenceManagementPage() {
       });
 
       setSuccess(editingEvidence ? "Evidência atualizada com sucesso." : "Evidência adicionada com sucesso.");
+      setSubmittedEvidenceId(editingEvidence ? editingEvidence._id : response.data._id);
       fetchEvidences();
+      fetchVitimas();
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
       setError(axiosError.response?.data?.msg || `Erro ao ${editingEvidence ? "atualizar" : "adicionar"} a evidência.`);
@@ -332,20 +369,20 @@ export default function EvidenceManagementPage() {
           </button>
         </div>
         {error && <p className="text-red-500">{error}</p>}
-        {success && (
+        {success && submittedEvidenceId && (
           <div className="space-y-4">
             <p className="text-green-500">{success}</p>
-            {editingEvidence && (
-              <button
-                onClick={() => router.push(`/gerar-laudo/${editingEvidence._id}`)}
-                className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
-              >
-                Gerar Laudo
-              </button>
-            )}
+            <button
+              onClick={() => router.push(`/gerar-laudo/${submittedEvidenceId}`)}
+              className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
+            >
+              Gerar Laudo
+            </button>
           </div>
         )}
         <form className="space-y-4" onSubmit={handleSubmit}>
+          {/* Seção de Dados da Evidência */}
+          <h2 className="text-lg font-semibold text-gray-700">Dados da Evidência</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Evidência *</label>
@@ -393,119 +430,6 @@ export default function EvidenceManagementPage() {
                 onChange={handleChange}
                 placeholder="Ex: Dra. Helena Costa"
                 className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
-            {/* Campos da Vítima */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Vítima</label>
-              <input
-                type="text"
-                name="vitimaNome"
-                value={formData.vitimaNome}
-                onChange={handleChange}
-                placeholder="Ex: João Silva"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
-              <input
-                type="date"
-                name="vitimaDataNascimento"
-                value={formData.vitimaDataNascimento}
-                onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Idade Aproximada</label>
-              <input
-                type="number"
-                name="vitimaIdadeAproximada"
-                value={formData.vitimaIdadeAproximada}
-                onChange={handleChange}
-                placeholder="Ex: 30"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nacionalidade</label>
-              <input
-                type="text"
-                name="vitimaNacionalidade"
-                value={formData.vitimaNacionalidade}
-                onChange={handleChange}
-                placeholder="Ex: Brasileira"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
-              <input
-                type="text"
-                name="vitimaCidade"
-                value={formData.vitimaCidade}
-                onChange={handleChange}
-                placeholder="Ex: São Paulo"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sexo *</label>
-              <select
-                name="vitimaSexo"
-                value={formData.vitimaSexo}
-                onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
-                disabled={isLoading}
-              >
-                <option value="masculino">Masculino</option>
-                <option value="feminino">Feminino</option>
-                <option value="indeterminado">Indeterminado</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Estado do Corpo *</label>
-              <select
-                name="vitimaEstadoCorpo"
-                value={formData.vitimaEstadoCorpo}
-                onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
-                disabled={isLoading}
-              >
-                <option value="inteiro">Inteiro</option>
-                <option value="fragmentado">Fragmentado</option>
-                <option value="carbonizado">Carbonizado</option>
-                <option value="putrefacto">Putrefacto</option>
-                <option value="esqueleto">Esqueleto</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lesões</label>
-              <input
-                type="text"
-                name="vitimaLesoes"
-                value={formData.vitimaLesoes}
-                onChange={handleChange}
-                placeholder="Ex: Fratura no osso maxilar"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Identificada</label>
-              <input
-                type="checkbox"
-                name="vitimaIdentificada"
-                checked={formData.vitimaIdentificada}
-                onChange={(e) => setFormData({ ...formData, vitimaIdentificada: e.target.checked })}
-                className="p-3 border border-gray-300 rounded-xl"
                 disabled={isLoading}
               />
             </div>
@@ -563,6 +487,172 @@ export default function EvidenceManagementPage() {
               </div>
             )}
           </div>
+
+          {/* Seção de Dados da Vítima */}
+          <h2 className="text-lg font-semibold text-gray-700 mt-6">Dados da Vítima</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Selecionar Vítima Existente *
+              </label>
+              <select
+                value={selectedVitimaId}
+                onChange={(e) => {
+                  setSelectedVitimaId(e.target.value);
+                  setCreateNewVitima(false);
+                  setEditingVitimaId(e.target.value);
+                  const vitima = vitimas.find(v => v._id === e.target.value);
+                  if (vitima) {
+                    setVitimaNome(vitima.nome || "");
+                    setVitimaDataNascimento(vitima.dataNascimento ? new Date(vitima.dataNascimento).toISOString().split("T")[0] : "");
+                    setVitimaIdadeAproximada(vitima.idadeAproximada ? vitima.idadeAproximada.toString() : "");
+                    setVitimaNacionalidade(vitima.nacionalidade || "");
+                    setVitimaCidade(vitima.cidade || "");
+                    setVitimaSexo(vitima.sexo || "masculino");
+                    setVitimaEstadoCorpo(vitima.estadoCorpo || "inteiro");
+                    setVitimaLesoes(vitima.lesoes?.join(", ") || "");
+                    setVitimaIdentificada(vitima.identificada || false);
+                  }
+                }}
+                className="w-full p-3 border border-gray-300 rounded-xl focus:ring focus:ring-teal-300 disabled:opacity-50"
+                disabled={isLoading || createNewVitima}
+              >
+                <option value="">Selecione uma vítima</option>
+                {vitimas.map((vitima) => (
+                  <option key={vitima._id} value={vitima._id}>
+                    {vitima.nome || "Não identificada"} ({vitima.estadoCorpo})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setCreateNewVitima(!createNewVitima);
+                  setSelectedVitimaId("");
+                  setEditingVitimaId(null);
+                }}
+                className="bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
+                disabled={isLoading}
+              >
+                {createNewVitima ? "Cancelar Nova Vítima" : "Criar Nova Vítima"}
+              </button>
+            </div>
+
+            {(createNewVitima || editingVitimaId) && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Vítima</label>
+                  <input
+                    type="text"
+                    value={vitimaNome}
+                    onChange={(e) => setVitimaNome(e.target.value)}
+                    placeholder="Ex: João Silva"
+                    className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
+                  <input
+                    type="date"
+                    value={vitimaDataNascimento}
+                    onChange={(e) => setVitimaDataNascimento(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Idade Aproximada</label>
+                  <input
+                    type="number"
+                    value={vitimaIdadeAproximada}
+                    onChange={(e) => setVitimaIdadeAproximada(e.target.value)}
+                    placeholder="Ex: 30"
+                    className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nacionalidade</label>
+                  <input
+                    type="text"
+                    value={vitimaNacionalidade}
+                    onChange={(e) => setVitimaNacionalidade(e.target.value)}
+                    placeholder="Ex: Brasileira"
+                    className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                  <input
+                    type="text"
+                    value={vitimaCidade}
+                    onChange={(e) => setVitimaCidade(e.target.value)}
+                    placeholder="Ex: São Paulo"
+                    className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sexo *</label>
+                  <select
+                    value={vitimaSexo}
+                    onChange={(e) => setVitimaSexo(e.target.value as "masculino" | "feminino" | "indeterminado")}
+                    className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
+                    disabled={isLoading}
+                  >
+                    <option value="masculino">Masculino</option>
+                    <option value="feminino">Feminino</option>
+                    <option value="indeterminado">Indeterminado</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado do Corpo *</label>
+                  <select
+                    value={vitimaEstadoCorpo}
+                    onChange={(e) =>
+                      setVitimaEstadoCorpo(
+                        e.target.value as "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto"
+                      )
+                    }
+                    className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
+                    disabled={isLoading}
+                  >
+                    <option value="inteiro">Inteiro</option>
+                    <option value="fragmentado">Fragmentado</option>
+                    <option value="carbonizado">Carbonizado</option>
+                    <option value="putrefacto">Putrefacto</option>
+                    <option value="esqueleto">Esqueleto</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Lesões</label>
+                  <input
+                    type="text"
+                    value={vitimaLesoes}
+                    onChange={(e) => setVitimaLesoes(e.target.value)}
+                    placeholder="Ex: Fratura no osso maxilar"
+                    className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Identificada</label>
+                  <input
+                    type="checkbox"
+                    checked={vitimaIdentificada}
+                    onChange={(e) => setVitimaIdentificada(e.target.checked)}
+                    className="p-3 border border-gray-300 rounded-xl"
+                    disabled={isLoading}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
           <div className="flex justify-end gap-4">
             {editingEvidence && (
               <button
