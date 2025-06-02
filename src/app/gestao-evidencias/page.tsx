@@ -115,13 +115,13 @@ export default function EvidenceManagementPage() {
 
   const fetchFilterOptions = useCallback(async () => {
     try {
-      const response = await api.get<FilterOptions>("/api/evidence/filters", {
+      const response = await api.get<FilterOptions>("/api/evidences/filters", {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
       setFilterOptions(response.data);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (err) {
-      setError("Erro ao buscar opções de filtro.");
+    } catch (err: unknown) {
+      const axiosError = err as AxiosError<{ msg?: string }>;
+      setError(axiosError.response?.data?.msg || "Erro ao buscar opções de filtro.");
     }
   }, []);
 
@@ -144,11 +144,12 @@ export default function EvidenceManagementPage() {
       if (lesoesFilter) params.lesoes = lesoesFilter;
       if (sexoFilter) params.sexo = sexoFilter;
 
-      const response = await api.get<EvidenceListResponse>("/api/evidence", {
+      const response = await api.get<EvidenceListResponse>("/api/evidences", {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
         params,
       });
 
+      console.log("Fetched evidences:", response.data.evidencias); // Debug log
       setEvidences(response.data.evidencias);
       setPagination(response.data.paginacao);
       setError("");
@@ -174,14 +175,13 @@ export default function EvidenceManagementPage() {
 
   const fetchVitimas = useCallback(async () => {
     try {
-      const token = localStorage.getItem("authToken");
       const response = await api.get<VitimaListResponse>("/api/vitima", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
       setVitimas(response.data.vitimas);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (err) {
-      setError("Erro ao buscar vítimas.");
+    } catch (err: unknown) {
+      const axiosError = err as AxiosError<{ msg?: string }>;
+      setError(axiosError.response?.data?.msg || "Erro ao buscar vítimas.");
     }
   }, []);
 
@@ -195,9 +195,23 @@ export default function EvidenceManagementPage() {
       } else {
         setLaudoDetails(null);
       }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (err) {
-      setError("Erro ao buscar dados do laudo.");
+    } catch (err: unknown) {
+      const axiosError = err as AxiosError<{ msg?: string }>;
+      setError(axiosError.response?.data?.msg || "Erro ao buscar dados do laudo.");
+    }
+  }, []);
+
+  const fetchEvidenceById = useCallback(async (evidenceId: string) => {
+    try {
+      const response = await api.get<Evidence & { vitimaDetails?: IVitima }>(`/api/evidences/${evidenceId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+      });
+      console.log("Fetched evidence by ID:", response.data); // Debug log
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as AxiosError<{ msg?: string }>;
+      setError(axiosError.response?.data?.msg || "Erro ao buscar evidência por ID.");
+      return null;
     }
   }, []);
 
@@ -210,9 +224,16 @@ export default function EvidenceManagementPage() {
   }, [user, authLoading, fetchEvidences, fetchVitimas, fetchFilterOptions]);
 
   const handleEditEvidence = async (evidence: Evidence & { vitimaDetails?: IVitima }) => {
-    setEditingEvidence(evidence);
+    console.log("Attempting to edit evidence with ID:", evidence._id); // Debug log
+    const freshEvidence = await fetchEvidenceById(evidence._id);
+    if (!freshEvidence) {
+      setError("Evidência não encontrada ao tentar editar.");
+      return;
+    }
+
+    setEditingEvidence(freshEvidence);
     try {
-      const vitima = evidence.vitimaDetails;
+      const vitima = freshEvidence.vitimaDetails;
 
       if (!vitima) {
         setError("Não foi possível carregar os dados da vítima associada.");
@@ -220,11 +241,11 @@ export default function EvidenceManagementPage() {
       }
 
       setFormData({
-        casoReferencia: evidence.caso || "",
-        tipo: evidence.tipo,
-        categoria: evidence.categoria,
-        coletadoPorNome: evidence.coletadoPor,
-        conteudo: evidence.conteudo || "",
+        casoReferencia: freshEvidence.caso || "",
+        tipo: freshEvidence.tipo,
+        categoria: freshEvidence.categoria,
+        coletadoPorNome: freshEvidence.coletadoPor,
+        conteudo: freshEvidence.conteudo || "",
         file: null,
         filePreview: null,
       });
@@ -241,7 +262,7 @@ export default function EvidenceManagementPage() {
       setVitimaLesoes(vitima.lesoes || "");
       setVitimaIdentificada(vitima.identificada || false);
 
-      await fetchLaudo(evidence._id);
+      await fetchLaudo(freshEvidence._id);
 
       setError("");
       setSuccess("");
@@ -333,23 +354,30 @@ export default function EvidenceManagementPage() {
         data.append("vitima", selectedVitimaId);
       }
 
-      const endpoint = editingEvidence ? `/api/evidence/${editingEvidence._id}` : "/api/evidence";
-      const method = editingEvidence ? "put" : "post";
+      let response;
+      if (editingEvidence) {
+        response = await api.put<Evidence>(`/api/evidences/${editingEvidence._id}`, data, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      } else {
+        response = await api.post<Evidence>("/api/evidences", data, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
 
-      const response = await api[method]<Evidence>(endpoint, data, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
+      console.log("Submit response:", response.data); // Debug log
       setSuccess(editingEvidence ? "Evidência atualizada com sucesso." : "Evidência adicionada com sucesso.");
       setSubmittedEvidenceId(editingEvidence ? editingEvidence._id : response.data._id);
-      fetchEvidences();
-      fetchVitimas();
+      await fetchEvidences();
+      await fetchVitimas();
       handleCancelEdit();
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
+      console.error("Submit error:", axiosError.response?.data); // Debug log
       setError(axiosError.response?.data?.msg || `Erro ao ${editingEvidence ? "atualizar" : "adicionar"} a evidência.`);
     } finally {
       setIsLoading(false);
@@ -360,11 +388,10 @@ export default function EvidenceManagementPage() {
     if (!window.confirm("Tem certeza que deseja excluir esta evidência?")) return;
 
     try {
-      const token = localStorage.getItem("authToken");
-      await api.delete(`/api/evidence/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      await api.delete(`/api/evidences/${id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
-      fetchEvidences();
+      await fetchEvidences();
       setSuccess("Evidência deletada com sucesso.");
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
@@ -631,7 +658,7 @@ export default function EvidenceManagementPage() {
                     value={vitimaLesoes}
                     onChange={(e) => setVitimaLesoes(e.target.value)}
                     placeholder="Ex: Fratura no osso maxilar"
-                    className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
+                    className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
                     disabled={isLoading}
                   />
                 </div>
@@ -920,7 +947,7 @@ export default function EvidenceManagementPage() {
                       <strong>Sexo:</strong> {item.vitimaDetails?.sexo || "Indeterminado"}
                     </p>
                     <p className="text-gray-700">
-                      <strong>Estado do Corpo:</strong> {item.vitimaDetails?.nome || "Inteiro"}
+                      <strong>Estado do Corpo:</strong> {item.vitimaDetails?.estadoCorpo || "Inteiro"}
                     </p>
                     <div className="mt-4 flex space-x-3">
                       <button
