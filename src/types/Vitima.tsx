@@ -1,18 +1,18 @@
-// Interface ajustada para corresponder ao IVitima do backend
 export interface IVitima {
-    _id: string; // ObjectId será tratado como string no frontend
-    nome?: string;
-    dataNascimento?: string; // Date será tratado como string no frontend
-    idadeAproximada?: number;
-    nacionalidade?: string;
-    cidade?: string;
-    sexo: "masculino" | "feminino" | "indeterminado";
-    estadoCorpo: "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto";
-    imagens?: string[];
-    lesoes?: string;
-    identificada: boolean;
-  }
-  
-  export interface VitimaListResponse {
-    vitimas: IVitima[];
-  }
+  _id: string;
+  nome?: string;
+  dataNascimento?: string;
+  idadeAproximada?: number;
+  nacionalidade?: string;
+  cidade?: string;
+  sexo: "masculino" | "feminino" | "indeterminado";
+  estadoCorpo: "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto";
+  imagens?: string[]; 
+  lesoes?: string;
+  identificada: boolean;
+}
+
+export interface VitimaListResponse {
+  msg?: string;
+  vitimas: IVitima[];
+}

@@ -2,7 +2,7 @@ export interface Case {
   _id: string;
   titulo: string;
   descricao: string;
-  status: 'Em andamento' | 'Finalizado' | 'Arquivado';
+  status: "Em andamento" | "Finalizado" | "Arquivado";
   responsavel: string;
   dataCriacao: string;
   casoReferencia: string;
@@ -17,7 +17,7 @@ export interface CaseResponse {
 }
 
 export interface CaseListResponse {
-  data: Case[];
+  casos: Case[]; // Adjusted to match the backend response structure
   msg?: string;
   success?: boolean;
 }

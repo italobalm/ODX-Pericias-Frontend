@@ -2,11 +2,14 @@
 
 import api from "@/lib/axiosConfig";
 import { useRouter } from "next/navigation";
-
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent, ChangeEvent } from "react";
 import { FaArrowLeft } from "react-icons/fa";
 import { isAxiosError } from "axios";
 import { Evidence } from "@/types/Evidence";
+import { IVitima } from "@/types/Vitima";
+import { ILaudo } from "@/types/Laudo";
+import { CaseListResponse, Case } from "@/types/Case";
+import { ReportResponse } from "@/types/Report";
 
 export default function ReportRegisterPage() {
   const router = useRouter();
@@ -21,13 +24,16 @@ export default function ReportRegisterPage() {
   const [examesRealizados, setExamesRealizados] = useState("");
   const [consideracoesTecnicoPericiais, setConsideracoesTecnicoPericiais] = useState("");
   const [conclusaoTecnica, setConclusaoTecnica] = useState("");
+  const [audioFile, setAudioFile] = useState<File | null>(null);
   const [evidencias, setEvidencias] = useState<Evidence[]>([]);
+  const [vitimas, setVitimas] = useState<IVitima[]>([]);
+  const [laudos, setLaudos] = useState<ILaudo[]>([]);
   const [pdfUrl, setPdfUrl] = useState("");
   const [reportId, setReportId] = useState("");
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [signed, setSigned] = useState(false);
-  const [casosDisponiveis, setCasosDisponiveis] = useState<{ _id: string; titulo: string }[]>([]);
+  const [casosDisponiveis, setCasosDisponiveis] = useState<Case[]>([]);
 
   const isFormValid =
     casoReferencia &&
@@ -46,7 +52,7 @@ export default function ReportRegisterPage() {
   useEffect(() => {
     async function fetchCasos() {
       try {
-        const response = await api.get("/api/cases");
+        const response = await api.get<CaseListResponse>("/api/cases");
         setCasosDisponiveis(response.data.casos);
       } catch (error) {
         setError("Erro ao buscar casos.");
@@ -56,51 +62,101 @@ export default function ReportRegisterPage() {
     fetchCasos();
   }, []);
 
-  // Buscar evidências quando um caso é selecionado
+  // Buscar evidências, vítimas e laudos quando um caso é selecionado
   useEffect(() => {
-    async function buscarEvidencias() {
+    async function fetchCaseData() {
       if (!casoReferencia) {
         setEvidencias([]);
+        setVitimas([]);
+        setLaudos([]);
         return;
       }
       try {
-        const response = await api.get(`/api/cases/${casoReferencia}/evidences`);
-        setEvidencias(response.data.evidencias);
+        // Buscar evidências
+        const evidenciasResponse = await api.get<{ evidencias: Evidence[] }>(
+          `/api/evidence?caso=${casoReferencia}&populate=vitima`
+        );
+        const fetchedEvidencias = evidenciasResponse.data.evidencias || [];
+        setEvidencias(fetchedEvidencias);
+
+        // Buscar vítimas associadas às evidências
+        const vitimaIds = Array.from(new Set(fetchedEvidencias.map((e) => e.vitima)));
+        const vitimasResponse = await api.get<{ vitimas: IVitima[] }>(
+          `/api/vitima?ids=${vitimaIds.join(",")}`
+        );
+        setVitimas(vitimasResponse.data.vitimas || []);
+
+        // Buscar laudos associados às evidências
+        const evidenciaIds = fetchedEvidencias.map((e) => e._id);
+        const laudosResponse = await api.get<{ laudos: ILaudo[] }>(
+          `/api/laudo?evidencias=${evidenciaIds.join(",")}`
+        );
+        setLaudos(laudosResponse.data.laudos || []);
       } catch (error) {
-        setError("Erro ao buscar evidências do caso.");
-        console.error("Erro ao buscar evidências:", error);
+        setError("Erro ao buscar dados do caso (evidências, vítimas ou laudos).");
+        console.error("Erro ao buscar dados do caso:", error);
       }
     }
-    buscarEvidencias();
+    fetchCaseData();
   }, [casoReferencia]);
+
+  const handleAudioChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files ? e.target.files[0] : null;
+    if (file) {
+      if (!file.type.startsWith("audio/")) {
+        setError("Por favor, selecione um arquivo de áudio válido (MP3, WAV, etc.).");
+        setAudioFile(null);
+        return;
+      }
+      setAudioFile(file);
+      setError("");
+    } else {
+      setAudioFile(null);
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
-    try {
-      const trimmedPayload = {
-        titulo: titulo.trim(),
-        descricao: descricao.trim(),
-        objetoPericia: objetoPericia.trim(),
-        analiseTecnica: analiseTecnica.trim(),
-        metodoUtilizado: metodoUtilizado.trim(),
-        destinatario: destinatario.trim(),
-        materiaisUtilizados: materiaisUtilizados.trim(),
-        examesRealizados: examesRealizados.trim(),
-        consideracoesTecnicoPericiais: consideracoesTecnicoPericiais.trim(),
-        conclusaoTecnica: conclusaoTecnica.trim(),
-        casoReferencia: casoReferencia.trim(),
-      };
+    if (!isFormValid) {
+      setError("Todos os campos devem ser preenchidos.");
+      return;
+    }
 
-      if (Object.values(trimmedPayload).some((value) => !value)) {
-        setError("Todos os campos devem ser preenchidos.");
-        return;
+    try {
+      const formData = new FormData();
+      formData.append("titulo", titulo.trim());
+      formData.append("descricao", descricao.trim());
+      formData.append("objetoPericia", objetoPericia.trim());
+      formData.append("analiseTecnica", analiseTecnica.trim());
+      formData.append("metodoUtilizado", metodoUtilizado.trim());
+      formData.append("destinatario", destinatario.trim());
+      formData.append("materiaisUtilizados", materiaisUtilizados.trim());
+      formData.append("examesRealizados", examesRealizados.trim());
+      formData.append("consideracoesTecnicoPericiais", consideracoesTecnicoPericiais.trim());
+      formData.append("conclusaoTecnica", conclusaoTecnica.trim());
+      formData.append("casoReferencia", casoReferencia.trim());
+      if (audioFile) {
+        formData.append("audio", audioFile);
       }
 
-      const response = await api.post("/api/report", trimmedPayload);
+      const response = await api.post<ReportResponse>("/api/report", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
       const { report, pdf } = response.data;
 
-      setReportId(report._id);
+      if (report) {
+        setReportId(report._id);
+      }
+
+      // Verificar se pdf é uma string antes de usar atob
+      if (!pdf || typeof pdf !== "string") {
+        setError("Erro: O PDF retornado pelo servidor é inválido ou não foi fornecido.");
+        return;
+      }
 
       // Converter base64 para Blob
       const byteCharacters = atob(pdf);
@@ -131,8 +187,14 @@ export default function ReportRegisterPage() {
       return;
     }
     try {
-      const response = await api.post(`/api/report/sign/${reportId}`);
+      const response = await api.post<ReportResponse>(`/api/report/sign/${reportId}`);
       const { pdf } = response.data;
+
+      // Verificar se pdf é uma string antes de usar atob
+      if (!pdf || typeof pdf !== "string") {
+        setError("Erro: O PDF assinado retornado pelo servidor é inválido ou não foi fornecido.");
+        return;
+      }
 
       // Converter base64 para Blob
       const byteCharacters = atob(pdf);
@@ -165,7 +227,6 @@ export default function ReportRegisterPage() {
     link.download = signed ? "report_signed.pdf" : "report.pdf";
     link.click();
   };
-
 
   return (
     <div className="max-w-5xl mx-auto pt-28 p-4 md:p-8">
@@ -217,6 +278,33 @@ export default function ReportRegisterPage() {
                 {evidencias.map((ev) => (
                   <li key={ev._id}>
                     {ev.categoria} ({ev.tipo})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {vitimas.length > 0 && (
+            <div className="bg-gray-100 p-4 rounded">
+              <h4 className="font-semibold">Vítimas Associadas:</h4>
+              <ul className="list-disc pl-5">
+                {vitimas.map((v) => (
+                  <li key={v._id}>
+                    {v.nome || "Não identificada"} - {v.sexo}, {v.estadoCorpo}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {laudos.length > 0 && (
+            <div className="bg-gray-100 p-4 rounded">
+              <h4 className="font-semibold">Laudos Associados:</h4>
+              <ul className="list-disc pl-5">
+                {laudos.map((l) => (
+                  <li key={l._id}>
+                    Laudo - Criado em:{" "}
+                    {new Date(l.dataCriacao).toLocaleDateString("pt-BR")}
                   </li>
                 ))}
               </ul>
@@ -303,6 +391,23 @@ export default function ReportRegisterPage() {
             className="textarea w-full p-2 border rounded"
             required
           />
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Observação em Áudio (opcional)
+            </label>
+            <input
+              type="file"
+              accept="audio/*"
+              onChange={handleAudioChange}
+              className="w-full p-3 border border-gray-300 rounded-md"
+            />
+            {audioFile && (
+              <p className="mt-2 text-gray-600">
+                Arquivo selecionado: {audioFile.name}
+              </p>
+            )}
+          </div>
         </div>
 
         <button
