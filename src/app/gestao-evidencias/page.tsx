@@ -311,7 +311,7 @@ export default function EvidenceManagementPage() {
       const token = localStorage.getItem("authToken");
 
       const data = new FormData();
-      data.append("caso", formData.casoReferencia);
+      data.append("casoReferencia", formData.casoReferencia);
       data.append("tipo", formData.tipo);
       data.append("categoria", formData.categoria);
       data.append("coletadoPor", formData.coletadoPorNome);

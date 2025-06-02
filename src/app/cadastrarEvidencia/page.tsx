@@ -140,7 +140,7 @@ export default function NewEvidencePage() {
 
       // Criar FormData para enviar todos os dados em uma única requisição
       const formData = new FormData();
-      formData.append("caso", casoReferencia); // Changed to "caso" to match backend expectation
+      formData.append("casoReferencia", casoReferencia); 
       formData.append("tipo", tipo);
       formData.append("categoria", categoria);
       formData.append("coletadoPor", coletadoPorNome);
