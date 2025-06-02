@@ -7,9 +7,20 @@ import { FaArrowLeft } from "react-icons/fa";
 import api from "@/lib/axiosConfig";
 import { useAuth } from "../providers/AuthProvider";
 import { EvidenceResponse } from "@/types/Evidence";
-import { IVitima, VitimaListResponse } from "@/types/Vitima"; // Importando de Vitima.ts
+import { IVitima, VitimaListResponse } from "@/types/Vitima";
 import { AxiosError } from "axios";
 import Image from "next/image";
+
+// Define the Case type based on your Case model
+interface ICase {
+  _id: string;
+  casoReferencia: string;
+  titulo: string;
+}
+
+interface CaseListResponse {
+  cases: ICase[];
+}
 
 export default function NewEvidencePage() {
   const router = useRouter();
@@ -17,6 +28,7 @@ export default function NewEvidencePage() {
 
   // Estados para a evidência
   const [casoReferencia, setCasoReferencia] = useState("");
+  const [cases, setCases] = useState<ICase[]>([]); // State to store the list of cases
   const [tipo, setTipo] = useState<"imagem" | "texto">("texto");
   const [categoria, setCategoria] = useState("");
   const [coletadoPorNome, setColetadoPorNome] = useState("");
@@ -54,23 +66,31 @@ export default function NewEvidencePage() {
       ? vitimaSexo && vitimaEstadoCorpo && (tipo === "imagem" ? file : true) // Imagem obrigatória para tipo "imagem" se criar nova vítima
       : selectedVitimaId);
 
-  // Buscar vítimas existentes
+  // Buscar vítimas e casos existentes
   useEffect(() => {
-    const fetchVitimas = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem("authToken");
-        const response = await api.get<VitimaListResponse>("/api/vitima", {
+
+        // Fetch victims
+        const vitimaResponse = await api.get<VitimaListResponse>("/api/vitima", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setVitimas(response.data.vitimas);
+        setVitimas(vitimaResponse.data.vitimas);
+
+        // Fetch cases
+        const caseResponse = await api.get<CaseListResponse>("/api/case", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setCases(caseResponse.data.cases);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
-        setError("Erro ao buscar vítimas.");
+        setError("Erro ao buscar dados (vítimas ou casos).");
       }
     };
 
     if (user && !authLoading) {
-      fetchVitimas();
+      fetchData();
     }
   }, [user, authLoading]);
 
@@ -230,12 +250,12 @@ export default function NewEvidencePage() {
                   options={["texto", "imagem"]}
                   disabled={isLoading}
                 />
-                <Input
+                <Select
                   label="Caso (Referência) *"
                   value={casoReferencia}
-                  placeholder="Ex: CR-2025-001"
                   onChange={(e) => handleChange(e, setCasoReferencia)}
-                  disabled={isLoading}
+                  options={cases.map((caseItem) => caseItem.casoReferencia)}
+                  disabled={isLoading || cases.length === 0}
                 />
                 <Input
                   label="Categoria *"

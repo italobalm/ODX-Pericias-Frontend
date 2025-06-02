@@ -24,6 +24,17 @@ interface EvidenceQueryParams {
   caso?: string;
   cidade?: string;
   estadoCorpo?: "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto" | "";
+  lesoes?: string;
+  sexo?: "masculino" | "feminino" | "indeterminado" | "";
+}
+
+// Define the type for filter options
+interface FilterOptions {
+  coletadoPor: string[];
+  casos: string[];
+  cidades: string[];
+  lesoes: string[];
+  sexos: string[];
 }
 
 export default function EvidenceManagementPage() {
@@ -45,6 +56,13 @@ export default function EvidenceManagementPage() {
   const [editingEvidence, setEditingEvidence] = useState<Evidence | null>(null);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [submittedEvidenceId, setSubmittedEvidenceId] = useState<string | null>(null);
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    coletadoPor: [],
+    casos: [],
+    cidades: [],
+    lesoes: [],
+    sexos: [],
+  });
 
   // Filter states
   const [dataInicio, setDataInicio] = useState("");
@@ -53,7 +71,11 @@ export default function EvidenceManagementPage() {
   const [coletadoPorFilter, setColetadoPorFilter] = useState("");
   const [casoFilter, setCasoFilter] = useState("");
   const [cidadeFilter, setCidadeFilter] = useState("");
-  const [estadoCorpoFilter, setEstadoCorpoFilter] = useState<"inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto" | "">("");
+  const [estadoCorpoFilter, setEstadoCorpoFilter] = useState<
+    "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto" | ""
+  >("");
+  const [lesoesFilter, setLesoesFilter] = useState("");
+  const [sexoFilter, setSexoFilter] = useState<"masculino" | "feminino" | "indeterminado" | "">("");
 
   // Form states
   const [formData, setFormData] = useState({
@@ -74,32 +96,34 @@ export default function EvidenceManagementPage() {
   const [vitimaNacionalidade, setVitimaNacionalidade] = useState("");
   const [vitimaCidade, setVitimaCidade] = useState("");
   const [vitimaSexo, setVitimaSexo] = useState<"masculino" | "feminino" | "indeterminado">("masculino");
-  const [vitimaEstadoCorpo, setVitimaEstadoCorpo] = useState<"inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto">("inteiro");
+  const [vitimaEstadoCorpo, setVitimaEstadoCorpo] = useState<
+    "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto"
+  >("inteiro");
   const [vitimaLesoes, setVitimaLesoes] = useState("");
   const [vitimaIdentificada, setVitimaIdentificada] = useState(false);
   const [editingVitimaId, setEditingVitimaId] = useState<string | null>(null);
 
-  // Lista de casos únicos
-  const uniqueCases = useMemo(() => {
-    const cases = new Set<string>();
-    evidences.forEach((evidence) => {
-      if (evidence.caso) {
-        cases.add(evidence.caso);
-      }
-    });
-    return Array.from(cases).sort();
-  }, [evidences]);
-
   const isFormValid = useMemo(
-    () => (
+    () =>
       formData.casoReferencia &&
       formData.categoria &&
       formData.coletadoPorNome &&
       selectedVitimaId &&
-      (formData.tipo === "texto" ? formData.conteudo : true)
-    ),
+      (formData.tipo === "texto" ? formData.conteudo : true),
     [formData, selectedVitimaId]
   );
+
+  const fetchFilterOptions = useCallback(async () => {
+    try {
+      const response = await api.get<FilterOptions>("/api/evidence/filters", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+      });
+      setFilterOptions(response.data);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
+      setError("Erro ao buscar opções de filtro.");
+    }
+  }, []);
 
   const fetchEvidences = useCallback(async () => {
     setIsLoading(true);
@@ -117,6 +141,8 @@ export default function EvidenceManagementPage() {
       if (casoFilter) params.caso = casoFilter;
       if (cidadeFilter) params.cidade = cidadeFilter;
       if (estadoCorpoFilter) params.estadoCorpo = estadoCorpoFilter;
+      if (lesoesFilter) params.lesoes = lesoesFilter;
+      if (sexoFilter) params.sexo = sexoFilter;
 
       const response = await api.get<EvidenceListResponse>("/api/evidence", {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
@@ -142,6 +168,8 @@ export default function EvidenceManagementPage() {
     casoFilter,
     cidadeFilter,
     estadoCorpoFilter,
+    lesoesFilter,
+    sexoFilter,
   ]);
 
   const fetchVitimas = useCallback(async () => {
@@ -177,8 +205,9 @@ export default function EvidenceManagementPage() {
     if (user && !authLoading) {
       fetchEvidences();
       fetchVitimas();
+      fetchFilterOptions();
     }
-  }, [user, authLoading, fetchEvidences, fetchVitimas]);
+  }, [user, authLoading, fetchEvidences, fetchVitimas, fetchFilterOptions]);
 
   const handleEditEvidence = async (evidence: Evidence & { vitimaDetails?: IVitima }) => {
     setEditingEvidence(evidence);
@@ -426,7 +455,7 @@ export default function EvidenceManagementPage() {
                 disabled={isLoading}
               >
                 <option value="">Selecione um caso</option>
-                {uniqueCases.map((caso) => (
+                {filterOptions.casos.map((caso) => (
                   <option key={caso} value={caso}>
                     {caso}
                   </option>
@@ -476,9 +505,7 @@ export default function EvidenceManagementPage() {
           <h2 className="text-lg font-semibold text-gray-700 mt-6">Dados da Vítima</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Selecionar Vítima Existente *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Selecionar Vítima Existente *</label>
               <select
                 value={selectedVitimaId}
                 onChange={(e) => {
@@ -620,19 +647,22 @@ export default function EvidenceManagementPage() {
                 </div>
                 {editingVitimaId && formData.tipo === "imagem" && (
                   <div className="col-span-1 md:col-span-2">
-                    {editingVitimaId && editingEvidence?.vitimaDetails?.imagens && editingEvidence.vitimaDetails.imagens.length > 0 && !failedImages.has(editingEvidence._id) && (
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Imagem Atual</label>
-                        <Image
-                          src={editingEvidence.vitimaDetails.imagens[0]}
-                          alt="Imagem Atual"
-                          width={200}
-                          height={200}
-                          className="w-full h-48 object-cover rounded-md"
-                          onError={() => setFailedImages((prev) => new Set(prev).add(editingEvidence._id))}
-                        />
-                      </div>
-                    )}
+                    {editingVitimaId &&
+                      editingEvidence?.vitimaDetails?.imagens &&
+                      editingEvidence.vitimaDetails.imagens.length > 0 &&
+                      !failedImages.has(editingEvidence._id) && (
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Imagem Atual</label>
+                          <Image
+                            src={editingEvidence.vitimaDetails.imagens[0]}
+                            alt="Imagem Atual"
+                            width={200}
+                            height={200}
+                            className="w-full h-48 object-cover rounded-md"
+                            onError={() => setFailedImages((prev) => new Set(prev).add(editingEvidence._id))}
+                          />
+                        </div>
+                      )}
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       {editingEvidence ? "Nova Imagem (opcional)" : "Imagem *"}
                     </label>
@@ -661,7 +691,6 @@ export default function EvidenceManagementPage() {
             )}
           </div>
 
-          {/* Seção de Dados do Laudo (apenas ao editar) */}
           {editingEvidence && laudoDetails && (
             <div className="mt-6">
               <h2 className="text-lg font-semibold text-gray-700">Dados do Laudo</h2>
@@ -675,7 +704,6 @@ export default function EvidenceManagementPage() {
                     disabled
                   />
                 </div>
-                {/* Removido o campo de descrição, pois não existe no ILaudo */}
               </div>
             </div>
           )}
@@ -737,40 +765,57 @@ export default function EvidenceManagementPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Coletado Por</label>
-            <input
-              type="text"
+            <select
               value={coletadoPorFilter}
               onChange={(e) => setColetadoPorFilter(e.target.value)}
-              placeholder="Ex: Dra. Helena Costa"
               className="w-full p-3 border border-gray-300 rounded-md"
-            />
+            >
+              <option value="">Todos</option>
+              {filterOptions.coletadoPor.map((nome) => (
+                <option key={nome} value={nome}>
+                  {nome}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Caso de Referência</label>
-            <input
-              type="text"
+            <select
               value={casoFilter}
               onChange={(e) => setCasoFilter(e.target.value)}
-              placeholder="Ex: CR-2025-001"
               className="w-full p-3 border border-gray-300 rounded-md"
-            />
+            >
+              <option value="">Todos</option>
+              {filterOptions.casos.map((caso) => (
+                <option key={caso} value={caso}>
+                  {caso}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
-            <input
-              type="text"
+            <select
               value={cidadeFilter}
               onChange={(e) => setCidadeFilter(e.target.value)}
-              placeholder="Ex: São Paulo"
               className="w-full p-3 border border-gray-300 rounded-md"
-            />
+            >
+              <option value="">Todos</option>
+              {filterOptions.cidades.map((cidade) => (
+                <option key={cidade} value={cidade}>
+                  {cidade}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Estado do Corpo</label>
             <select
               value={estadoCorpoFilter}
               onChange={(e) =>
-                setEstadoCorpoFilter(e.target.value as "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto" | "")
+                setEstadoCorpoFilter(
+                  e.target.value as "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto" | ""
+                )
               }
               className="w-full p-3 border border-gray-300 rounded-md"
             >
@@ -780,6 +825,38 @@ export default function EvidenceManagementPage() {
               <option value="carbonizado">Carbonizado</option>
               <option value="putrefacto">Putrefacto</option>
               <option value="esqueleto">Esqueleto</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Lesões</label>
+            <select
+              value={lesoesFilter}
+              onChange={(e) => setLesoesFilter(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-md"
+            >
+              <option value="">Todos</option>
+              {filterOptions.lesoes.map((lesao) => (
+                <option key={lesao} value={lesao}>
+                  {lesao}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sexo</label>
+            <select
+              value={sexoFilter}
+              onChange={(e) =>
+                setSexoFilter(e.target.value as "masculino" | "feminino" | "indeterminado" | "")
+              }
+              className="w-full p-3 border border-gray-300 rounded-md"
+            >
+              <option value="">Todos</option>
+              {filterOptions.sexos.map((sexo) => (
+                <option key={sexo} value={sexo}>
+                  {sexo}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -792,6 +869,8 @@ export default function EvidenceManagementPage() {
             setCasoFilter("");
             setCidadeFilter("");
             setEstadoCorpoFilter("");
+            setLesoesFilter("");
+            setSexoFilter("");
           }}
           className="mt-4 bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 transition"
         >
@@ -841,7 +920,7 @@ export default function EvidenceManagementPage() {
                       <strong>Sexo:</strong> {item.vitimaDetails?.sexo || "Indeterminado"}
                     </p>
                     <p className="text-gray-700">
-                      <strong>Estado do Corpo:</strong> {item.vitimaDetails?.estadoCorpo || "Inteiro"}
+                      <strong>Estado do Corpo:</strong> {item.vitimaDetails?.nome || "Inteiro"}
                     </p>
                     <div className="mt-4 flex space-x-3">
                       <button
@@ -885,18 +964,11 @@ export default function EvidenceManagementPage() {
                         height={200}
                         className="w-full h-48 object-cover rounded-md mb-4"
                         onError={() => {
-                          if (item.vitimaDetails?.imagens?.[0]) {
-                            console.error("Erro ao carregar imagem:", item.vitimaDetails.imagens[0]);
-                          } else {
-                            console.error("Erro ao carregar imagem: Detalhes ou imagens da vítima estão indefinidos.");
-                          }
                           setFailedImages((prev) => new Set(prev).add(item._id));
                         }}
                       />
                     ) : (
-                      <p className="text-gray-600 mb-4">
-                        Imagem não disponível
-                      </p>
+                      <p className="text-gray-600 mb-4">Imagem não disponível</p>
                     )}
                     <p className="text-gray-700">
                       <strong>Caso:</strong> {item.caso}
@@ -947,7 +1019,7 @@ export default function EvidenceManagementPage() {
           <button
             onClick={() => handlePaginationChange(pagination.paginaAtual - 1)}
             disabled={pagination.paginaAtual === 1}
-            className="text-gray-500 disabled:text-gray-300 px-4 py-2 bg-gray-200 rounded-xl hover:bg-gray-300 transition"
+            className="text-gray-500 disabled:text-gray-300 px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 transition"
           >
             Anterior
           </button>
@@ -957,7 +1029,7 @@ export default function EvidenceManagementPage() {
           <button
             onClick={() => handlePaginationChange(pagination.paginaAtual + 1)}
             disabled={pagination.paginaAtual === pagination.totalPaginas}
-            className="text-gray-500 disabled:text-gray-300 px-4 py-2 bg-gray-200 rounded-xl hover:bg-gray-300 transition"
+            className="text-gray-500 disabled:text-gray-300 px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 transition"
           >
             Próxima
           </button>
