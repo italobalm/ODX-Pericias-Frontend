@@ -6,18 +6,10 @@ import { motion } from "framer-motion";
 import { FaArrowLeft, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import api from "@/lib/axiosConfig";
 import { useAuth } from "../providers/AuthProvider";
-import { Evidence, EvidenceListResponse, IVitima } from "@/types/Evidence";
+import { Evidence, EvidenceListResponse } from "@/types/Evidence";
+import { IVitima, VitimaListResponse } from "@/types/Vitima";
 import { AxiosError } from "axios";
 import Image from "next/image";
-
-interface VitimaResponse {
-  msg: string;
-  vitima: IVitima;
-}
-
-interface VitimaListResponse {
-  vitimas: IVitima[];
-}
 
 export default function EvidenceManagementPage() {
   const router = useRouter();
@@ -69,18 +61,17 @@ export default function EvidenceManagementPage() {
       formData.casoReferencia &&
       formData.categoria &&
       formData.coletadoPorNome &&
-      (createNewVitima ? vitimaSexo && vitimaEstadoCorpo : selectedVitimaId) &&
-      (formData.tipo === "texto" ? formData.conteudo : editingEvidence ? true : formData.file)
+      (createNewVitima || editingVitimaId ? vitimaSexo && vitimaEstadoCorpo : selectedVitimaId) &&
+      (formData.tipo === "texto" ? formData.conteudo : true)
     ),
-    [formData, editingEvidence, createNewVitima, vitimaSexo, vitimaEstadoCorpo, selectedVitimaId]
+    [formData, createNewVitima, editingVitimaId, vitimaSexo, vitimaEstadoCorpo, selectedVitimaId]
   );
 
   const fetchEvidences = useCallback(async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("authToken");
       const response = await api.get<EvidenceListResponse>("/api/evidence", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
         params: {
           page: pagination.paginaAtual,
           limit: pagination.porPagina,
@@ -89,20 +80,7 @@ export default function EvidenceManagementPage() {
         },
       });
 
-      const evidencesWithVitima = await Promise.all(
-        response.data.evidencias.map(async (evidence) => {
-          try {
-            const vitimaResponse = await api.get<VitimaResponse>(`/api/vitima/${evidence.vitima}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            return { ...evidence, vitimaDetails: vitimaResponse.data.vitima };
-          } catch (err) {
-            return { ...evidence, vitimaDetails: undefined };
-          }
-        })
-      );
-
-      setEvidences(evidencesWithVitima);
+      setEvidences(response.data.evidencias);
       setPagination(response.data.paginacao);
       setError("");
     } catch (err: unknown) {
@@ -120,6 +98,7 @@ export default function EvidenceManagementPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setVitimas(response.data.vitimas);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setError("Erro ao buscar vítimas.");
     }
@@ -135,17 +114,18 @@ export default function EvidenceManagementPage() {
   const handleEditEvidence = async (evidence: Evidence & { vitimaDetails?: IVitima }) => {
     setEditingEvidence(evidence);
     try {
-      const token = localStorage.getItem("authToken");
-      const vitimaResponse = await api.get<VitimaResponse>(`/api/vitima/${evidence.vitima}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const vitima = vitimaResponse.data.vitima;
+      const vitima = evidence.vitimaDetails;
+
+      if (!vitima) {
+        setError("Não foi possível carregar os dados da vítima associada.");
+        return;
+      }
 
       setFormData({
-        casoReferencia: evidence.casoReferencia,
+        casoReferencia: evidence.caso || "", // No backend, caso é um ObjectId, mas aqui pode ser uma string de referência
         tipo: evidence.tipo,
         categoria: evidence.categoria,
-        coletadoPorNome: typeof evidence.coletadoPor === "string" ? evidence.coletadoPor : evidence.coletadoPor?.nome || "",
+        coletadoPorNome: evidence.coletadoPor,
         conteudo: evidence.conteudo || "",
         file: null,
         filePreview: null,
@@ -154,13 +134,13 @@ export default function EvidenceManagementPage() {
       setSelectedVitimaId(vitima._id);
       setEditingVitimaId(vitima._id);
       setVitimaNome(vitima.nome || "");
-      setVitimaDataNascimento(vitima.dataNascimento ? new Date(vitima.dataNascimento).toISOString().split("T")[0] : "");
+      setVitimaDataNascimento(vitima.dataNascimento || "");
       setVitimaIdadeAproximada(vitima.idadeAproximada ? vitima.idadeAproximada.toString() : "");
       setVitimaNacionalidade(vitima.nacionalidade || "");
       setVitimaCidade(vitima.cidade || "");
       setVitimaSexo(vitima.sexo || "masculino");
       setVitimaEstadoCorpo(vitima.estadoCorpo || "inteiro");
-      setVitimaLesoes(vitima.lesoes?.join(", ") || "");
+      setVitimaLesoes(vitima.lesoes || "");
       setVitimaIdentificada(vitima.identificada || false);
 
       setError("");
@@ -230,48 +210,39 @@ export default function EvidenceManagementPage() {
     try {
       const token = localStorage.getItem("authToken");
 
-      let vitimaId = selectedVitimaId;
-
-      // Criar ou atualizar a vítima
-      const vitimaData = {
-        nome: vitimaNome || undefined,
-        dataNascimento: vitimaDataNascimento ? new Date(vitimaDataNascimento) : undefined,
-        idadeAproximada: vitimaIdadeAproximada ? Number(vitimaIdadeAproximada) : undefined,
-        nacionalidade: vitimaNacionalidade || undefined,
-        cidade: vitimaCidade || undefined,
-        sexo: vitimaSexo,
-        estadoCorpo: vitimaEstadoCorpo,
-        lesoes: vitimaLesoes ? [vitimaLesoes] : undefined,
-        identificada: vitimaIdentificada,
-      };
-
-      if (createNewVitima) {
-        const vitimaResponse = await api.post<VitimaResponse>("/api/vitima", vitimaData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        vitimaId = vitimaResponse.data.vitima._id;
-      } else if (editingVitimaId) {
-        await api.put(`/api/vitima/${editingVitimaId}`, vitimaData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        vitimaId = editingVitimaId;
-      }
-
-      if (!vitimaId) {
-        setError("Selecione ou crie uma vítima para associar à evidência.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Criar ou atualizar a evidência
       const data = new FormData();
       data.append("casoReferencia", formData.casoReferencia);
       data.append("tipo", formData.tipo);
       data.append("categoria", formData.categoria);
-      data.append("vitima", vitimaId);
       data.append("coletadoPor", formData.coletadoPorNome);
       if (formData.tipo === "texto" && formData.conteudo) data.append("conteudo", formData.conteudo);
-      if (formData.tipo === "imagem" && formData.file) data.append("file", formData.file);
+
+      if (createNewVitima) {
+        if (vitimaNome) data.append("nome", vitimaNome);
+        if (vitimaDataNascimento) data.append("dataNascimento", vitimaDataNascimento);
+        if (vitimaIdadeAproximada) data.append("idadeAproximada", vitimaIdadeAproximada);
+        if (vitimaNacionalidade) data.append("nacionalidade", vitimaNacionalidade);
+        if (vitimaCidade) data.append("cidade", vitimaCidade);
+        data.append("sexo", vitimaSexo);
+        data.append("estadoCorpo", vitimaEstadoCorpo);
+        if (vitimaLesoes) data.append("lesoes", vitimaLesoes);
+        data.append("identificada", vitimaIdentificada.toString());
+        if (formData.tipo === "imagem" && formData.file) data.append("file", formData.file);
+      } else if (editingVitimaId) {
+        data.append("vitimaId", editingVitimaId);
+        data.append("nome", vitimaNome || "");
+        data.append("dataNascimento", vitimaDataNascimento || "");
+        data.append("idadeAproximada", vitimaIdadeAproximada || "");
+        data.append("nacionalidade", vitimaNacionalidade || "");
+        data.append("cidade", vitimaCidade || "");
+        data.append("sexo", vitimaSexo);
+        data.append("estadoCorpo", vitimaEstadoCorpo);
+        data.append("lesoes", vitimaLesoes || "");
+        data.append("identificada", vitimaIdentificada.toString());
+        if (formData.tipo === "imagem" && formData.file) data.append("file", formData.file);
+      } else {
+        data.append("vitima", selectedVitimaId);
+      }
 
       const endpoint = editingEvidence ? `/api/evidence/${editingEvidence._id}` : "/api/evidence";
       const method = editingEvidence ? "put" : "post";
@@ -320,10 +291,9 @@ export default function EvidenceManagementPage() {
     return evidences.filter((evidence) => {
       const vitima = evidence.vitimaDetails;
       return (
-        evidence.casoReferencia.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (evidence.caso || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         evidence.categoria.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (typeof evidence.coletadoPor === "object" &&
-          evidence.coletadoPor?.nome.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (evidence.coletadoPor || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (vitima?.nome && vitima.nome.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (vitima?.nacionalidade && vitima.nacionalidade.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (vitima?.cidade && vitima.cidade.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -393,7 +363,7 @@ export default function EvidenceManagementPage() {
                 value={formData.tipo}
                 onChange={handleChange}
                 className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
-                disabled={isLoading}
+                disabled={isLoading || !!editingEvidence} // Desabilitar alteração de tipo durante edição
               >
                 <option value="texto">Texto</option>
                 <option value="imagem">Imagem</option>
@@ -446,46 +416,7 @@ export default function EvidenceManagementPage() {
                   className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
                   rows={4}
                   disabled={isLoading}
-                ></textarea>
-              </div>
-            )}
-            {formData.tipo === "imagem" && (
-              <div className="col-span-1 md:col-span-2">
-                {editingEvidence?.imagemURL && !failedImages.has(editingEvidence._id) && (
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Imagem Atual</label>
-                    <Image
-                      src={editingEvidence.imagemURL}
-                      alt="Imagem Atual"
-                      width={200}
-                      height={200}
-                      className="w-full h-48 object-cover rounded-md"
-                      onError={() => setFailedImages((prev) => new Set(prev).add(editingEvidence._id))}
-                    />
-                  </div>
-                )}
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {editingEvidence ? "Nova Imagem (opcional)" : "Imagem *"}
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="w-full p-3 border border-gray-300 rounded-md"
-                  disabled={isLoading}
                 />
-                {formData.filePreview && (
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Prévia da Nova Imagem</label>
-                    <Image
-                      src={formData.filePreview}
-                      alt="Prévia da Nova Imagem"
-                      width={200}
-                      height={200}
-                      className="w-full h-48 object-cover rounded-md"
-                    />
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -506,13 +437,13 @@ export default function EvidenceManagementPage() {
                   const vitima = vitimas.find(v => v._id === e.target.value);
                   if (vitima) {
                     setVitimaNome(vitima.nome || "");
-                    setVitimaDataNascimento(vitima.dataNascimento ? new Date(vitima.dataNascimento).toISOString().split("T")[0] : "");
+                    setVitimaDataNascimento(vitima.dataNascimento || "");
                     setVitimaIdadeAproximada(vitima.idadeAproximada ? vitima.idadeAproximada.toString() : "");
                     setVitimaNacionalidade(vitima.nacionalidade || "");
                     setVitimaCidade(vitima.cidade || "");
                     setVitimaSexo(vitima.sexo || "masculino");
                     setVitimaEstadoCorpo(vitima.estadoCorpo || "inteiro");
-                    setVitimaLesoes(vitima.lesoes?.join(", ") || "");
+                    setVitimaLesoes(vitima.lesoes || "");
                     setVitimaIdentificada(vitima.identificada || false);
                   }
                 }}
@@ -651,6 +582,45 @@ export default function EvidenceManagementPage() {
                     disabled={isLoading}
                   />
                 </div>
+                {(createNewVitima || editingVitimaId) && formData.tipo === "imagem" && (
+                  <div className="col-span-1 md:col-span-2">
+                    {editingVitimaId && editingEvidence?.vitimaDetails?.imagens && editingEvidence.vitimaDetails.imagens.length > 0 && !failedImages.has(editingEvidence._id) && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Imagem Atual</label>
+                        <Image
+                          src={editingEvidence.vitimaDetails.imagens[0]}
+                          alt="Imagem Atual"
+                          width={200}
+                          height={200}
+                          className="w-full h-48 object-cover rounded-md"
+                          onError={() => setFailedImages((prev) => new Set(prev).add(editingEvidence._id))}
+                        />
+                      </div>
+                    )}
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {editingEvidence ? "Nova Imagem (opcional)" : "Imagem *"}
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="w-full p-3 border border-gray-300 rounded-md"
+                      disabled={isLoading}
+                    />
+                    {formData.filePreview && (
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Prévia da Nova Imagem</label>
+                        <Image
+                          src={formData.filePreview}
+                          alt="Prévia da Nova Imagem"
+                          width={200}
+                          height={200}
+                          className="w-full h-48 object-cover rounded-md"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -706,7 +676,7 @@ export default function EvidenceManagementPage() {
                     className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
                   >
                     <p className="text-gray-700">
-                      <strong>Caso (Referência):</strong> {item.casoReferencia}
+                      <strong>Caso:</strong> {item.caso}
                     </p>
                     <p className="text-gray-700">
                       <strong>Categoria:</strong> {item.categoria}
@@ -716,10 +686,7 @@ export default function EvidenceManagementPage() {
                       {item.conteudo ? item.conteudo.substring(0, 100) + "..." : "N/A"}
                     </p>
                     <p className="text-gray-700">
-                      <strong>Coletado por:</strong>{" "}
-                      {typeof item.coletadoPor === "string"
-                        ? item.coletadoPor
-                        : item.coletadoPor?.nome || "N/A"}
+                      <strong>Coletado por:</strong> {item.coletadoPor || "N/A"}
                     </p>
                     <p className="text-gray-700">
                       <strong>Data de Upload:</strong>{" "}
@@ -768,36 +735,35 @@ export default function EvidenceManagementPage() {
                     transition={{ duration: 0.3 }}
                     className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
                   >
-                    {item.imagemURL && !failedImages.has(item._id) ? (
+                    {item.vitimaDetails?.imagens && item.vitimaDetails.imagens.length > 0 && !failedImages.has(item._id) ? (
                       <Image
-                        src={item.imagemURL}
+                        src={item.vitimaDetails.imagens[0]}
                         alt="Evidência"
                         width={200}
                         height={200}
                         className="w-full h-48 object-cover rounded-md mb-4"
                         onError={() => {
-                          console.error("Erro ao carregar imagem:", item.imagemURL);
+                          if (item.vitimaDetails?.imagens?.[0]) {
+                            console.error("Erro ao carregar imagem:", item.vitimaDetails.imagens[0]);
+                          } else {
+                            console.error("Erro ao carregar imagem: Detalhes ou imagens da vítima estão indefinidos.");
+                          }
                           setFailedImages((prev) => new Set(prev).add(item._id));
                         }}
                       />
                     ) : (
                       <p className="text-gray-600 mb-4">
-                        {item.imagemURL
-                          ? "Não foi possível carregar a imagem. Verifique o URL ou tente novamente."
-                          : "Imagem não disponível"}
+                        Imagem não disponível
                       </p>
                     )}
                     <p className="text-gray-700">
-                      <strong>Caso (Referência):</strong> {item.casoReferencia}
+                      <strong>Caso:</strong> {item.caso}
                     </p>
                     <p className="text-gray-700">
                       <strong>Categoria:</strong> {item.categoria}
                     </p>
                     <p className="text-gray-700">
-                      <strong>Coletado por:</strong>{" "}
-                      {typeof item.coletadoPor === "string"
-                        ? item.coletadoPor
-                        : item.coletadoPor?.nome || "N/A"}
+                      <strong>Coletado por:</strong> {item.coletadoPor || "N/A"}
                     </p>
                     <p className="text-gray-700">
                       <strong>Data de Upload:</strong>{" "}

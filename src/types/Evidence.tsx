@@ -10,6 +10,8 @@ export interface Evidence {
   dataUpload: string; // Date será tratado como string no frontend
   coletadoPor: string;
   conteudo?: string;
+  vitimaDetails?: IVitima; // Adicionando vitimaDetails para refletir o populate do backend
+
 }
 
 // Ajustando EvidenceResponse para corresponder ao retorno do backend
