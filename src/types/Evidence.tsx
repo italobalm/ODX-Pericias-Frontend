@@ -1,27 +1,25 @@
-import { User } from "./User";
+import { IVitima } from "./Vitima";
 
+// Interface ajustada para corresponder ao IEvidence do backend
 export interface Evidence {
-  _id: string;
-  caso: string;
-  casoReferencia: string; // Renomeado de caso para casoReferencia
-  tipo: 'imagem' | 'texto'; // Renomeado de tipoEvidencia para tipo
+  _id: string; // ObjectId será tratado como string no frontend
+  caso: string; // ObjectId será tratado como string no frontend
+  vitima: string; // ObjectId será tratado como string no frontend
+  tipo: "imagem" | "texto";
   categoria: string;
-  dataUpload: string;
-  vitima: 'identificada' | 'não identificada';
-  sexo: 'masculino' | 'feminino' | 'indeterminado';
-  estadoCorpo: 'inteiro' | 'fragmentado' | 'carbonizado' | 'putrefacto' | 'esqueleto';
-  lesoes?: string;
-  coletadoPor: User | string;
+  dataUpload: string; // Date será tratado como string no frontend
+  coletadoPor: string;
   conteudo?: string;
-  imagemURL?: string;
-  laudo?: string;
 }
 
+// Ajustando EvidenceResponse para corresponder ao retorno do backend
 export interface EvidenceResponse {
-  msg?: string;
-  evidence?: Evidence;
+  msg: string;
+  evidence: Evidence;
+  vitima: IVitima; // Importado de Vitima.ts
 }
 
+// Ajustando EvidenceListResponse para usar Evidence
 export interface EvidenceListResponse {
   msg?: string;
   evidencias: Evidence[];

@@ -6,19 +6,10 @@ import { motion } from "framer-motion";
 import { FaArrowLeft } from "react-icons/fa";
 import api from "@/lib/axiosConfig";
 import { useAuth } from "../providers/AuthProvider";
-import { Evidence, IVitima } from "@/types/Evidence";
+import { EvidenceResponse } from "@/types/Evidence";
+import { IVitima, VitimaListResponse } from "@/types/Vitima"; // Importando de Vitima.ts
 import { AxiosError } from "axios";
 import Image from "next/image";
-
-interface EvidenceResponse {
-  msg: string;
-  evidence: Evidence;
-  vitima: IVitima;
-}
-
-interface VitimaListResponse {
-  vitimas: IVitima[];
-}
 
 export default function NewEvidencePage() {
   const router = useRouter();
@@ -53,12 +44,15 @@ export default function NewEvidencePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [evidenceId, setEvidenceId] = useState<string | null>(null);
 
+  // Validação do formulário
   const isFormValid =
     casoReferencia &&
     categoria &&
     coletadoPorNome &&
-    (tipo === "texto" ? conteudo : file) &&
-    (createNewVitima ? vitimaSexo && vitimaEstadoCorpo : selectedVitimaId);
+    (tipo === "texto" ? conteudo : true) && // Conteúdo é obrigatório apenas para tipo "texto"
+    (createNewVitima
+      ? vitimaSexo && vitimaEstadoCorpo && (tipo === "imagem" ? file : true) // Imagem obrigatória para tipo "imagem" se criar nova vítima
+      : selectedVitimaId);
 
   // Buscar vítimas existentes
   useEffect(() => {
@@ -69,6 +63,7 @@ export default function NewEvidencePage() {
           headers: { Authorization: `Bearer ${token}` },
         });
         setVitimas(response.data.vitimas);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
         setError("Erro ao buscar vítimas.");
       }
@@ -78,6 +73,15 @@ export default function NewEvidencePage() {
       fetchVitimas();
     }
   }, [user, authLoading]);
+
+  // Limpar filePreview quando o componente for desmontado ou o formulário for resetado
+  useEffect(() => {
+    return () => {
+      if (filePreview) {
+        URL.revokeObjectURL(filePreview);
+      }
+    };
+  }, [filePreview]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files ? e.target.files[0] : null;
@@ -108,44 +112,29 @@ export default function NewEvidencePage() {
     try {
       const token = localStorage.getItem("authToken");
 
-      let vitimaId = selectedVitimaId;
-
-      // Se for criar uma nova vítima
-      if (createNewVitima) {
-        const vitimaData = {
-          nome: vitimaNome || undefined,
-          dataNascimento: vitimaDataNascimento ? new Date(vitimaDataNascimento) : undefined,
-          idadeAproximada: vitimaIdadeAproximada ? Number(vitimaIdadeAproximada) : undefined,
-          nacionalidade: vitimaNacionalidade || undefined,
-          cidade: vitimaCidade || undefined,
-          sexo: vitimaSexo,
-          estadoCorpo: vitimaEstadoCorpo,
-          lesoes: vitimaLesoes ? [vitimaLesoes] : undefined,
-          identificada: vitimaIdentificada,
-        };
-
-        const vitimaResponse = await api.post<EvidenceResponse>("/api/vitima", vitimaData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        vitimaId = vitimaResponse.data.vitima._id;
-      }
-
-      if (!vitimaId) {
-        setError("Selecione ou crie uma vítima para associar à evidência.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Criar a evidência
+      // Criar FormData para enviar todos os dados em uma única requisição
       const formData = new FormData();
       formData.append("casoReferencia", casoReferencia);
       formData.append("tipo", tipo);
       formData.append("categoria", categoria);
-      formData.append("vitima", vitimaId);
       formData.append("coletadoPor", coletadoPorNome);
       if (tipo === "texto" && conteudo) formData.append("conteudo", conteudo);
-      if (tipo === "imagem" && file) formData.append("file", file);
+
+      if (createNewVitima) {
+        // Dados da vítima
+        if (vitimaNome) formData.append("nome", vitimaNome);
+        if (vitimaDataNascimento) formData.append("dataNascimento", vitimaDataNascimento);
+        if (vitimaIdadeAproximada) formData.append("idadeAproximada", vitimaIdadeAproximada);
+        if (vitimaNacionalidade) formData.append("nacionalidade", vitimaNacionalidade);
+        if (vitimaCidade) formData.append("cidade", vitimaCidade);
+        formData.append("sexo", vitimaSexo);
+        formData.append("estadoCorpo", vitimaEstadoCorpo);
+        if (vitimaLesoes) formData.append("lesoes", vitimaLesoes);
+        formData.append("identificada", vitimaIdentificada.toString());
+        if (tipo === "imagem" && file) formData.append("file", file); // Imagem associada à vítima
+      } else {
+        formData.append("vitima", selectedVitimaId);
+      }
 
       const response = await api.post<EvidenceResponse>("/api/evidence", formData, {
         headers: {
@@ -271,34 +260,6 @@ export default function NewEvidencePage() {
                     disabled={isLoading}
                   />
                 )}
-                {tipo === "imagem" && (
-                  <div className="col-span-1 md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Arquivo (Imagem) *
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="w-full p-3 border border-gray-300 rounded-xl"
-                      disabled={isLoading}
-                    />
-                    {filePreview && (
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Prévia da Imagem
-                        </label>
-                        <Image
-                          src={filePreview}
-                          alt="Prévia da Imagem"
-                          width={200}
-                          height={200}
-                          className="w-full h-48 object-cover rounded-md"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
 
               {/* Seção de Dados da Vítima */}
@@ -313,6 +274,8 @@ export default function NewEvidencePage() {
                     onChange={(e) => {
                       setSelectedVitimaId(e.target.value);
                       setCreateNewVitima(false);
+                      setFile(null); // Resetar o file ao selecionar vítima existente
+                      setFilePreview(null);
                     }}
                     className="w-full p-3 border border-gray-300 rounded-xl focus:ring focus:ring-teal-300 disabled:opacity-50"
                     disabled={isLoading || createNewVitima}
@@ -331,6 +294,10 @@ export default function NewEvidencePage() {
                     onClick={() => {
                       setCreateNewVitima(!createNewVitima);
                       setSelectedVitimaId("");
+                      if (!createNewVitima) {
+                        setFile(null); // Resetar o file ao criar nova vítima
+                        setFilePreview(null);
+                      }
                     }}
                     className="bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
                     disabled={isLoading}
@@ -414,6 +381,34 @@ export default function NewEvidencePage() {
                         disabled={isLoading}
                       />
                     </div>
+                    {tipo === "imagem" && (
+                      <div className="col-span-1 md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Arquivo (Imagem) *
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="w-full p-3 border border-gray-300 rounded-xl"
+                          disabled={isLoading}
+                        />
+                        {filePreview && (
+                          <div className="mt-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Prévia da Imagem
+                            </label>
+                            <Image
+                              src={filePreview}
+                              alt="Prévia da Imagem"
+                              width={200}
+                              height={200}
+                              className="w-full h-48 object-cover rounded-md"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -496,7 +491,7 @@ function Textarea({
         className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
         rows={4}
         disabled={disabled}
-      ></textarea>
+      />
     </div>
   );
 }
