@@ -11,15 +11,13 @@ import { IVitima, VitimaListResponse } from "@/types/Vitima";
 import { AxiosError } from "axios";
 import Image from "next/image";
 
-// Define the Case type based on your Case model
-interface ICase {
-  _id: string;
-  casoReferencia: string;
-  titulo: string;
-}
-
-interface CaseListResponse {
-  cases: ICase[];
+// Define the type for filter options (same as used in EvidenceManagementPage)
+interface FilterOptions {
+  coletadoPor: string[];
+  casos: string[];
+  cidades: string[];
+  lesoes: string[];
+  sexos: string[];
 }
 
 export default function NewEvidencePage() {
@@ -28,7 +26,13 @@ export default function NewEvidencePage() {
 
   // Estados para a evidência
   const [casoReferencia, setCasoReferencia] = useState("");
-  const [cases, setCases] = useState<ICase[]>([]); // State to store the list of cases
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    coletadoPor: [],
+    casos: [],
+    cidades: [],
+    lesoes: [],
+    sexos: [],
+  });
   const [tipo, setTipo] = useState<"imagem" | "texto">("texto");
   const [categoria, setCategoria] = useState("");
   const [coletadoPorNome, setColetadoPorNome] = useState("");
@@ -46,7 +50,9 @@ export default function NewEvidencePage() {
   const [vitimaNacionalidade, setVitimaNacionalidade] = useState("");
   const [vitimaCidade, setVitimaCidade] = useState("");
   const [vitimaSexo, setVitimaSexo] = useState<"masculino" | "feminino" | "indeterminado">("masculino");
-  const [vitimaEstadoCorpo, setVitimaEstadoCorpo] = useState<"inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto">("inteiro");
+  const [vitimaEstadoCorpo, setVitimaEstadoCorpo] = useState<
+    "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto"
+  >("inteiro");
   const [vitimaLesoes, setVitimaLesoes] = useState("");
   const [vitimaIdentificada, setVitimaIdentificada] = useState(false);
 
@@ -61,12 +67,12 @@ export default function NewEvidencePage() {
     casoReferencia &&
     categoria &&
     coletadoPorNome &&
-    (tipo === "texto" ? conteudo : true) && // Conteúdo é obrigatório apenas para tipo "texto"
+    (tipo === "texto" ? conteudo : true) &&
     (createNewVitima
-      ? vitimaSexo && vitimaEstadoCorpo && (tipo === "imagem" ? file : true) // Imagem obrigatória para tipo "imagem" se criar nova vítima
+      ? vitimaSexo && vitimaEstadoCorpo && (tipo === "imagem" ? file : true)
       : selectedVitimaId);
 
-  // Buscar vítimas e casos existentes
+  // Buscar vítimas e opções de filtro
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -78,14 +84,14 @@ export default function NewEvidencePage() {
         });
         setVitimas(vitimaResponse.data.vitimas);
 
-        // Fetch cases
-        const caseResponse = await api.get<CaseListResponse>("/api/case", {
+        // Fetch filter options (includes casos)
+        const filterResponse = await api.get<FilterOptions>("/api/evidence/filters", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setCases(caseResponse.data.cases);
+        setFilterOptions(filterResponse.data);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
-        setError("Erro ao buscar dados (vítimas ou casos).");
+        setError("Erro ao buscar dados (vítimas ou filtros).");
       }
     };
 
@@ -134,7 +140,7 @@ export default function NewEvidencePage() {
 
       // Criar FormData para enviar todos os dados em uma única requisição
       const formData = new FormData();
-      formData.append("casoReferencia", casoReferencia);
+      formData.append("caso", casoReferencia); // Changed to "caso" to match backend expectation
       formData.append("tipo", tipo);
       formData.append("categoria", categoria);
       formData.append("coletadoPor", coletadoPorNome);
@@ -151,7 +157,7 @@ export default function NewEvidencePage() {
         formData.append("estadoCorpo", vitimaEstadoCorpo);
         if (vitimaLesoes) formData.append("lesoes", vitimaLesoes);
         formData.append("identificada", vitimaIdentificada.toString());
-        if (tipo === "imagem" && file) formData.append("file", file); // Imagem associada à vítima
+        if (tipo === "imagem" && file) formData.append("file", file);
       } else {
         formData.append("vitima", selectedVitimaId);
       }
@@ -254,8 +260,8 @@ export default function NewEvidencePage() {
                   label="Caso (Referência) *"
                   value={casoReferencia}
                   onChange={(e) => handleChange(e, setCasoReferencia)}
-                  options={cases.map((caseItem) => caseItem.casoReferencia)}
-                  disabled={isLoading || cases.length === 0}
+                  options={filterOptions.casos}
+                  disabled={isLoading || filterOptions.casos.length === 0}
                 />
                 <Input
                   label="Categoria *"
@@ -294,7 +300,7 @@ export default function NewEvidencePage() {
                     onChange={(e) => {
                       setSelectedVitimaId(e.target.value);
                       setCreateNewVitima(false);
-                      setFile(null); // Resetar o file ao selecionar vítima existente
+                      setFile(null);
                       setFilePreview(null);
                     }}
                     className="w-full p-3 border border-gray-300 rounded-xl focus:ring focus:ring-teal-300 disabled:opacity-50"
@@ -315,7 +321,7 @@ export default function NewEvidencePage() {
                       setCreateNewVitima(!createNewVitima);
                       setSelectedVitimaId("");
                       if (!createNewVitima) {
-                        setFile(null); // Resetar o file ao criar nova vítima
+                        setFile(null);
                         setFilePreview(null);
                       }
                     }}
