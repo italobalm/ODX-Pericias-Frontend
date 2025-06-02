@@ -53,7 +53,7 @@ export default function VisaoGeral() {
       setLoading(true);
       setError(null);
       try {
-        const res = await api.get("/dashboard");
+        const res = await api.get("/api/dashboard");
         setDados(res.data);
       } catch (err) {
         console.error("Erro ao buscar dados:", err);
