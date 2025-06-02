@@ -8,8 +8,23 @@ import api from "@/lib/axiosConfig";
 import { useAuth } from "../providers/AuthProvider";
 import { Evidence, EvidenceListResponse } from "@/types/Evidence";
 import { IVitima, VitimaListResponse } from "@/types/Vitima";
+import { ILaudo, LaudoListResponse } from "@/types/Laudo";
 import { AxiosError } from "axios";
 import Image from "next/image";
+
+// Define the type for the query parameters
+interface EvidenceQueryParams {
+  page: number;
+  limit: number;
+  populate: string;
+  dataInicio?: string;
+  dataFim?: string;
+  vitima?: "identificada" | "não identificada" | "";
+  coletadoPor?: string;
+  caso?: string;
+  cidade?: string;
+  estadoCorpo?: "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto" | "";
+}
 
 export default function EvidenceManagementPage() {
   const router = useRouter();
@@ -17,6 +32,7 @@ export default function EvidenceManagementPage() {
 
   const [evidences, setEvidences] = useState<(Evidence & { vitimaDetails?: IVitima })[]>([]);
   const [vitimas, setVitimas] = useState<IVitima[]>([]);
+  const [laudoDetails, setLaudoDetails] = useState<ILaudo | null>(null);
   const [pagination, setPagination] = useState({
     total: 0,
     paginaAtual: 1,
@@ -28,8 +44,16 @@ export default function EvidenceManagementPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [editingEvidence, setEditingEvidence] = useState<Evidence | null>(null);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
-  const [searchTerm, setSearchTerm] = useState("");
   const [submittedEvidenceId, setSubmittedEvidenceId] = useState<string | null>(null);
+
+  // Filter states
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"identificada" | "não identificada" | "">("");
+  const [coletadoPorFilter, setColetadoPorFilter] = useState("");
+  const [casoFilter, setCasoFilter] = useState("");
+  const [cidadeFilter, setCidadeFilter] = useState("");
+  const [estadoCorpoFilter, setEstadoCorpoFilter] = useState<"inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto" | "">("");
 
   // Form states
   const [formData, setFormData] = useState({
@@ -42,9 +66,8 @@ export default function EvidenceManagementPage() {
     filePreview: null as string | null,
   });
 
-  // Estados para a vítima
+  // Victim states
   const [selectedVitimaId, setSelectedVitimaId] = useState<string>("");
-  const [createNewVitima, setCreateNewVitima] = useState(false);
   const [vitimaNome, setVitimaNome] = useState("");
   const [vitimaDataNascimento, setVitimaDataNascimento] = useState("");
   const [vitimaIdadeAproximada, setVitimaIdadeAproximada] = useState("");
@@ -56,28 +79,48 @@ export default function EvidenceManagementPage() {
   const [vitimaIdentificada, setVitimaIdentificada] = useState(false);
   const [editingVitimaId, setEditingVitimaId] = useState<string | null>(null);
 
+  // Lista de casos únicos
+  const uniqueCases = useMemo(() => {
+    const cases = new Set<string>();
+    evidences.forEach((evidence) => {
+      if (evidence.caso) {
+        cases.add(evidence.caso);
+      }
+    });
+    return Array.from(cases).sort();
+  }, [evidences]);
+
   const isFormValid = useMemo(
     () => (
       formData.casoReferencia &&
       formData.categoria &&
       formData.coletadoPorNome &&
-      (createNewVitima || editingVitimaId ? vitimaSexo && vitimaEstadoCorpo : selectedVitimaId) &&
+      selectedVitimaId &&
       (formData.tipo === "texto" ? formData.conteudo : true)
     ),
-    [formData, createNewVitima, editingVitimaId, vitimaSexo, vitimaEstadoCorpo, selectedVitimaId]
+    [formData, selectedVitimaId]
   );
 
   const fetchEvidences = useCallback(async () => {
     setIsLoading(true);
     try {
+      const params: EvidenceQueryParams = {
+        page: pagination.paginaAtual,
+        limit: pagination.porPagina,
+        populate: "vitima",
+      };
+
+      if (dataInicio) params.dataInicio = dataInicio;
+      if (dataFim) params.dataFim = dataFim;
+      if (statusFilter) params.vitima = statusFilter;
+      if (coletadoPorFilter) params.coletadoPor = coletadoPorFilter;
+      if (casoFilter) params.caso = casoFilter;
+      if (cidadeFilter) params.cidade = cidadeFilter;
+      if (estadoCorpoFilter) params.estadoCorpo = estadoCorpoFilter;
+
       const response = await api.get<EvidenceListResponse>("/api/evidence", {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-        params: {
-          page: pagination.paginaAtual,
-          limit: pagination.porPagina,
-          search: searchTerm,
-          populate: "vitima",
-        },
+        params,
       });
 
       setEvidences(response.data.evidencias);
@@ -89,7 +132,17 @@ export default function EvidenceManagementPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [pagination.paginaAtual, pagination.porPagina, searchTerm]);
+  }, [
+    pagination.paginaAtual,
+    pagination.porPagina,
+    dataInicio,
+    dataFim,
+    statusFilter,
+    coletadoPorFilter,
+    casoFilter,
+    cidadeFilter,
+    estadoCorpoFilter,
+  ]);
 
   const fetchVitimas = useCallback(async () => {
     try {
@@ -101,6 +154,22 @@ export default function EvidenceManagementPage() {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setError("Erro ao buscar vítimas.");
+    }
+  }, []);
+
+  const fetchLaudo = useCallback(async (evidenceId: string) => {
+    try {
+      const response = await api.get<LaudoListResponse>(`/api/laudo?evidencias=${evidenceId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+      });
+      if (response.data.laudos && response.data.laudos.length > 0) {
+        setLaudoDetails(response.data.laudos[0]);
+      } else {
+        setLaudoDetails(null);
+      }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
+      setError("Erro ao buscar dados do laudo.");
     }
   }, []);
 
@@ -122,7 +191,7 @@ export default function EvidenceManagementPage() {
       }
 
       setFormData({
-        casoReferencia: evidence.caso || "", // No backend, caso é um ObjectId, mas aqui pode ser uma string de referência
+        casoReferencia: evidence.caso || "",
         tipo: evidence.tipo,
         categoria: evidence.categoria,
         coletadoPorNome: evidence.coletadoPor,
@@ -143,11 +212,13 @@ export default function EvidenceManagementPage() {
       setVitimaLesoes(vitima.lesoes || "");
       setVitimaIdentificada(vitima.identificada || false);
 
+      await fetchLaudo(evidence._id);
+
       setError("");
       setSuccess("");
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
-      setError(axiosError.response?.data?.msg || "Erro ao buscar dados da vítima.");
+      setError(axiosError.response?.data?.msg || "Erro ao buscar dados da vítima ou laudo.");
     }
   };
 
@@ -163,7 +234,6 @@ export default function EvidenceManagementPage() {
       filePreview: null,
     });
     setSelectedVitimaId("");
-    setCreateNewVitima(false);
     setVitimaNome("");
     setVitimaDataNascimento("");
     setVitimaIdadeAproximada("");
@@ -174,6 +244,7 @@ export default function EvidenceManagementPage() {
     setVitimaLesoes("");
     setVitimaIdentificada(false);
     setEditingVitimaId(null);
+    setLaudoDetails(null);
     setError("");
     setSuccess("");
   };
@@ -211,24 +282,13 @@ export default function EvidenceManagementPage() {
       const token = localStorage.getItem("authToken");
 
       const data = new FormData();
-      data.append("casoReferencia", formData.casoReferencia);
+      data.append("caso", formData.casoReferencia);
       data.append("tipo", formData.tipo);
       data.append("categoria", formData.categoria);
       data.append("coletadoPor", formData.coletadoPorNome);
       if (formData.tipo === "texto" && formData.conteudo) data.append("conteudo", formData.conteudo);
 
-      if (createNewVitima) {
-        if (vitimaNome) data.append("nome", vitimaNome);
-        if (vitimaDataNascimento) data.append("dataNascimento", vitimaDataNascimento);
-        if (vitimaIdadeAproximada) data.append("idadeAproximada", vitimaIdadeAproximada);
-        if (vitimaNacionalidade) data.append("nacionalidade", vitimaNacionalidade);
-        if (vitimaCidade) data.append("cidade", vitimaCidade);
-        data.append("sexo", vitimaSexo);
-        data.append("estadoCorpo", vitimaEstadoCorpo);
-        if (vitimaLesoes) data.append("lesoes", vitimaLesoes);
-        data.append("identificada", vitimaIdentificada.toString());
-        if (formData.tipo === "imagem" && formData.file) data.append("file", formData.file);
-      } else if (editingVitimaId) {
+      if (editingVitimaId) {
         data.append("vitimaId", editingVitimaId);
         data.append("nome", vitimaNome || "");
         data.append("dataNascimento", vitimaDataNascimento || "");
@@ -258,7 +318,7 @@ export default function EvidenceManagementPage() {
       setSubmittedEvidenceId(editingEvidence ? editingEvidence._id : response.data._id);
       fetchEvidences();
       fetchVitimas();
-      handleCancelEdit(); // Limpar formulário após sucesso
+      handleCancelEdit();
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
       setError(axiosError.response?.data?.msg || `Erro ao ${editingEvidence ? "atualizar" : "adicionar"} a evidência.`);
@@ -287,19 +347,7 @@ export default function EvidenceManagementPage() {
     setPagination((prev) => ({ ...prev, paginaAtual: page }));
   };
 
-  const filteredEvidences = useMemo(() => {
-    return evidences.filter((evidence) => {
-      const vitima = evidence.vitimaDetails;
-      return (
-        (evidence.caso || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        evidence.categoria.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (evidence.coletadoPor || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (vitima?.nome && vitima.nome.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (vitima?.nacionalidade && vitima.nacionalidade.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (vitima?.cidade && vitima.cidade.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    });
-  }, [evidences, searchTerm]);
+  const filteredEvidences = useMemo(() => evidences, [evidences]);
 
   const textEvidences = useMemo(
     () => filteredEvidences.filter((item) => item.tipo?.toLowerCase().trim() === "texto"),
@@ -353,7 +401,6 @@ export default function EvidenceManagementPage() {
           </div>
         )}
         <form className="space-y-4" onSubmit={handleSubmit}>
-          {/* Seção de Dados da Evidência */}
           <h2 className="text-lg font-semibold text-gray-700">Dados da Evidência</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -363,7 +410,7 @@ export default function EvidenceManagementPage() {
                 value={formData.tipo}
                 onChange={handleChange}
                 className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
-                disabled={isLoading || !!editingEvidence} // Desabilitar alteração de tipo durante edição
+                disabled={isLoading || !!editingEvidence}
               >
                 <option value="texto">Texto</option>
                 <option value="imagem">Imagem</option>
@@ -371,15 +418,20 @@ export default function EvidenceManagementPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Caso (Referência) *</label>
-              <input
-                type="text"
+              <select
                 name="casoReferencia"
                 value={formData.casoReferencia}
                 onChange={handleChange}
-                placeholder="Ex: CR-2025-001"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
                 disabled={isLoading}
-              />
+              >
+                <option value="">Selecione um caso</option>
+                {uniqueCases.map((caso) => (
+                  <option key={caso} value={caso}>
+                    {caso}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Categoria *</label>
@@ -421,7 +473,6 @@ export default function EvidenceManagementPage() {
             )}
           </div>
 
-          {/* Seção de Dados da Vítima */}
           <h2 className="text-lg font-semibold text-gray-700 mt-6">Dados da Vítima</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -432,9 +483,8 @@ export default function EvidenceManagementPage() {
                 value={selectedVitimaId}
                 onChange={(e) => {
                   setSelectedVitimaId(e.target.value);
-                  setCreateNewVitima(false);
                   setEditingVitimaId(e.target.value);
-                  const vitima = vitimas.find(v => v._id === e.target.value);
+                  const vitima = vitimas.find((v) => v._id === e.target.value);
                   if (vitima) {
                     setVitimaNome(vitima.nome || "");
                     setVitimaDataNascimento(vitima.dataNascimento || "");
@@ -448,7 +498,7 @@ export default function EvidenceManagementPage() {
                   }
                 }}
                 className="w-full p-3 border border-gray-300 rounded-xl focus:ring focus:ring-teal-300 disabled:opacity-50"
-                disabled={isLoading || createNewVitima}
+                disabled={isLoading}
               >
                 <option value="">Selecione uma vítima</option>
                 {vitimas.map((vitima) => (
@@ -458,22 +508,8 @@ export default function EvidenceManagementPage() {
                 ))}
               </select>
             </div>
-            <div className="flex items-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setCreateNewVitima(!createNewVitima);
-                  setSelectedVitimaId("");
-                  setEditingVitimaId(null);
-                }}
-                className="bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
-                disabled={isLoading}
-              >
-                {createNewVitima ? "Cancelar Nova Vítima" : "Criar Nova Vítima"}
-              </button>
-            </div>
 
-            {(createNewVitima || editingVitimaId) && (
+            {editingVitimaId && (
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Vítima</label>
@@ -582,7 +618,7 @@ export default function EvidenceManagementPage() {
                     disabled={isLoading}
                   />
                 </div>
-                {(createNewVitima || editingVitimaId) && formData.tipo === "imagem" && (
+                {editingVitimaId && formData.tipo === "imagem" && (
                   <div className="col-span-1 md:col-span-2">
                     {editingVitimaId && editingEvidence?.vitimaDetails?.imagens && editingEvidence.vitimaDetails.imagens.length > 0 && !failedImages.has(editingEvidence._id) && (
                       <div className="mb-4">
@@ -625,6 +661,25 @@ export default function EvidenceManagementPage() {
             )}
           </div>
 
+          {/* Seção de Dados do Laudo (apenas ao editar) */}
+          {editingEvidence && laudoDetails && (
+            <div className="mt-6">
+              <h2 className="text-lg font-semibold text-gray-700">Dados do Laudo</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Data de Criação</label>
+                  <input
+                    type="text"
+                    value={new Date(laudoDetails.dataCriacao).toLocaleDateString("pt-BR")}
+                    className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
+                    disabled
+                  />
+                </div>
+                {/* Removido o campo de descrição, pois não existe no ILaudo */}
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end gap-4">
             {editingEvidence && (
               <button
@@ -647,14 +702,101 @@ export default function EvidenceManagementPage() {
         </form>
       </div>
 
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="Pesquisar evidências..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-md focus:ring focus:ring-teal-300"
-        />
+      <div className="mb-6 space-y-4">
+        <h2 className="text-lg font-semibold text-gray-700">Filtrar Evidências</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
+            <input
+              type="date"
+              value={dataInicio}
+              onChange={(e) => setDataInicio(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Data Fim</label>
+            <input
+              type="date"
+              value={dataFim}
+              onChange={(e) => setDataFim(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status da Vítima</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as "identificada" | "não identificada" | "")}
+              className="w-full p-3 border border-gray-300 rounded-md"
+            >
+              <option value="">Todos</option>
+              <option value="identificada">Identificada</option>
+              <option value="não identificada">Não Identificada</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Coletado Por</label>
+            <input
+              type="text"
+              value={coletadoPorFilter}
+              onChange={(e) => setColetadoPorFilter(e.target.value)}
+              placeholder="Ex: Dra. Helena Costa"
+              className="w-full p-3 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Caso de Referência</label>
+            <input
+              type="text"
+              value={casoFilter}
+              onChange={(e) => setCasoFilter(e.target.value)}
+              placeholder="Ex: CR-2025-001"
+              className="w-full p-3 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+            <input
+              type="text"
+              value={cidadeFilter}
+              onChange={(e) => setCidadeFilter(e.target.value)}
+              placeholder="Ex: São Paulo"
+              className="w-full p-3 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Estado do Corpo</label>
+            <select
+              value={estadoCorpoFilter}
+              onChange={(e) =>
+                setEstadoCorpoFilter(e.target.value as "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto" | "")
+              }
+              className="w-full p-3 border border-gray-300 rounded-md"
+            >
+              <option value="">Todos</option>
+              <option value="inteiro">Inteiro</option>
+              <option value="fragmentado">Fragmentado</option>
+              <option value="carbonizado">Carbonizado</option>
+              <option value="putrefacto">Putrefacto</option>
+              <option value="esqueleto">Esqueleto</option>
+            </select>
+          </div>
+        </div>
+        <button
+          onClick={() => {
+            setDataInicio("");
+            setDataFim("");
+            setStatusFilter("");
+            setColetadoPorFilter("");
+            setCasoFilter("");
+            setCidadeFilter("");
+            setEstadoCorpoFilter("");
+          }}
+          className="mt-4 bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 transition"
+        >
+          Limpar Filtros
+        </button>
       </div>
 
       {isLoading ? (

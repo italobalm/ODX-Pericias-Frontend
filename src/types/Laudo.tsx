@@ -10,6 +10,6 @@ export interface ILaudo {
   assinaturaDigital?: string;
 }
 
-export interface ILaudoListResponse {
+export interface LaudoListResponse {
   laudos: ILaudo[];
 }

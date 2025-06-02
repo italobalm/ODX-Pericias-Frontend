@@ -70,10 +70,7 @@ export default function NewCasePage() {
         setResponsavel("");
         setCidade("");
         setEstado("");
-        setCasoReferencia("");
-  
-        // Redireciona para a página de gestão de casos
-        router.push("/initialScreen");
+        // Não limpar casoReferencia aqui, pois será usado no botão de redirecionamento
       } else {
         setError("Erro ao enviar os dados para o servidor.");
       }
@@ -88,6 +85,11 @@ export default function NewCasePage() {
     setter: React.Dispatch<React.SetStateAction<string>>
   ) => {
     setter(e.target.value);
+  };
+
+  // Função para redirecionar para a página de cadastrar evidência
+  const handleRedirectToNewEvidence = () => {
+    router.push(`/cadastrarEvidencia?casoReferencia=${encodeURIComponent(casoReferencia)}`);
   };
 
   return (
@@ -231,14 +233,24 @@ export default function NewCasePage() {
                   </p>
                   <p>
                     <strong>Caso Referência:</strong> {casoReferencia}
-                    </p>
+                  </p>
                 </div>
 
                 {error && <p className="text-red-500 text-sm">{error}</p>}
                 {submitted && (
-                  <p className="text-green-600 text-sm">
-                    Caso cadastrado com sucesso!
-                  </p>
+                  <div className="space-y-4">
+                    <p className="text-green-600 text-sm">
+                      Caso cadastrado com sucesso!
+                    </p>
+                    {/* Botão para redirecionar para a página de cadastrar evidência */}
+                    <button
+                      type="button"
+                      onClick={handleRedirectToNewEvidence}
+                      className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
+                    >
+                      Cadastrar Nova Evidência
+                    </button>
+                  </div>
                 )}
                 <div className="flex justify-between gap-4 mt-4">
                   <button
@@ -251,6 +263,7 @@ export default function NewCasePage() {
                   <button
                     type="submit"
                     className="bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
+                    disabled={submitted} // Desativa o botão após o envio bem-sucedido
                   >
                     Finalizar Cadastro
                   </button>
