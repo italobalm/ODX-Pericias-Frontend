@@ -115,7 +115,7 @@ export default function EvidenceManagementPage() {
 
   const fetchFilterOptions = useCallback(async () => {
     try {
-      const response = await api.get<FilterOptions>("/api/evidences/filters", {
+      const response = await api.get<FilterOptions>("/api/evidence/filters", {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
       setFilterOptions(response.data);
@@ -144,7 +144,7 @@ export default function EvidenceManagementPage() {
       if (lesoesFilter) params.lesoes = lesoesFilter;
       if (sexoFilter) params.sexo = sexoFilter;
 
-      const response = await api.get<EvidenceListResponse>("/api/evidences", {
+      const response = await api.get<EvidenceListResponse>("/api/evidence", {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
         params,
       });
@@ -203,7 +203,7 @@ export default function EvidenceManagementPage() {
 
   const fetchEvidenceById = useCallback(async (evidenceId: string) => {
     try {
-      const response = await api.get<Evidence & { vitimaDetails?: IVitima }>(`/api/evidences/${evidenceId}`, {
+      const response = await api.get<Evidence & { vitimaDetails?: IVitima }>(`/api/evidence/${evidenceId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
       console.log("Fetched evidence by ID:", response.data); // Debug log
@@ -356,13 +356,13 @@ export default function EvidenceManagementPage() {
 
       let response;
       if (editingEvidence) {
-        response = await api.put<Evidence>(`/api/evidences/${editingEvidence._id}`, data, {
+        response = await api.put<Evidence>(`/api/evidence/${editingEvidence._id}`, data, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
       } else {
-        response = await api.post<Evidence>("/api/evidences", data, {
+        response = await api.post<Evidence>("/api/evidence", data, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -388,7 +388,7 @@ export default function EvidenceManagementPage() {
     if (!window.confirm("Tem certeza que deseja excluir esta evidência?")) return;
 
     try {
-      await api.delete(`/api/evidences/${id}`, {
+      await api.delete(`/api/evidence/${id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
       await fetchEvidences();
