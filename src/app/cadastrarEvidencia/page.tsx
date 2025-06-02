@@ -159,7 +159,7 @@ export default function NewEvidencePage() {
         formData.append("identificada", vitimaIdentificada.toString());
         if (tipo === "imagem" && file) formData.append("file", file);
       } else {
-        formData.append("vitima", selectedVitimaId);
+        formData.append("vitimaId", selectedVitimaId);
       }
 
       const response = await api.post<EvidenceResponse>("/api/evidence", formData, {
