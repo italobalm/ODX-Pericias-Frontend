@@ -36,6 +36,12 @@ export default function HomePage() {
       allowed: ["admin", "perito", "assistente"],
     },
     {
+      title: "Elaborar Laudos",
+      icon: FaMicroscope,
+      path: "/laudos", 
+      allowed: ["admin", "perito", "assistente"],
+    },
+    {
       title: "Elaborar Relatório",
       icon: FaChartBar,
       path: "/relatorios",
