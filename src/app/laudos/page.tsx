@@ -16,7 +16,7 @@ export default function GerarLaudoPage() {
   const { evidenceId } = useParams() as { evidenceId: string };
   const { user, loading: authLoading, error: authError } = useAuth();
 
-  const [evidence, setEvidence] = useState<(Evidence & { vitimaDetails?: IVitima }) | null>(null);
+  const [evidence, setEvidence] = useState<(Evidence & { vitima?: IVitima }) | null>(null);
   const [laudoDetails, setLaudoDetails] = useState<ILaudo | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -272,11 +272,11 @@ export default function GerarLaudoPage() {
                   />
                 </div>
               )}
-              {evidence?.tipo === "imagem" && evidence?.vitimaDetails?.imagens && evidence.vitimaDetails.imagens.length > 0 && !failedImages.has(evidence._id) && (
+              {evidence?.tipo === "imagem" && evidence?.vitima?.imagens && evidence.vitima.imagens.length > 0 && !failedImages.has(evidence._id) && (
                 <div className="col-span-1 md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Imagem</label>
                   <Image
-                    src={evidence.vitimaDetails.imagens[0]}
+                    src={evidence.vitima.imagens[0]}
                     alt="Imagem da Evidência"
                     width={200}
                     height={200}
@@ -300,7 +300,7 @@ export default function GerarLaudoPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
                 <input
                   type="text"
-                  value={evidence?.vitimaDetails?.nome || "Não identificada"}
+                  value={evidence?.vitima?.nome || "Não identificada"}
                   className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
                   disabled
                 />
@@ -309,7 +309,7 @@ export default function GerarLaudoPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
                 <input
                   type="text"
-                  value={evidence?.vitimaDetails?.dataNascimento || "N/A"}
+                  value={evidence?.vitima?.dataNascimento || "N/A"}
                   className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
                   disabled
                 />
@@ -318,7 +318,7 @@ export default function GerarLaudoPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Idade Aproximada</label>
                 <input
                   type="text"
-                  value={evidence?.vitimaDetails?.idadeAproximada?.toString() || "N/A"}
+                  value={evidence?.vitima?.idadeAproximada?.toString() || "N/A"}
                   className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
                   disabled
                 />
@@ -327,7 +327,7 @@ export default function GerarLaudoPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nacionalidade</label>
                 <input
                   type="text"
-                  value={evidence?.vitimaDetails?.nacionalidade || "N/A"}
+                  value={evidence?.vitima?.nacionalidade || "N/A"}
                   className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
                   disabled
                 />
@@ -336,7 +336,7 @@ export default function GerarLaudoPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
                 <input
                   type="text"
-                  value={evidence?.vitimaDetails?.cidade || "N/A"}
+                  value={evidence?.vitima?.cidade || "N/A"}
                   className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
                   disabled
                 />
@@ -345,7 +345,7 @@ export default function GerarLaudoPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Sexo</label>
                 <input
                   type="text"
-                  value={evidence?.vitimaDetails?.sexo || "Indeterminado"}
+                  value={evidence?.vitima?.sexo || "Indeterminado"}
                   className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
                   disabled
                 />
@@ -354,7 +354,7 @@ export default function GerarLaudoPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Estado do Corpo</label>
                 <input
                   type="text"
-                  value={evidence?.vitimaDetails?.estadoCorpo || "Inteiro"}
+                  value={evidence?.vitima?.estadoCorpo || "Inteiro"}
                   className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
                   disabled
                 />
@@ -363,7 +363,7 @@ export default function GerarLaudoPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Lesões</label>
                 <input
                   type="text"
-                  value={evidence?.vitimaDetails?.lesoes || "N/A"}
+                  value={evidence?.vitima?.lesoes || "N/A"}
                   className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
                   disabled
                 />
@@ -372,7 +372,7 @@ export default function GerarLaudoPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Identificada</label>
                 <input
                   type="text"
-                  value={evidence?.vitimaDetails?.identificada ? "Sim" : "Não"}
+                  value={evidence?.vitima?.identificada ? "Sim" : "Não"}
                   className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
                   disabled
                 />
