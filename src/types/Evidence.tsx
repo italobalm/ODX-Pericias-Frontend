@@ -4,13 +4,12 @@ import { IVitima } from "./Vitima";
 export interface Evidence {
   _id: string;
   caso: string; // ObjectId será tratado como string no frontend
-  vitima: string; // ObjectId será tratado como string no frontend
   tipo: "imagem" | "texto";
   categoria: string;
   dataUpload: string; // Date será tratado como string no frontend
   coletadoPor: string;
   conteudo?: string;
-  vitimaDetails?: IVitima; // Para dados populados da vítima
+  vitima?: IVitima; // Para dados populados da vítima
 }
 
 export interface EvidenceResponse {

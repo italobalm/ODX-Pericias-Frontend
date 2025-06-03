@@ -41,7 +41,7 @@ export default function EvidenceManagementPage() {
   const router = useRouter();
   const { user, loading: authLoading, error: authError } = useAuth();
 
-  const [evidences, setEvidences] = useState<(Evidence & { vitimaDetails?: IVitima })[]>([]);
+  const [evidences, setEvidences] = useState<(Evidence & { vitima?: IVitima })[]>([]);
   const [vitimas, setVitimas] = useState<IVitima[]>([]);
   const [laudoDetails, setLaudoDetails] = useState<ILaudo | null>(null);
   const [pagination, setPagination] = useState({
@@ -203,7 +203,7 @@ export default function EvidenceManagementPage() {
 
   const fetchEvidenceById = useCallback(async (evidenceId: string) => {
     try {
-      const response = await api.get<Evidence & { vitimaDetails?: IVitima }>(`/api/evidence/${evidenceId}`, {
+      const response = await api.get<Evidence & { vitima?: IVitima }>(`/api/evidence/${evidenceId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
       console.log("Fetched evidence by ID:", response.data); // Debug log
@@ -223,7 +223,7 @@ export default function EvidenceManagementPage() {
     }
   }, [user, authLoading, fetchEvidences, fetchVitimas, fetchFilterOptions]);
 
-  const handleEditEvidence = async (evidence: Evidence & { vitimaDetails?: IVitima }) => {
+  const handleEditEvidence = async (evidence: Evidence & { vitima?: IVitima }) => {
     console.log("Attempting to edit evidence with ID:", evidence._id); // Debug log
     const freshEvidence = await fetchEvidenceById(evidence._id);
     if (!freshEvidence) {
@@ -233,7 +233,7 @@ export default function EvidenceManagementPage() {
 
     setEditingEvidence(freshEvidence);
     try {
-      const vitima = freshEvidence.vitimaDetails;
+      const vitima = freshEvidence.vitima;
 
       if (!vitima) {
         setError("Não foi possível carregar os dados da vítima associada.");
@@ -675,13 +675,13 @@ export default function EvidenceManagementPage() {
                 {editingVitimaId && formData.tipo === "imagem" && (
                   <div className="col-span-1 md:col-span-2">
                     {editingVitimaId &&
-                      editingEvidence?.vitimaDetails?.imagens &&
-                      editingEvidence.vitimaDetails.imagens.length > 0 &&
+                      editingEvidence?.vitima?.imagens &&
+                      editingEvidence.vitima.imagens.length > 0 &&
                       !failedImages.has(editingEvidence._id) && (
                         <div className="mb-4">
                           <label className="block text-sm font-medium text-gray-700 mb-1">Imagem Atual</label>
                           <Image
-                            src={editingEvidence.vitimaDetails.imagens[0]}
+                            src={editingEvidence.vitima.imagens[0]}
                             alt="Imagem Atual"
                             width={200}
                             height={200}
@@ -941,13 +941,13 @@ export default function EvidenceManagementPage() {
                       {new Date(item.dataUpload).toLocaleDateString("pt-BR")}
                     </p>
                     <p className="text-gray-700">
-                      <strong>Vítima:</strong> {item.vitimaDetails?.nome || "Não identificada"}
+                      <strong>Vítima:</strong> {item.vitima?.nome || "Não identificada"}
                     </p>
                     <p className="text-gray-700">
-                      <strong>Sexo:</strong> {item.vitimaDetails?.sexo || "Indeterminado"}
+                      <strong>Sexo:</strong> {item.vitima?.sexo || "Indeterminado"}
                     </p>
                     <p className="text-gray-700">
-                      <strong>Estado do Corpo:</strong> {item.vitimaDetails?.estadoCorpo || "Inteiro"}
+                      <strong>Estado do Corpo:</strong> {item.vitima?.estadoCorpo || "Inteiro"}
                     </p>
                     <div className="mt-4 flex space-x-3">
                       <button
@@ -983,9 +983,9 @@ export default function EvidenceManagementPage() {
                     transition={{ duration: 0.3 }}
                     className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
                   >
-                    {item.vitimaDetails?.imagens && item.vitimaDetails.imagens.length > 0 && !failedImages.has(item._id) ? (
+                    {item.vitima?.imagens && item.vitima.imagens.length > 0 && !failedImages.has(item._id) ? (
                       <Image
-                        src={item.vitimaDetails.imagens[0]}
+                        src={item.vitima.imagens[0]}
                         alt="Evidência"
                         width={200}
                         height={200}
@@ -1011,13 +1011,13 @@ export default function EvidenceManagementPage() {
                       {new Date(item.dataUpload).toLocaleDateString("pt-BR")}
                     </p>
                     <p className="text-gray-700">
-                      <strong>Vítima:</strong> {item.vitimaDetails?.nome || "Não identificada"}
+                      <strong>Vítima:</strong> {item.vitima?.nome || "Não identificada"}
                     </p>
                     <p className="text-gray-700">
-                      <strong>Sexo:</strong> {item.vitimaDetails?.sexo || "Indeterminado"}
+                      <strong>Sexo:</strong> {item.vitima?.sexo || "Indeterminado"}
                     </p>
                     <p className="text-gray-700">
-                      <strong>Estado do Corpo:</strong> {item.vitimaDetails?.estadoCorpo || "Inteiro"}
+                      <strong>Estado do Corpo:</strong> {item.vitima?.estadoCorpo || "Inteiro"}
                     </p>
                     <div className="mt-4 flex space-x-3">
                       <button
