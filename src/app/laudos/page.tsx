@@ -43,28 +43,28 @@ export default function GerarLaudoPage() {
       const fetchVictims = async () => {
         setIsLoading(true);
         try {
-          const vitimasResponse = await api.get<{ data: IVitima[] }>(`/api/vitima`, {
+          const response = await api.get<{ vitimas: IVitima[] }>(`/api/vitima`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
           });
-          setVitimas(vitimasResponse.data.data || []);
+          console.log("Resposta de /api/vitima:", response.data); // Depuração
+          setVitimas(response.data.vitimas || []);
           setError("");
         } catch (err: unknown) {
           const axiosError = err as AxiosError<{ msg?: string }>;
           setError(axiosError.response?.data?.msg || "Erro ao buscar vítimas.");
+          console.error("Erro ao buscar vítimas:", axiosError); // Depuração
           setVitimas([]);
         } finally {
           setIsLoading(false);
         }
       };
-
       fetchVictims();
     }
   }, [user, authLoading]);
 
-  // Buscar evidências quando a vítima for selecionada
   useEffect(() => {
     if (formData.vitimaId) {
-      const fetchEvidences = async () => {
+      const fetchEvidencesAndLaudo = async () => {
         try {
           const selectedVitima = vitimas.find((v) => v._id === formData.vitimaId);
           if (selectedVitima?.caso) {
@@ -77,29 +77,12 @@ export default function GerarLaudoPage() {
             setEvidencias([]);
             setCaseId(null);
           }
-        } catch (err: unknown) {
-          const axiosError = err as AxiosError<{ msg?: string }>;
-          setError(axiosError.response?.data?.msg || "Erro ao buscar evidências.");
-          setEvidencias([]);
-        }
-      };
-      fetchEvidences();
-    } else {
-      setEvidencias([]);
-      setCaseId(null);
-    }
-  }, [formData.vitimaId, vitimas]);
 
-  // Buscar laudo existente, se houver
-  useEffect(() => {
-    if (formData.vitimaId) {
-      const fetchLaudo = async () => {
-        try {
-          const response = await api.get(`/api/laudo?vitima=${formData.vitimaId}`, {
+          const laudoResponse = await api.get(`/api/laudo?vitima=${formData.vitimaId}`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
           });
-          if (response.data.laudos && response.data.laudos.length > 0) {
-            const existingLaudo = response.data.laudos[0];
+          if (laudoResponse.data.laudos?.length > 0) {
+            const existingLaudo = laudoResponse.data.laudos[0];
             setLaudoDetails(existingLaudo);
             setFormData({
               vitimaId: existingLaudo.vitima?._id || "",
@@ -109,21 +92,26 @@ export default function GerarLaudoPage() {
               conclusao: existingLaudo.conclusao || "",
             });
             setEvidencias(existingLaudo.evidencias?.map((e: { _id: string }) => e._id) || []);
+            setCaseId(existingLaudo.caso || null);
           } else {
             setLaudoDetails(null);
           }
         } catch (err: unknown) {
           const axiosError = err as AxiosError<{ msg?: string }>;
-          setError(axiosError.response?.data?.msg || "Erro ao buscar dados do laudo.");
+          setError(axiosError.response?.data?.msg || "Erro ao buscar dados.");
+          setEvidencias([]);
+          setCaseId(null);
         }
       };
-      fetchLaudo();
+      fetchEvidencesAndLaudo();
+    } else {
+      setEvidencias([]);
+      setCaseId(null);
+      setLaudoDetails(null);
     }
-  }, [formData.vitimaId]);
+  }, [formData.vitimaId, vitimas]);
 
-  const handleChange = (
-    e: ChangeEvent<HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: ChangeEvent<HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
@@ -140,7 +128,7 @@ export default function GerarLaudoPage() {
       const laudoData = {
         vitima: formData.vitimaId,
         perito: user?._id,
-        evidencias: evidencias.length > 0 ? evidencias : undefined,
+        evidencias: evidencias.length > 0 ? evidencias : [],
         caso: caseId || undefined,
         dadosAntemortem: formData.dadosAntemortem,
         dadosPostmortem: formData.dadosPostmortem,
@@ -178,7 +166,6 @@ export default function GerarLaudoPage() {
       const response = await api.post(`/api/laudo/sign/${laudoDetails._id}`, {}, {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
-
       setLaudoDetails(response.data.laudo);
       setSuccess("Laudo assinado digitalmente com sucesso.");
       setError("");
