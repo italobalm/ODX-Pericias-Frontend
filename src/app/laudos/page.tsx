@@ -10,6 +10,8 @@ import { IVitima } from "@/types/Vitima";
 import { ILaudo } from "@/types/Laudo";
 import { AxiosError } from "axios";
 import Image from "next/image";
+import { motion } from "framer-motion";
+
 
 export default function GerarLaudoPage() {
   const router = useRouter();
@@ -18,44 +20,60 @@ export default function GerarLaudoPage() {
 
   const [evidence, setEvidence] = useState<(Evidence & { vitima?: IVitima }) | null>(null);
   const [laudoDetails, setLaudoDetails] = useState<ILaudo | null>(null);
+  const [vitimas, setVitimas] = useState<IVitima[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSigning, setIsSigning] = useState(false);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   // Estados do formulário do laudo
   const [formData, setFormData] = useState({
+    vitimaId: "",
     dadosAntemortem: "",
     dadosPostmortem: "",
     analiseLesoes: "",
     conclusao: "",
-    assinaturaDigital: "",
   });
 
-  const isFormValid = formData.dadosAntemortem && formData.dadosPostmortem && formData.analiseLesoes && formData.conclusao;
+  const isFormValid =
+    formData.vitimaId &&
+    formData.dadosAntemortem &&
+    formData.dadosPostmortem &&
+    formData.analiseLesoes &&
+    formData.conclusao;
 
   useEffect(() => {
     if (user && !authLoading) {
-      // Função para buscar detalhes da evidência e vítima
-      const fetchEvidence = async () => {
+      const fetchEvidenceAndVictims = async () => {
         setIsLoading(true);
         try {
-          const response = await api.get(`/api/evidence/${evidenceId}`, {
+          // Buscar evidência
+          const evidenceResponse = await api.get(`/api/evidence/${evidenceId}`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
             params: { populate: "vitima" },
           });
-          setEvidence(response.data);
+          setEvidence(evidenceResponse.data);
+
+          // Buscar vítimas associadas ao caso
+          const caseId = evidenceResponse.data.caso;
+          if (caseId) {
+            const vitimasResponse = await api.get<{ data: IVitima[] }>(`/api/vitima?caso=${caseId}`, {
+              headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+            });
+            setVitimas(vitimasResponse.data.data || []);
+          }
+
           setError("");
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (err: unknown) {
           setError("Evidência não encontrada. Você pode criar o laudo sem evidência associada.");
-          setEvidence(null); // Permitir que a página continue sem evidência
+          setEvidence(null);
         } finally {
           setIsLoading(false);
         }
       };
 
-      // Função para buscar um laudo existente, se houver
       const fetchLaudo = async () => {
         try {
           const response = await api.get(`/api/laudo?evidencia=${evidenceId}`, {
@@ -66,11 +84,11 @@ export default function GerarLaudoPage() {
             const existingLaudo = response.data.laudos[0];
             setLaudoDetails(existingLaudo);
             setFormData({
+              vitimaId: existingLaudo.vitima?._id || "",
               dadosAntemortem: existingLaudo.dadosAntemortem || "",
               dadosPostmortem: existingLaudo.dadosPostmortem || "",
               analiseLesoes: existingLaudo.analiseLesoes || "",
               conclusao: existingLaudo.conclusao || "",
-              assinaturaDigital: existingLaudo.assinaturaDigital || "",
             });
           } else {
             setLaudoDetails(null);
@@ -82,15 +100,17 @@ export default function GerarLaudoPage() {
       };
 
       if (evidenceId) {
-        fetchEvidence();
+        fetchEvidenceAndVictims();
         fetchLaudo();
       } else {
-        setIsLoading(false); // Permitir carregamento sem evidenceId
+        setIsLoading(false);
       }
     }
   }, [user, authLoading, evidenceId]);
 
-  const handleChange = (e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
@@ -98,7 +118,7 @@ export default function GerarLaudoPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!isFormValid) {
-      setError("Preencha todos os campos obrigatórios.");
+      setError("Preencha todos os campos obrigatórios, incluindo a vítima.");
       return;
     }
 
@@ -107,29 +127,23 @@ export default function GerarLaudoPage() {
       const token = localStorage.getItem("authToken");
 
       const laudoData = {
-        evidencia: evidenceId || undefined, // Evidencia é opcional
+        evidencia: evidenceId || undefined,
+        vitima: formData.vitimaId,
         perito: user?._id,
         dadosAntemortem: formData.dadosAntemortem,
         dadosPostmortem: formData.dadosPostmortem,
         analiseLesoes: formData.analiseLesoes,
         conclusao: formData.conclusao,
-        assinaturaDigital: formData.assinaturaDigital || undefined,
       };
 
       let response;
       if (laudoDetails) {
-        // Atualizar laudo existente
         response = await api.put(`/api/laudo/${laudoDetails._id}`, laudoData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
       } else {
-        // Criar novo laudo
         response = await api.post("/api/laudo", laudoData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
       }
 
@@ -138,13 +152,37 @@ export default function GerarLaudoPage() {
       setError("");
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
-      setError(axiosError.response?.data?.msg || `Erro ao ${laudoDetails ? "atualizar" : "criar"} o laudo.`);
+      setError(
+        axiosError.response?.data?.msg || `Erro ao ${laudoDetails ? "atualizar" : "criar"} o laudo.`
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Função para gerar e baixar o PDF usando o backend
+  const handleSign = async () => {
+    if (!laudoDetails?._id) {
+      setError("Nenhum laudo encontrado para assinar.");
+      return;
+    }
+
+    setIsSigning(true);
+    try {
+      const response = await api.post(`/api/laudo/sign/${laudoDetails._id}`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+      });
+
+      setLaudoDetails(response.data.laudo);
+      setSuccess("Laudo assinado digitalmente com sucesso.");
+      setError("");
+    } catch (err: unknown) {
+      const axiosError = err as AxiosError<{ msg?: string }>;
+      setError(axiosError.response?.data?.msg || "Erro ao assinar o laudo.");
+    } finally {
+      setIsSigning(false);
+    }
+  };
+
   const downloadPDF = async () => {
     if (!laudoDetails?._id) {
       setError("Nenhum laudo encontrado para gerar o PDF.");
@@ -153,13 +191,12 @@ export default function GerarLaudoPage() {
 
     setIsLoading(true);
     try {
-      const response = await api.get(`/api/laudo/generate-pdf/${laudoDetails._id}`, {
+      const response = await api.get(`/api/laudo/generate/pdf/${laudoDetails._id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
 
       const { pdf: pdfBase64 } = response.data;
 
-      // Converte o Base64 para um Blob
       const byteCharacters = atob(pdfBase64);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -168,11 +205,10 @@ export default function GerarLaudoPage() {
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: "application/pdf" });
 
-      // Cria um link temporário para download
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const link = document.createElement("a") as HTMLAnchorElement;
       link.href = url;
-      link.setAttribute("download", `laudo-${evidence?.caso || "laudo"}-${new Date().toISOString().split("T")[0]}.pdf`);
+      link.download = `laudo-${evidence?.caso || "laudo"}-${new Date().toISOString().slice(0, 10)}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -197,24 +233,47 @@ export default function GerarLaudoPage() {
   return (
     <div className="max-w-5xl mx-auto pt-28 p-4 md:p-8">
       <div className="flex items-center gap-4 mb-6">
-        <button onClick={() => router.back()} className="text-gray-600 hover:text-gray-800 transition p-2" title="Voltar">
+        <button
+          onClick={() => router.back()}
+          className="text-gray-600 hover:text-gray-800 transition p-2"
+          title="Voltar"
+        >
           <FaArrowLeft size={20} />
         </button>
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Gerar Laudo</h1>
       </div>
 
-      <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-6 space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-6 space-y-6"
+      >
         {error && <p className="text-red-500">{error}</p>}
         {success && (
           <div className="space-y-4">
             <p className="text-green-500">{success}</p>
-            <button
-              onClick={downloadPDF}
-              className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition disabled:opacity-50"
-              disabled={isLoading}
-            >
-              {isLoading ? "Gerando PDF..." : "Baixar PDF do Laudo"}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={downloadPDF}
+                className="w-full sm:w-auto bg-teal-500 text-white p-3 rounded-md hover:bg-teal-700 transition disabled:opacity-50"
+                disabled={isLoading}
+              >
+                {isLoading ? "Gerando PDF..." : "Baixar PDF do Laudo"}
+              </button>
+              {laudoDetails && !laudoDetails.assinaturaDigital && (
+                <button
+                  onClick={handleSign}
+                  className="w-full sm:w-auto bg-green-500 text-white p-3 rounded-md hover:bg-green-600 transition disabled:opacity-50"
+                  disabled={isSigning}
+                >
+                  {isSigning ? "Assinando..." : "Assinar Digitalmente"}
+                </button>
+              )}
+              {laudoDetails?.assinaturaDigital && (
+                <p className="text-green-500">Laudo já assinado digitalmente.</p>
+              )}
+            </div>
           </div>
         )}
 
@@ -256,7 +315,9 @@ export default function GerarLaudoPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Data de Upload</label>
                 <input
                   type="text"
-                  value={evidence.dataUpload ? new Date(evidence.dataUpload).toLocaleDateString("pt-BR") : "N/A"}
+                  value={
+                    evidence.dataUpload ? new Date(evidence.dataUpload).toLocaleDateString("pt-BR") : "N/A"
+                  }
                   className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
                   disabled
                 />
@@ -272,19 +333,22 @@ export default function GerarLaudoPage() {
                   />
                 </div>
               )}
-              {evidence.tipo === "imagem" && evidence.vitima?.imagens && evidence.vitima.imagens.length > 0 && !failedImages.has(evidence._id) && (
-                <div className="col-span-1 md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Imagem</label>
-                  <Image
-                    src={evidence.vitima.imagens[0]}
-                    alt="Imagem da Evidência"
-                    width={200}
-                    height={200}
-                    className="w-full h-48 object-cover rounded-md"
-                    onError={() => setFailedImages((prev) => new Set(prev).add(evidence._id))}
-                  />
-                </div>
-              )}
+              {evidence.tipo === "imagem" &&
+                evidence.vitima?.imagens &&
+                evidence.vitima.imagens.length > 0 &&
+                !failedImages.has(evidence._id) && (
+                  <div className="col-span-1 md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Imagem</label>
+                    <Image
+                      src={evidence.vitima.imagens[0]}
+                      alt="Imagem da Evidência"
+                      width={200}
+                      height={200}
+                      className="w-full h-48 object-cover rounded-md"
+                      onError={() => setFailedImages((prev) => new Set(prev).add(evidence._id))}
+                    />
+                  </div>
+                )}
             </div>
           ) : (
             <p className="text-gray-600">Nenhuma evidência associada. Preencha os dados do laudo abaixo.</p>
@@ -386,9 +450,27 @@ export default function GerarLaudoPage() {
         </div>
 
         {/* Formulário do Laudo */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <h2 className="text-lg font-semibold text-gray-700 mt-6">Dados do Laudo</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="col-span-1 md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Vítima Associada *</label>
+              <select
+                name="vitimaId"
+                value={formData.vitimaId}
+                onChange={handleChange}
+                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                disabled={isLoading}
+                required
+              >
+                <option value="">Selecione uma vítima</option>
+                {vitimas.map((vitima) => (
+                  <option key={vitima._id} value={vitima._id}>
+                    {vitima.nome || "Não identificada"} ({vitima.sexo || "Indeterminado"}, {vitima.estadoCorpo || "N/A"})
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="col-span-1 md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Dados Antemortem *</label>
               <textarea
@@ -437,18 +519,6 @@ export default function GerarLaudoPage() {
                 disabled={isLoading}
               />
             </div>
-            <div className="col-span-1 md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Assinatura Digital (Opcional)</label>
-              <input
-                type="text"
-                name="assinaturaDigital"
-                value={formData.assinaturaDigital}
-                onChange={handleChange}
-                placeholder="Insira a assinatura digital, se disponível"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
           </div>
 
           <div className="flex justify-end gap-4">
@@ -469,7 +539,7 @@ export default function GerarLaudoPage() {
             </button>
           </div>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 }

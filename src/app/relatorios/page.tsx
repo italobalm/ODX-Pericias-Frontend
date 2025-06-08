@@ -306,7 +306,8 @@ export default function ReportRegisterPage() {
                 <ul className="list-disc pl-5 text-gray-600">
                   {laudos.map((l) => (
                     <li key={l._id}>
-                      Laudo - Criado em: {new Date(l.dataCriacao).toLocaleDateString("pt-BR")}
+                      Laudo para Vítima: {typeof l.vitima === "object" && l.vitima?.nome ? l.vitima.nome : "Não identificada"} - Criado em: {new Date(l.dataCriacao).toLocaleDateString("pt-BR")}
+                      {l.assinaturaDigital && <span className="text-green-500 ml-2">(Assinado)</span>}
                     </li>
                   ))}
                 </ul>
