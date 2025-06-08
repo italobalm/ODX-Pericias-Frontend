@@ -57,7 +57,7 @@ export default function GerarLaudoPage() {
             const caseId = evidenceResponse.data.caso;
             if (caseId) {
               try {
-                const vitimasResponse = await api.get<{ data: IVitima[] }>(`/api/vitima?caso=${caseId}`, {
+                const vitimasResponse = await api.get<{ data: IVitima[] }>(`/api/vitima`, {
                   headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
                 });
                 setVitimas(vitimasResponse.data.data || []);
