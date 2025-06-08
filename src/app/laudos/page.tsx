@@ -7,8 +7,6 @@ import api from '@/lib/axiosConfig';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { IVitima } from '@/types/Vitima';
 import { ILaudo } from '@/types/Laudo';
-import { Evidence } from '@/types/Evidence';
-import { Case } from '@/types/Case';
 import { AxiosError } from 'axios';
 import { motion } from 'framer-motion';
 
@@ -17,30 +15,20 @@ export default function GerarLaudoPage() {
   const { user, loading: authLoading, error: authError } = useAuth();
 
   const [vitimas, setVitimas] = useState<IVitima[]>([]);
-  const [evidencias, setEvidencias] = useState<Evidence[]>([]);
-  const [casos, setCasos] = useState<Case[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     vitimaId: "",
-    evidenciaId: "",
-    casoId: "",
     dadosAntemortem: "",
     dadosPostmortem: "",
-    analiseLesoes: "",
-    conclusao: "",
   });
 
   const isFormValid =
     formData.vitimaId &&
-    formData.evidenciaId &&
-    formData.casoId &&
     formData.dadosAntemortem &&
-    formData.dadosPostmortem &&
-    formData.analiseLesoes &&
-    formData.conclusao;
+    formData.dadosPostmortem;
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -65,43 +53,6 @@ export default function GerarLaudoPage() {
       fetchVictims();
     }
   }, [user, authLoading]);
-
-  useEffect(() => {
-    if (formData.vitimaId) {
-      const fetchEvidenciasECasos = async () => {
-        try {
-          const [evidenciasResponse, casosResponse] = await Promise.all([
-            api.get(`/api/evidence?vitima=${formData.vitimaId}`, {
-              headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-            }),
-            api.get(`/api/caso?vitima=${formData.vitimaId}`, {
-              headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-            }),
-          ]);
-          console.log("Resposta de /api/evidence:", evidenciasResponse.data); // Depuração
-          console.log("Resposta de /api/caso:", casosResponse.data); // Depuração
-          setEvidencias(evidenciasResponse.data || []);
-          setCasos(casosResponse.data || []);
-          setFormData((prev) => ({
-            ...prev,
-            evidenciaId: evidenciasResponse.data[0]?._id || "",
-            casoId: casosResponse.data[0]?._id || "",
-          }));
-        } catch (err: unknown) {
-          const axiosError = err as AxiosError<{ msg?: string }>;
-          setError(axiosError.response?.data?.msg || "Erro ao buscar evidências ou casos.");
-          console.error("Erro ao buscar evidências/casos:", axiosError);
-          setEvidencias([]);
-          setCasos([]);
-        }
-      };
-      fetchEvidenciasECasos();
-    } else {
-      setEvidencias([]);
-      setCasos([]);
-      setFormData((prev) => ({ ...prev, evidenciaId: "", casoId: "" }));
-    }
-  }, [formData.vitimaId]);
 
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -144,12 +95,8 @@ export default function GerarLaudoPage() {
       const laudoData = {
         vitima: formData.vitimaId,
         perito: user?._id,
-        evidencia: formData.evidenciaId,
-        caso: formData.casoId,
         dadosAntemortem: formData.dadosAntemortem,
         dadosPostmortem: formData.dadosPostmortem,
-        analiseLesoes: formData.analiseLesoes,
-        conclusao: formData.conclusao,
       };
 
       console.log("Enviando laudoData:", laudoData); // Depuração
@@ -158,17 +105,7 @@ export default function GerarLaudoPage() {
       const createResponse = await api.post<{ laudo: ILaudo; pdf: string }>("/api/laudo", laudoData, {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
-      const { laudo: createdLaudo } = createResponse.data;
-
-      // Assinar o laudo automaticamente
-      const signResponse = await api.post<{ laudo: ILaudo; pdf: string }>(
-        `/api/laudo/sign/${createdLaudo._id}`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-        }
-      );
-      const { pdf: signedPdf } = signResponse.data;
+      const { laudo: createdLaudo, pdf: signedPdf } = createResponse.data;
 
       // Baixar o PDF assinado
       if (createdLaudo._id) {
@@ -182,15 +119,9 @@ export default function GerarLaudoPage() {
       setError("");
       setFormData({
         vitimaId: "",
-        evidenciaId: "",
-        casoId: "",
         dadosAntemortem: "",
         dadosPostmortem: "",
-        analiseLesoes: "",
-        conclusao: "",
       });
-      setEvidencias([]);
-      setCasos([]);
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
       setError(axiosError.response?.data?.msg || "Erro ao criar ou assinar o laudo.");
@@ -253,50 +184,6 @@ export default function GerarLaudoPage() {
         </div>
 
         <div>
-          <label htmlFor="evidenciaId" className="block text-sm font-medium text-gray-700 mb-1">
-            Evidência *
-          </label>
-          <select
-            name="evidenciaId"
-            id="evidenciaId"
-            value={formData.evidenciaId}
-            onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-            disabled={isLoading || !formData.vitimaId}
-            required
-          >
-            <option value="">Selecione uma evidência</option>
-            {evidencias.map((evidencia) => (
-              <option key={evidencia._id} value={evidencia._id}>
-                {evidencia.categoria} - {evidencia.tipo}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label htmlFor="casoId" className="block text-sm font-medium text-gray-700 mb-1">
-            Caso *
-          </label>
-          <select
-            name="casoId"
-            id="casoId"
-            value={formData.casoId}
-            onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-            disabled={isLoading || !formData.vitimaId}
-            required
-          >
-            <option value="">Selecione um caso</option>
-            {casos.map((caso) => (
-              <option key={caso._id} value={caso._id}>
-                Caso {caso._id}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Dados Antemortem *</label>
           <textarea
             name="dadosAntemortem"
@@ -317,34 +204,6 @@ export default function GerarLaudoPage() {
             value={formData.dadosPostmortem}
             onChange={handleChange}
             placeholder="Descreva os dados postmortem (ex: estado da arcada dentária, lesões observadas)"
-            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-            rows={4}
-            disabled={isLoading}
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Análise de Lesões *</label>
-          <textarea
-            name="analiseLesoes"
-            value={formData.analiseLesoes}
-            onChange={handleChange}
-            placeholder="Descreva a análise das lesões (ex: fraturas, marcas de trauma)"
-            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-            rows={4}
-            disabled={isLoading}
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Conclusão *</label>
-          <textarea
-            name="conclusao"
-            value={formData.conclusao}
-            onChange={handleChange}
-            placeholder="Descreva a conclusão do laudo (ex: identificação confirmada ou não)"
             className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
             rows={4}
             disabled={isLoading}
