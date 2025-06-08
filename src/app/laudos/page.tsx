@@ -63,6 +63,11 @@ export default function GerarLaudoPage() {
 
   const downloadPDF = (pdfBase64: string, laudoId: string) => {
     try {
+      if (typeof window === "undefined" || !document.body) {
+        console.error("DOM ainda não está disponível.");
+        return;
+      }
+  
       const byteCharacters = atob(pdfBase64);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -70,12 +75,13 @@ export default function GerarLaudoPage() {
       }
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: "application/pdf" });
-
+  
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       link.download = `laudo-${laudoId}-${new Date().toISOString().slice(0, 10)}.pdf`;
-      document.body.appendChild(link);
+  
+      document.body.appendChild(link); // <-- só vai executar se `document.body` existir
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
@@ -83,7 +89,7 @@ export default function GerarLaudoPage() {
       setError("Erro ao baixar o PDF.");
       console.error("Erro ao baixar PDF:", err);
     }
-  };
+  };  
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
