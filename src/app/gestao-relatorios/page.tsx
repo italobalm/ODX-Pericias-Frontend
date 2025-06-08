@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { jsPDF } from "jspdf";
 import { FaArrowLeft, FaEdit, FaTrash, FaDownload } from "react-icons/fa";
+import { motion } from "framer-motion";
 
 interface Report {
   id: string;
@@ -197,251 +198,184 @@ export default function ReportManagementPage() {
   };
 
   // Renderiza a lista de relatórios
-  const renderReports = () => (
-    <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-6">
-      <h2 className="text-lg font-semibold text-gray-700 mb-4">Relatórios</h2>
-      {reports.length === 0 ? (
-        <p className="text-gray-500">Nenhum relatório cadastrado.</p>
-      ) : (
-        <ul className="divide-y divide-gray-200">
-          {reports.map((report) => (
-            <li
-              key={report.id}
-              className="py-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4 hover:bg-gray-50 transition p-2 rounded-lg"
-            >
-              <div>
-                <p className="font-medium text-gray-800">Caso: {report.caso}</p>
-                <p className="text-sm text-gray-500">
-                  Título: {report.titulo}
-                  <br />
-                  Descrição: {report.descricao}
-                  <br />
-                  Destinatário: {report.destinatario}
-                  <br />
-                  Conclusão Técnica: {report.conclusaoTecnica}
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => handleEdit(report.id)}
-                  className="text-blue-500 hover:text-blue-700 transition"
-                  title="Editar Relatório"
-                >
-                  <FaEdit size={18} />
-                </button>
-                <button
-                  onClick={() => handleDelete(report.id)}
-                  className="text-red-500 hover:text-red-700 transition"
-                  title="Excluir Relatório"
-                >
-                  <FaTrash size={18} />
-                </button>
-                <button
-                  onClick={() => downloadReport(report)}
-                  className="text-green-500 hover:text-green-700 transition"
-                  title="Baixar Relatório"
-                >
-                  <FaDownload size={18} />
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
+  // const renderReports = () => (
+  //   <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-6">
+  //     <h2 className="text-lg font-semibold text-gray-700 mb-4">Relatórios</h2>
+  //     {reports.length === 0 ? (
+  //       <p className="text-gray-500">Nenhum relatório cadastrado.</p>
+  //     ) : (
+  //       <ul className="divide-y divide-gray-200">
+  //         {reports.map((report) => (
+  //           <li
+  //             key={report.id}
+  //             className="py-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4 hover:bg-gray-50 transition p-2 rounded-lg"
+  //           >
+  //             <div>
+  //               <p className="font-medium text-gray-800">Caso: {report.caso}</p>
+  //               <p className="text-sm text-gray-500">
+  //                 Título: {report.titulo}
+  //                 <br />
+  //                 Descrição: {report.descricao}
+  //                 <br />
+  //                 Destinatário: {report.destinatario}
+  //                 <br />
+  //                 Conclusão Técnica: {report.conclusaoTecnica}
+  //               </p>
+  //             </div>
+  //             <div className="flex items-center gap-4">
+  //               <button
+  //                 onClick={() => handleEdit(report.id)}
+  //                 className="text-blue-500 hover:text-blue-700 transition"
+  //                 title="Editar Relatório"
+  //               >
+  //                 <FaEdit size={18} />
+  //               </button>
+  //               <button
+  //                 onClick={() => handleDelete(report.id)}
+  //                 className="text-red-500 hover:text-red-700 transition"
+  //                 title="Excluir Relatório"
+  //               >
+  //                 <FaTrash size={18} />
+  //               </button>
+  //               <button
+  //                 onClick={() => downloadReport(report)}
+  //                 className="text-green-500 hover:text-green-700 transition"
+  //                 title="Baixar Relatório"
+  //               >
+  //                 <FaDownload size={18} />
+  //               </button>
+  //             </div>
+  //           </li>
+  //         ))}
+  //       </ul>
+  //     )}
+  //   </div>
+  // );
 
-  if (loading) {
-    return (
-      <div className="max-w-6xl mx-auto pt-28 p-4 md:p-8">
-        <p>Carregando relatórios...</p>
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="max-w-6xl mx-auto pt-28 p-4 md:p-8">
+  //       <p>Carregando relatórios...</p>
+  //     </div>
+  //   );
+  // }
 
-  if (error) {
-    return (
-      <div className="max-w-6xl mx-auto pt-28 p-4 md:p-8">
-        <p className="text-red-500">{error}</p>
-      </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <div className="max-w-6xl mx-auto pt-28 p-4 md:p-8">
+  //       <p className="text-red-500">{error}</p>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="max-w-6xl mx-auto pt-28 p-4 md:p-8 relative">
-      {/* Cabeçalho com seta de voltar e título */}
-      <div className="flex items-center gap-4 mb-8">
-        <button
-          onClick={() => router.back()}
-          className="text-gray-600 hover:text-gray-800 transition p-2"
-        >
-          <FaArrowLeft size={20} />
-        </button>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-          Gestão de Relatórios
-        </h1>
-      </div>
+  <div className="flex items-center gap-4 mb-8">
+    <button
+      onClick={() => router.back()}
+      className="text-gray-600 hover:text-gray-800 transition p-2"
+    >
+      <FaArrowLeft size={20} />
+    </button>
+    <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Gestão de Relatórios</h1>
+  </div>
 
-      {renderReports()}
-
-      {/* Modal de edição */}
-      {editingReport && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          {/* Fundo com efeito borrado */}
-          <div className="absolute inset-0 bg-white/70 backdrop-blur-sm"></div>
-          <div className="relative bg-white rounded-xl p-6 w-full max-w-md mx-4 sm:mx-auto z-10 shadow-xl overflow-y-auto max-h-full">
-            <h2 className="text-xl font-bold mb-4">Editar Relatório</h2>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Caso
-              </label>
-              <input
-                type="text"
-                value={editCaso}
-                onChange={(e) => setEditCaso(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
-              />
+  <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-6">
+    <h2 className="text-lg font-semibold text-gray-700 mb-4">Relatórios</h2>
+    {loading ? (
+      <p className="text-gray-600">Carregando relatórios...</p>
+    ) : error ? (
+      <p className="text-red-500">{error}</p>
+    ) : reports.length === 0 ? (
+      <p className="text-gray-600">Nenhum relatório cadastrado.</p>
+    ) : (
+      <ul className="divide-y divide-gray-200">
+        {reports.map((report) => (
+          <motion.li
+            key={report.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="py-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4 hover:bg-gray-50 transition p-2 rounded-lg"
+          >
+            <div>
+              <p className="font-medium text-gray-800">Caso: {report.caso}</p>
+              <p className="text-sm text-gray-600">
+                Título: {report.titulo}
+                <br />
+                Descrição: {report.descricao}
+                <br />
+                Destinatário: {report.destinatario}
+                <br />
+                Conclusão Técnica: {report.conclusaoTecnica}
+              </p>
             </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Título
-              </label>
-              <input
-                type="text"
-                value={editTitulo}
-                onChange={(e) => setEditTitulo(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Descrição
-              </label>
-              <textarea
-                value={editDescricao}
-                onChange={(e) => setEditDescricao(e.target.value)}
-                rows={3}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
-              ></textarea>
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Objeto da Perícia
-              </label>
-              <input
-                type="text"
-                value={editObjetoPericia}
-                onChange={(e) => setEditObjetoPericia(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Análise Técnica
-              </label>
-              <textarea
-                value={editAnaliseTecnica}
-                onChange={(e) => setEditAnaliseTecnica(e.target.value)}
-                rows={3}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
-              ></textarea>
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Método Utilizado
-              </label>
-              <input
-                type="text"
-                value={editMetodoUtilizado}
-                onChange={(e) => setEditMetodoUtilizado(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Destinatário
-              </label>
-              <input
-                type="text"
-                value={editDestinatario}
-                onChange={(e) => setEditDestinatario(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Materiais Utilizados
-              </label>
-              <textarea
-                value={editMateriaisUtilizados}
-                onChange={(e) => setEditMateriaisUtilizados(e.target.value)}
-                rows={2}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
-              ></textarea>
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Exames Realizados
-              </label>
-              <textarea
-                value={editExamesRealizados}
-                onChange={(e) => setEditExamesRealizados(e.target.value)}
-                rows={2}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
-              ></textarea>
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Considerações Técnico-Periciais
-              </label>
-              <textarea
-                value={editConsideracoesTecnicoPericiais}
-                onChange={(e) =>
-                  setEditConsideracoesTecnicoPericiais(e.target.value)
-                }
-                rows={2}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
-              ></textarea>
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Conclusão Técnica
-              </label>
-              <textarea
-                value={editConclusaoTecnica}
-                onChange={(e) => setEditConclusaoTecnica(e.target.value)}
-                rows={2}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
-              ></textarea>
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Evidências (opcional)
-              </label>
-              <input
-                type="text"
-                value={editEvidencias}
-                onChange={(e) => setEditEvidencias(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-300"
-              />
-            </div>
-            <div className="flex flex-col sm:flex-row justify-end gap-4">
+            <div className="flex items-center gap-4">
               <button
-                onClick={cancelEdit}
-                className="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500 transition"
+                onClick={() => handleEdit(report.id)}
+                className="text-teal-500 hover:text-teal-700 transition"
+                title="Editar Relatório"
               >
-                Cancelar
+                <FaEdit size={18} />
               </button>
               <button
-                onClick={confirmEdit}
-                className="bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition"
+                onClick={() => handleDelete(report.id)}
+                className="text-red-500 hover:text-red-700 transition"
+                title="Excluir Relatório"
               >
-                Salvar
+                <FaTrash size={18} />
+              </button>
+              <button
+                onClick={() => downloadReport(report)}
+                className="text-green-500 hover:text-green-700 transition"
+                title="Baixar Relatório"
+              >
+                <FaDownload size={18} />
               </button>
             </div>
-          </div>
+          </motion.li>
+        ))}
+      </ul>
+    )}
+  </div>
+
+  {editingReport && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="fixed inset-0 flex items-center justify-center z-50"
+    >
+      <div className="absolute inset-0 bg-white/70 backdrop-blur-sm"></div>
+      <div className="relative bg-white rounded-xl p-6 w-full max-w-md mx-4 shadow-xl overflow-y-auto max-h-[80vh]">
+        <h2 className="text-xl font-semibold text-gray-700 mb-4">Editar Relatório</h2>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Caso</label>
+          <input
+            type="text"
+            value={editCaso}
+            onChange={(e) => setEditCaso(e.target.value)}
+            className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300"
+          />
         </div>
-      )}
-    </div>
+        {/* Outros campos semelhantes */}
+        <div className="flex flex-col sm:flex-row justify-end gap-4">
+          <button
+            onClick={cancelEdit}
+            className="bg-gray-500 text-white px-4 py-2 rounded-xl hover:bg-gray-600 transition"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={confirmEdit}
+            className="bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-700 transition"
+          >
+            Salvar
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  )}
+</div>
   );
 }

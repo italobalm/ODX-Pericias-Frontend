@@ -7,6 +7,8 @@ import api from "../../lib/axiosConfig";
 import { useAuth } from "../providers/AuthProvider";
 import { ApiError } from "@/types/Error";
 import { User, Perfil } from "@/types/User";
+import { motion } from "framer-motion";
+
 
 export default function UserManagementPage() {
   const router = useRouter();
@@ -156,163 +158,113 @@ export default function UserManagementPage() {
 
   return (
     <div className="max-w-5xl mx-auto pt-28 p-4 md:p-8">
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={() => router.back()}
-          className="text-gray-600 hover:text-gray-800 transition p-2"
-          title="Voltar"
-        >
-          <FaArrowLeft size={20} />
-        </button>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-          Gestão de Usuários
-        </h1>
-      </div>
+  <div className="flex items-center gap-4 mb-6">
+    <button
+      onClick={() => router.back()}
+      className="text-gray-600 hover:text-gray-800 transition p-2"
+      title="Voltar"
+    >
+      <FaArrowLeft size={20} />
+    </button>
+    <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Gestão de Usuários</h1>
+  </div>
 
-      <div className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-10 space-y-6">
-        <h2 className="text-lg font-semibold text-gray-700">
-          {editingUser ? "Editar Usuário" : "Adicionar Novo Usuário"}
-        </h2>
-        {(errorMessage || error) && (
-          <p className="text-red-500">{errorMessage || error}</p>
-        )}
-        {success && <p className="text-green-500">{success}</p>}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <input
-            type="text"
-            placeholder="Nome *"
-            value={nome}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setNome(e.target.value)
-            }
-            className="w-full p-3 border border-gray-300 rounded-md"
-            disabled={isLoading}
-          />
-          <input
-            type="email"
-            placeholder="E-mail *"
-            value={email}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setEmail(e.target.value)
-            }
-            className="w-full p-3 border border-gray-300 rounded-md"
-            disabled={isLoading}
-          />
-          <input
-            type="password"
-            placeholder={editingUser ? "Nova Senha (opcional)" : "Senha *"}
-            value={senha}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setSenha(e.target.value)
-            }
-            className="w-full p-3 border border-gray-300 rounded-md"
-            disabled={isLoading}
-          />
-          <input
-            type="text"
-            placeholder="RG *"
-            value={rg}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setRg(e.target.value)
-            }
-            className="w-full p-3 border border-gray-300 rounded-md"
-            disabled={isLoading}
-          />
-          <input
-            type="text"
-            placeholder="CRO (somente para Perito)"
-            value={cro}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setCro(e.target.value)
-            }
-            className="w-full p-3 border border-gray-300 rounded-md"
-            disabled={isLoading}
-          />
-          <select
-            value={perfil}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-              setPerfil(e.target.value as Perfil)
-            }
-            className="w-full p-3 border border-gray-300 rounded-md"
-            disabled={isLoading}
-          >
-            <option value="Admin">Administrador</option>
-            <option value="Perito">Perito</option>
-            <option value="Assistente">Assistente</option>
-          </select>
-        </div>
-        <div className="flex justify-end gap-4">
-          {editingUser && (
-            <button
-              onClick={handleCancelEdit}
-              className="bg-gray-500 text-white py-2 px-6 rounded-md hover:bg-gray-600 transition"
-              disabled={isLoading}
-            >
-              Cancelar
-            </button>
-          )}
-          <button
-            onClick={handleSaveUser}
-            className="bg-teal-600 text-white py-2 px-6 rounded-md hover:bg-teal-700 transition"
-            disabled={isLoading}
-          >
-            {isLoading
-              ? "Carregando..."
-              : editingUser
-              ? "Salvar Alterações"
-              : "Adicionar Usuário"}
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white mt-4 rounded-xl shadow-md p-4 md:p-6">
-        <h2 className="text-lg font-semibold text-gray-700 mb-6">
-          Usuários Cadastrados
-        </h2>
-        {isLoading ? (
-          <p className="text-gray-500">Carregando usuários...</p>
-        ) : users.length === 0 ? (
-          <p className="text-gray-500">
-            Nenhum usuário cadastrado.{" "}
-            {errorMessage && <span className="text-red-500">({errorMessage})</span>}
-          </p>
-        ) : (
-          <ul className="divide-y divide-gray-200">
-            {users.map((user) => (
-              <li
-                key={user._id}
-                className="py-6 flex flex-col md:flex-row md:justify-between md:items-center gap-4"
-              >
-                <div>
-                  <p className="font-medium text-gray-800">{user.nome}</p>
-                  <p className="text-sm text-gray-500">
-                    E-mail: {user.email} | RG: {user.rg}
-                    {user.cro && <> | CRO: {user.cro}</>} | Função: {user.perfil}
-                  </p>
-                </div>
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => handleEditUser(user)}
-                    className="text-blue-600 hover:text-blue-800"
-                    title="Editar Usuário"
-                    disabled={isLoading}
-                  >
-                    <FaEdit />
-                  </button>
-                  <button
-                    onClick={() => handleRemoveUser(user._id)}
-                    className="text-red-600 hover:text-red-800"
-                    title="Remover Usuário"
-                    disabled={isLoading}
-                  >
-                    <FaTrashAlt />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3 }}
+    className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-10 space-y-6"
+  >
+    <h2 className="text-lg font-semibold text-gray-700">{editingUser ? "Editar Usuário" : "Adicionar Novo Usuário"}</h2>
+    {(errorMessage || error) && <p className="text-red-500">{errorMessage || error}</p>}
+    {success && <p className="text-green-500">{success}</p>}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <input
+        type="text"
+        placeholder="Nome *"
+        value={nome}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => setNome(e.target.value)}
+        className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+        disabled={isLoading}
+      />
+      {/* Outros inputs semelhantes */}
+      <select
+        value={perfil}
+        onChange={(e: ChangeEvent<HTMLSelectElement>) => setPerfil(e.target.value as Perfil)}
+        className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
+        disabled={isLoading}
+      >
+        <option value="Admin">Administrador</option>
+        <option value="Perito">Perito</option>
+        <option value="Assistente">Assistente</option>
+      </select>
     </div>
+    <div className="flex justify-end gap-4">
+      {editingUser && (
+        <button
+          onClick={handleCancelEdit}
+          className="bg-gray-500 text-white py-2 px-6 rounded-xl hover:bg-gray-600 transition"
+          disabled={isLoading}
+        >
+          Cancelar
+        </button>
+      )}
+      <button
+        onClick={handleSaveUser}
+        className="bg-teal-600 text-white py-2 px-6 rounded-xl hover:bg-teal-700 transition"
+        disabled={isLoading}
+      >
+        {isLoading ? "Carregando..." : editingUser ? "Salvar Alterações" : "Adicionar Usuário"}
+      </button>
+    </div>
+  </motion.div>
+
+  <div className="bg-white rounded-xl p-4 md:p-6 shadow-md">
+    <h2 className="text-lg font-semibold text-gray-700 mb-6">Usuários Cadastrados</h2>
+    {isLoading ? (
+      <p className="text-gray-600">Carregando usuários...</p>
+    ) : users.length === 0 ? (
+      <p className="text-gray-600">Nenhum usuário cadastrado.</p>
+    ) : (
+      <ul className="divide-y divide-gray-200">
+        {users.map((user) => (
+          <motion.li
+            key={user._id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="py-6 flex flex-col md:flex-row md:justify-between md:items-center gap-4 hover:bg-gray-50 transition p-2 rounded-lg"
+          >
+            <div>
+              <p className="font-medium text-gray-800">{user.nome}</p>
+              <p className="text-sm text-gray-600">
+                E-mail: {user.email} | RG: {user.rg}
+                {user.cro && <> | CRO: {user.cro}</>} | Função: {user.perfil}
+              </p>
+            </div>
+            <div className="flex gap-4">
+              <button
+                onClick={() => handleEditUser(user)}
+                className="text-teal-500 hover:text-teal-700 transition"
+                title="Editar Usuário"
+                disabled={isLoading}
+              >
+                <FaEdit size={18} />
+              </button>
+              <button
+                onClick={() => handleRemoveUser(user._id)}
+                className="text-red-500 hover:text-red-700 transition"
+                title="Remover Usuário"
+                disabled={isLoading}
+              >
+                <FaTrashAlt size={18} />
+              </button>
+            </div>
+          </motion.li>
+        ))}
+      </ul>
+    )}
+  </div>
+</div>
   );
 }

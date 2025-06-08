@@ -10,6 +10,7 @@ import { IVitima } from "@/types/Vitima";
 import { ILaudo } from "@/types/Laudo";
 import { CaseListResponse, Case } from "@/types/Case";
 import { ReportResponse } from "@/types/Report";
+import { motion } from "framer-motion";
 
 export default function ReportRegisterPage() {
   const router = useRouter();
@@ -231,225 +232,232 @@ export default function ReportRegisterPage() {
   return (
     <div className="max-w-5xl mx-auto pt-28 p-4 md:p-8">
       {/* Cabeçalho com seta de voltar e título */}
-      <div className="flex items-center gap-4 mb-10">
+      <div className="flex items-center gap-4 mb-6">
         <button
           onClick={() => router.back()}
-          className="text-gray-700 hover:text-gray-900 transition"
+          className="text-gray-600 hover:text-gray-800 transition p-2"
           title="Voltar"
         >
-          <FaArrowLeft className="w-6 h-6" />
+          <FaArrowLeft size={20} />
         </button>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-          Relatórios
-        </h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Relatórios</h1>
       </div>
 
       {/* Bloco de erro */}
       {error && (
-        <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
-          {error}
-        </div>
+        <div className="bg-red-100 text-red-500 p-4 rounded-xl mb-6">{error}</div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <h2 className="text-xl font-bold mb-4">Relatório de Perícia</h2>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-white rounded-xl p-6 shadow-md mb-10"
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <h2 className="text-xl font-bold text-gray-700 mb-4">Relatório de Perícia</h2>
 
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Informações Básicas</h3>
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-gray-700">Informações Básicas</h3>
 
-          <select
-            value={casoReferencia}
-            onChange={(e) => setCasoReferencia(e.target.value)}
-            className="select w-full p-2 border rounded"
-            required
-          >
-            <option value="">Selecione um Caso</option>
-            {casosDisponiveis.map((c) => (
-              <option key={c._id} value={c._id}>
-                {c.titulo}
-              </option>
-            ))}
-          </select>
+            <select
+              value={casoReferencia}
+              onChange={(e) => setCasoReferencia(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+              required
+            >
+              <option value="">Selecione um Caso</option>
+              {casosDisponiveis.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.titulo}
+                </option>
+              ))}
+            </select>
 
-          {evidencias.length > 0 && (
-            <div className="bg-gray-100 p-4 rounded">
-              <h4 className="font-semibold">Evidências Associadas:</h4>
-              <ul className="list-disc pl-5">
-                {evidencias.map((ev) => (
-                  <li key={ev._id}>
-                    {ev.categoria} ({ev.tipo})
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {vitimas.length > 0 && (
-            <div className="bg-gray-100 p-4 rounded">
-              <h4 className="font-semibold">Vítimas Associadas:</h4>
-              <ul className="list-disc pl-5">
-                {vitimas.map((v) => (
-                  <li key={v._id}>
-                    {v.nome || "Não identificada"} - {v.sexo}, {v.estadoCorpo}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {laudos.length > 0 && (
-            <div className="bg-gray-100 p-4 rounded">
-              <h4 className="font-semibold">Laudos Associados:</h4>
-              <ul className="list-disc pl-5">
-                {laudos.map((l) => (
-                  <li key={l._id}>
-                    Laudo - Criado em:{" "}
-                    {new Date(l.dataCriacao).toLocaleDateString("pt-BR")}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <input
-            type="text"
-            placeholder="Título"
-            value={titulo}
-            onChange={(e) => setTitulo(e.target.value)}
-            className="input w-full p-2 border rounded"
-            required
-          />
-
-          <textarea
-            placeholder="Descrição"
-            value={descricao}
-            onChange={(e) => setDescricao(e.target.value)}
-            className="textarea w-full p-2 border rounded"
-            required
-          />
-
-          <textarea
-            placeholder="Objeto da Perícia"
-            value={objetoPericia}
-            onChange={(e) => setObjetoPericia(e.target.value)}
-            className="textarea w-full p-2 border rounded"
-            required
-          />
-
-          <textarea
-            placeholder="Análise Técnica"
-            value={analiseTecnica}
-            onChange={(e) => setAnaliseTecnica(e.target.value)}
-            className="textarea w-full p-2 border rounded"
-            required
-          />
-
-          <textarea
-            placeholder="Método Utilizado"
-            value={metodoUtilizado}
-            onChange={(e) => setMetodoUtilizado(e.target.value)}
-            className="textarea w-full p-2 border rounded"
-            required
-          />
-
-          <textarea
-            placeholder="Destinatário"
-            value={destinatario}
-            onChange={(e) => setDestinatario(e.target.value)}
-            className="textarea w-full p-2 border rounded"
-            required
-          />
-
-          <textarea
-            placeholder="Materiais Utilizados"
-            value={materiaisUtilizados}
-            onChange={(e) => setMateriaisUtilizados(e.target.value)}
-            className="textarea w-full p-2 border rounded"
-            required
-          />
-
-          <textarea
-            placeholder="Exames Realizados"
-            value={examesRealizados}
-            onChange={(e) => setExamesRealizados(e.target.value)}
-            className="textarea w-full p-2 border rounded"
-            required
-          />
-
-          <textarea
-            placeholder="Considerações Técnico-Periciais"
-            value={consideracoesTecnicoPericiais}
-            onChange={(e) => setConsideracoesTecnicoPericiais(e.target.value)}
-            className="textarea w-full p-2 border rounded"
-            required
-          />
-
-          <textarea
-            placeholder="Conclusão Técnica"
-            value={conclusaoTecnica}
-            onChange={(e) => setConclusaoTecnica(e.target.value)}
-            className="textarea w-full p-2 border rounded"
-            required
-          />
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Observação em Áudio (opcional)
-            </label>
-            <input
-              type="file"
-              accept="audio/*"
-              onChange={handleAudioChange}
-              className="w-full p-3 border border-gray-300 rounded-md"
-            />
-            {audioFile && (
-              <p className="mt-2 text-gray-600">
-                Arquivo selecionado: {audioFile.name}
-              </p>
+            {evidencias.length > 0 && (
+              <div className="bg-gray-50 p-4 rounded-xl">
+                <h4 className="font-semibold text-gray-700 mb-2">Evidências Associadas:</h4>
+                <ul className="list-disc pl-5 text-gray-600">
+                  {evidencias.map((ev) => (
+                    <li key={ev._id}>
+                      {ev.categoria} ({ev.tipo})
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
-          </div>
-        </div>
 
-        <button
-          type="submit"
-          disabled={!isFormValid}
-          className={`btn w-full p-2 rounded ${
-            !isFormValid ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 text-white"
-          }`}
-        >
-          Gerar Relatório
-        </button>
-      </form>
+            {vitimas.length > 0 && (
+              <div className="bg-gray-50 p-4 rounded-xl">
+                <h4 className="font-semibold text-gray-700 mb-2">Vítimas Associadas:</h4>
+                <ul className="list-disc pl-5 text-gray-600">
+                  {vitimas.map((v) => (
+                    <li key={v._id}>
+                      {v.nome || "Não identificada"} - {v.sexo}, {v.estadoCorpo}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {laudos.length > 0 && (
+              <div className="bg-gray-50 p-4 rounded-xl">
+                <h4 className="font-semibold text-gray-700 mb-2">Laudos Associados:</h4>
+                <ul className="list-disc pl-5 text-gray-600">
+                  {laudos.map((l) => (
+                    <li key={l._id}>
+                      Laudo - Criado em: {new Date(l.dataCriacao).toLocaleDateString("pt-BR")}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <input
+              type="text"
+              placeholder="Título *"
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500"
+              required
+            />
+
+            <textarea
+              placeholder="Descrição *"
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500"
+              required
+            />
+
+            <textarea
+              placeholder="Objeto da Perícia *"
+              value={objetoPericia}
+              onChange={(e) => setObjetoPericia(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500"
+              required
+            />
+
+            <textarea
+              placeholder="Análise Técnica *"
+              value={analiseTecnica}
+              onChange={(e) => setAnaliseTecnica(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500"
+              required
+            />
+
+            <textarea
+              placeholder="Método Utilizado *"
+              value={metodoUtilizado}
+              onChange={(e) => setMetodoUtilizado(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500"
+              required
+            />
+
+            <textarea
+              placeholder="Destinatário *"
+              value={destinatario}
+              onChange={(e) => setDestinatario(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500"
+              required
+            />
+
+            <textarea
+              placeholder="Materiais Utilizados *"
+              value={materiaisUtilizados}
+              onChange={(e) => setMateriaisUtilizados(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500"
+              required
+            />
+
+            <textarea
+              placeholder="Exames Realizados *"
+              value={examesRealizados}
+              onChange={(e) => setExamesRealizados(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500"
+              required
+            />
+
+            <textarea
+              placeholder="Considerações Técnico-Periciais *"
+              value={consideracoesTecnicoPericiais}
+              onChange={(e) => setConsideracoesTecnicoPericiais(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500"
+              required
+            />
+
+            <textarea
+              placeholder="Conclusão Técnica *"
+              value={conclusaoTecnica}
+              onChange={(e) => setConclusaoTecnica(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500"
+              required
+            />
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Observação em Áudio (opcional)
+              </label>
+              <input
+                type="file"
+                accept="audio/*"
+                onChange={handleAudioChange}
+                className="w-full p-3 border border-gray-300 rounded-xl text-gray-800"
+              />
+              {audioFile && (
+                <p className="mt-2 text-gray-600">Arquivo selecionado: {audioFile.name}</p>
+              )}
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={!isFormValid}
+            className={`w-full p-3 rounded-xl text-white transition ${
+              isFormValid
+                ? "bg-teal-600 hover:bg-teal-700"
+                : "bg-gray-400 cursor-not-allowed"
+            }`}
+          >
+            Gerar Relatório
+          </button>
+        </form>
+      </motion.div>
 
       {submitted && pdfUrl && (
-        <div className="mt-8 space-y-4">
-          <h3 className="text-lg font-semibold mb-2">Relatório Gerado</h3>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mt-8 space-y-6"
+        >
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">Relatório Gerado</h3>
           <iframe
             src={pdfUrl}
             width="100%"
             height="600px"
-            className="border rounded"
+            className="border border-gray-200 rounded-xl shadow-md"
             title="Visualização do Relatório"
           />
-          <div className="flex space-x-4">
+          <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
             <button
               onClick={handleDownload}
-              className="btn bg-blue-600 text-white p-2 rounded"
+              className="bg-teal-600 text-white p-3 rounded-xl hover:bg-teal-700 transition"
             >
               Baixar PDF
             </button>
             {!signed ? (
               <button
                 onClick={handleSign}
-                className="btn bg-green-600 text-white p-2 rounded"
+                className="bg-green-600 text-white p-3 rounded-xl hover:bg-green-700 transition"
               >
                 Assinar Digitalmente
               </button>
             ) : (
-              <p className="text-green-600">Relatório assinado digitalmente.</p>
+              <p className="text-green-500">Relatório assinado digitalmente.</p>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );

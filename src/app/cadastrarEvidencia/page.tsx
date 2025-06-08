@@ -440,11 +440,11 @@ export default function NewEvidencePage() {
               </div>
 
               {error && <p className="text-red-500 text-sm">{error}</p>}
-              {submitted && evidenceId && (
+              {submitted && (
                 <div className="space-y-4">
                   <p className="text-green-600 text-sm">Evidência cadastrada com sucesso!</p>
                   <button
-                    onClick={() => router.push(`/gerar-laudo/${evidenceId}`)}
+                    onClick={() => router.push(evidenceId ? `/laudos/${evidenceId}` : `/laudos/new`)}
                     className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
                   >
                     Gerar Laudo
