@@ -21,12 +21,14 @@ export default function GerarLaudoPage() {
 
   const [formData, setFormData] = useState({
     vitimaId: "",
+    peritoNome: "",
     dadosAntemortem: "",
     dadosPostmortem: "",
   });
 
   const isFormValid =
     formData.vitimaId &&
+    formData.peritoNome &&
     formData.dadosAntemortem &&
     formData.dadosPostmortem;
 
@@ -54,7 +56,7 @@ export default function GerarLaudoPage() {
     }
   }, [user, authLoading]);
 
-  const handleChange = (e: ChangeEvent<HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
@@ -94,7 +96,7 @@ export default function GerarLaudoPage() {
     try {
       const laudoData = {
         vitima: formData.vitimaId,
-        perito: user?._id,
+        perito: formData.peritoNome,
         dadosAntemortem: formData.dadosAntemortem,
         dadosPostmortem: formData.dadosPostmortem,
       };
@@ -119,6 +121,7 @@ export default function GerarLaudoPage() {
       setError("");
       setFormData({
         vitimaId: "",
+        peritoNome: "",
         dadosAntemortem: "",
         dadosPostmortem: "",
       });
@@ -184,6 +187,23 @@ export default function GerarLaudoPage() {
         </div>
 
         <div>
+          <label htmlFor="peritoNome" className="block text-sm font-medium text-gray-700 mb-1">
+            Nome do Perito *
+          </label>
+          <input
+            type="text"
+            name="peritoNome"
+            id="peritoNome"
+            value={formData.peritoNome}
+            onChange={handleChange}
+            placeholder="Digite o nome do perito"
+            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+            disabled={isLoading}
+            required
+          />
+        </div>
+
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Dados Antemortem *</label>
           <textarea
             name="dadosAntemortem"
@@ -209,6 +229,10 @@ export default function GerarLaudoPage() {
             disabled={isLoading}
             required
           />
+        </div>
+
+        <div className="text-sm text-gray-600 italic">
+          A análise de lesões e a conclusão serão geradas automaticamente pela inteligência artificial.
         </div>
 
         <div className="flex justify-end gap-4">
