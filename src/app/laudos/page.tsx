@@ -1,27 +1,32 @@
 "use client";
 
-import { useState, useEffect, FormEvent, ChangeEvent } from "react";
-import { useRouter } from "next/navigation";
-import { FaArrowLeft } from "react-icons/fa";
-import api from "@/lib/axiosConfig";
-import { useAuth } from "@/app/providers/AuthProvider";
-import { IVitima } from "@/types/Vitima";
-import { AxiosError } from "axios";
-import { motion } from "framer-motion";
+import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import { FaArrowLeft } from 'react-icons/fa';
+import api from '@/lib/axiosConfig';
+import { useAuth } from '@/app/providers/AuthProvider';
+import { IVitima } from '@/types/Vitima';
+import { ILaudo } from '@/types/Laudo';
+import { Evidence } from '@/types/Evidence';
+import { Case } from '@/types/Case';
+import { AxiosError } from 'axios';
+import { motion } from 'framer-motion';
 
 export default function GerarLaudoPage() {
   const router = useRouter();
   const { user, loading: authLoading, error: authError } = useAuth();
 
   const [vitimas, setVitimas] = useState<IVitima[]>([]);
-  const [evidencias, setEvidencias] = useState<string[]>([]);
-  const [caseId, setCaseId] = useState<string | null>(null);
+  const [evidencias, setEvidencias] = useState<Evidence[]>([]);
+  const [casos, setCasos] = useState<Case[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     vitimaId: "",
+    evidenciaId: "",
+    casoId: "",
     dadosAntemortem: "",
     dadosPostmortem: "",
     analiseLesoes: "",
@@ -30,6 +35,8 @@ export default function GerarLaudoPage() {
 
   const isFormValid =
     formData.vitimaId &&
+    formData.evidenciaId &&
+    formData.casoId &&
     formData.dadosAntemortem &&
     formData.dadosPostmortem &&
     formData.analiseLesoes &&
@@ -43,13 +50,13 @@ export default function GerarLaudoPage() {
           const response = await api.get<{ data: IVitima[] }>("/api/vitima", {
             headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
           });
-          console.log("Resposta de /api/vitima:", response.data); // Log para depuração
+          console.log("Resposta de /api/vitima:", response.data); // Depuração
           setVitimas(response.data.data || []);
           setError("");
         } catch (err: unknown) {
           const axiosError = err as AxiosError<{ msg?: string }>;
           setError(axiosError.response?.data?.msg || "Erro ao buscar vítimas.");
-          console.error("Erro ao buscar vítimas:", axiosError); // Log para depuração
+          console.error("Erro ao buscar vítimas:", axiosError);
           setVitimas([]);
         } finally {
           setIsLoading(false);
@@ -61,40 +68,47 @@ export default function GerarLaudoPage() {
 
   useEffect(() => {
     if (formData.vitimaId) {
-      const selectedVitima = vitimas.find((v) => v._id === formData.vitimaId);
-      if (selectedVitima?.caso) {
-        setCaseId(selectedVitima.caso);
-        const fetchEvidencias = async () => {
-          try {
-            const evidenciasResponse = await api.get(`/api/evidence?caso=${selectedVitima.caso}`, {
+      const fetchEvidenciasECasos = async () => {
+        try {
+          const [evidenciasResponse, casosResponse] = await Promise.all([
+            api.get(`/api/evidence?vitima=${formData.vitimaId}`, {
               headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-            });
-            console.log("Resposta de /api/evidence:", evidenciasResponse.data); // Log para depuração
-            setEvidencias(evidenciasResponse.data.map((e: { _id: string }) => e._id) || []);
-          } catch (err: unknown) {
-            const axiosError = err as AxiosError<{ msg?: string }>;
-            setError(axiosError.response?.data?.msg || "Erro ao buscar evidências.");
-            console.error("Erro ao buscar evidências:", axiosError); // Log para depuração
-            setEvidencias([]);
-          }
-        };
-        fetchEvidencias();
-      } else {
-        setCaseId(null);
-        setEvidencias([]);
-      }
+            }),
+            api.get(`/api/caso?vitima=${formData.vitimaId}`, {
+              headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+            }),
+          ]);
+          console.log("Resposta de /api/evidence:", evidenciasResponse.data); // Depuração
+          console.log("Resposta de /api/caso:", casosResponse.data); // Depuração
+          setEvidencias(evidenciasResponse.data || []);
+          setCasos(casosResponse.data || []);
+          setFormData((prev) => ({
+            ...prev,
+            evidenciaId: evidenciasResponse.data[0]?._id || "",
+            casoId: casosResponse.data[0]?._id || "",
+          }));
+        } catch (err: unknown) {
+          const axiosError = err as AxiosError<{ msg?: string }>;
+          setError(axiosError.response?.data?.msg || "Erro ao buscar evidências ou casos.");
+          console.error("Erro ao buscar evidências/casos:", axiosError);
+          setEvidencias([]);
+          setCasos([]);
+        }
+      };
+      fetchEvidenciasECasos();
     } else {
-      setCaseId(null);
       setEvidencias([]);
+      setCasos([]);
+      setFormData((prev) => ({ ...prev, evidenciaId: "", casoId: "" }));
     }
-  }, [formData.vitimaId, vitimas]);
+  }, [formData.vitimaId]);
 
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const downloadPDF = (pdfBase64: string, caseId: string | null) => {
+  const downloadPDF = (pdfBase64: string, laudoId: string) => {
     try {
       const byteCharacters = atob(pdfBase64);
       const byteNumbers = new Array(byteCharacters.length);
@@ -107,14 +121,14 @@ export default function GerarLaudoPage() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `laudo-${caseId || "laudo"}-${new Date().toISOString().slice(0, 10)}.pdf`;
+      link.download = `laudo-${laudoId}-${new Date().toISOString().slice(0, 10)}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (err) {
       setError("Erro ao baixar o PDF.");
-      console.error("Erro ao baixar o PDF:", err);
+      console.error("Erro ao baixar PDF:", err);
     }
   };
 
@@ -130,38 +144,57 @@ export default function GerarLaudoPage() {
       const laudoData = {
         vitima: formData.vitimaId,
         perito: user?._id,
-        evidencias: evidencias.length > 0 ? evidencias : [],
-        caso: caseId || undefined,
+        evidencia: formData.evidenciaId,
+        caso: formData.casoId,
         dadosAntemortem: formData.dadosAntemortem,
         dadosPostmortem: formData.dadosPostmortem,
         analiseLesoes: formData.analiseLesoes,
         conclusao: formData.conclusao,
       };
 
-      const response = await api.post("/api/laudo", laudoData, {
+      console.log("Enviando laudoData:", laudoData); // Depuração
+
+      // Criar o laudo
+      const createResponse = await api.post<{ laudo: ILaudo; pdf: string }>("/api/laudo", laudoData, {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
+      const { laudo: createdLaudo } = createResponse.data;
 
-      const { laudo, pdf: pdfBase64 } = response.data;
-      setSuccess("Laudo criado e assinado com sucesso. PDF baixado automaticamente.");
+      // Assinar o laudo automaticamente
+      const signResponse = await api.post<{ laudo: ILaudo; pdf: string }>(
+        `/api/laudo/sign/${createdLaudo._id}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+        }
+      );
+      const { pdf: signedPdf } = signResponse.data;
+
       // Baixar o PDF assinado
-      downloadPDF(pdfBase64, laudo.caso || null);
+      if (createdLaudo._id) {
+        downloadPDF(signedPdf, createdLaudo._id);
+      } else {
+        setError("Erro: ID do laudo não encontrado.");
+        console.error("Erro: ID do laudo não encontrado.");
+      }
 
-      // Limpar o formulário
+      setSuccess("Laudo criado, assinado e PDF baixado com sucesso.");
+      setError("");
       setFormData({
         vitimaId: "",
+        evidenciaId: "",
+        casoId: "",
         dadosAntemortem: "",
         dadosPostmortem: "",
         analiseLesoes: "",
         conclusao: "",
       });
       setEvidencias([]);
-      setCaseId(null);
-      setError("");
+      setCasos([]);
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
-      setError(axiosError.response?.data?.msg || "Erro ao criar e assinar o laudo.");
-      console.error("Erro ao criar o laudo:", axiosError);
+      setError(axiosError.response?.data?.msg || "Erro ao criar ou assinar o laudo.");
+      console.error("Erro ao processar laudo:", axiosError.response?.data);
     } finally {
       setIsLoading(false);
     }
@@ -175,11 +208,11 @@ export default function GerarLaudoPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto pt-28 p-4 md:p-8">
+    <div className="max-w-5xl mx-auto pt-28 p-4 md:p-8">
       <div className="flex items-center gap-4 mb-6">
         <button
           onClick={() => router.back()}
-          className="text-gray-600 hover:text-gray-200 transition p-2"
+          className="text-gray-600 hover:text-gray-800 transition p-2"
           title="Voltar"
         >
           <FaArrowLeft size={20} />
@@ -192,7 +225,7 @@ export default function GerarLaudoPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="bg-white rounded-xl p-4 md:p-8 shadow-md space-y-6"
+        className="bg-white rounded-xl p-4 md:p-6 shadow-md space-y-6"
       >
         {error && <p className="text-red-500">{error}</p>}
         {success && <p className="text-green-500">{success}</p>}
@@ -206,82 +239,114 @@ export default function GerarLaudoPage() {
             id="vitimaId"
             value={formData.vitimaId}
             onChange={handleChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring focus:ring-teal-300 disabled:opacity-50"
+            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
             disabled={isLoading}
             required
           >
             <option value="">Selecione uma vítima</option>
             {vitimas.map((vitima) => (
               <option key={vitima._id} value={vitima._id}>
-                {vitima.nome || `Vítima ${vitima._id}`}
+                {vitima.nome || "Não identificada"} ({vitima.sexo || "Indeterminado"}, {vitima.estadoCorpo || "N/A"})
               </option>
             ))}
           </select>
         </div>
 
         <div>
-          <label htmlFor="dadosAntemortem" className="block text-sm font-medium text-gray-700 mb-1">
-            Dados Antemortem *
+          <label htmlFor="evidenciaId" className="block text-sm font-medium text-gray-700 mb-1">
+            Evidência *
           </label>
+          <select
+            name="evidenciaId"
+            id="evidenciaId"
+            value={formData.evidenciaId}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+            disabled={isLoading || !formData.vitimaId}
+            required
+          >
+            <option value="">Selecione uma evidência</option>
+            {evidencias.map((evidencia) => (
+              <option key={evidencia._id} value={evidencia._id}>
+                {evidencia.categoria} - {evidencia.tipo}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="casoId" className="block text-sm font-medium text-gray-700 mb-1">
+            Caso *
+          </label>
+          <select
+            name="casoId"
+            id="casoId"
+            value={formData.casoId}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+            disabled={isLoading || !formData.vitimaId}
+            required
+          >
+            <option value="">Selecione um caso</option>
+            {casos.map((caso) => (
+              <option key={caso._id} value={caso._id}>
+                Caso {caso._id}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Dados Antemortem *</label>
           <textarea
             name="dadosAntemortem"
-            id="dadosAntemortem"
             value={formData.dadosAntemortem}
             onChange={handleChange}
             placeholder="Descreva os dados antemortem (ex: registros odontológicos, características físicas)"
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring focus:ring-teal-300 disabled:opacity-50"
-            rows={3}
+            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+            rows={4}
             disabled={isLoading}
             required
           />
         </div>
 
         <div>
-          <label htmlFor="dadosPostmortem" className="block text-sm font-medium text-gray-700 mb-1">
-            Dados Postmortem *
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Dados Postmortem *</label>
           <textarea
             name="dadosPostmortem"
-            id="dadosPostmortem"
             value={formData.dadosPostmortem}
             onChange={handleChange}
             placeholder="Descreva os dados postmortem (ex: estado da arcada dentária, lesões observadas)"
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring focus:ring-teal-300 disabled:opacity-50"
-            rows={3}
+            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+            rows={4}
             disabled={isLoading}
             required
           />
         </div>
 
         <div>
-          <label htmlFor="analiseLesoes" className="block text-sm font-medium text-gray-700 mb-1">
-            Análise de Lesões *
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Análise de Lesões *</label>
           <textarea
             name="analiseLesoes"
-            id="analiseLesoes"
             value={formData.analiseLesoes}
             onChange={handleChange}
             placeholder="Descreva a análise das lesões (ex: fraturas, marcas de trauma)"
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring focus:ring-teal-300 disabled:opacity-50"
-            rows={3}
+            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+            rows={4}
             disabled={isLoading}
             required
           />
         </div>
 
         <div>
-          <label htmlFor="conclusao" className="block text-sm font-medium text-gray-700 mb-1">
-            Conclusão *
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Conclusão *</label>
           <textarea
             name="conclusao"
-            id="conclusao"
             value={formData.conclusao}
             onChange={handleChange}
             placeholder="Descreva a conclusão do laudo (ex: identificação confirmada ou não)"
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring focus:ring-teal-300 disabled:opacity-50"
-            rows={3}
+            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+            rows={4}
             disabled={isLoading}
             required
           />
