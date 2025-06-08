@@ -105,6 +105,8 @@ export default function GerarLaudoPage() {
         perito: formData.perito,
         dadosAntemortem: formData.dadosAntemortem,
         dadosPostmortem: formData.dadosPostmortem,
+        analiseLesoes: "",
+        conclusao: "",
       };
 
       console.log("Enviando laudoData:", laudoData); // Depuração
