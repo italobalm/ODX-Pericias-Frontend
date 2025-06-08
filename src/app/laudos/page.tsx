@@ -9,7 +9,6 @@ import { Evidence } from "@/types/Evidence";
 import { IVitima } from "@/types/Vitima";
 import { ILaudo } from "@/types/Laudo";
 import { AxiosError } from "axios";
-import Image from "next/image";
 import { motion } from "framer-motion";
 
 
@@ -25,7 +24,6 @@ export default function GerarLaudoPage() {
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
-  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   // Estados do formulário do laudo
   const [formData, setFormData] = useState({
@@ -43,70 +41,78 @@ export default function GerarLaudoPage() {
     formData.analiseLesoes &&
     formData.conclusao;
 
-  useEffect(() => {
-    if (user && !authLoading) {
-      const fetchEvidenceAndVictims = async () => {
-        setIsLoading(true);
-        try {
-          // Buscar evidência
-          const evidenceResponse = await api.get(`/api/evidence/${evidenceId}`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-            params: { populate: "vitima" },
-          });
-          setEvidence(evidenceResponse.data);
-
-          // Buscar vítimas associadas ao caso
-          const caseId = evidenceResponse.data.caso;
-          if (caseId) {
-            const vitimasResponse = await api.get<{ data: IVitima[] }>(`/api/vitima?caso=${caseId}`, {
+    useEffect(() => {
+      if (user && !authLoading) {
+        const fetchEvidenceAndVictims = async () => {
+          setIsLoading(true);
+          try {
+            // Buscar evidência
+            const evidenceResponse = await api.get(`/api/evidence/${evidenceId}`, {
+              headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+              params: { populate: "vitima" },
+            });
+            setEvidence(evidenceResponse.data);
+    
+            // Buscar vítimas associadas ao caso
+            const caseId = evidenceResponse.data.caso;
+            if (caseId) {
+              try {
+                const vitimasResponse = await api.get<{ data: IVitima[] }>(`/api/vitima?caso=${caseId}`, {
+                  headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+                });
+                setVitimas(vitimasResponse.data.data || []);
+              } catch (vitimaErr: unknown) {
+                const axiosError = vitimaErr as AxiosError<{ msg?: string }>;
+                setError(axiosError.response?.data?.msg || "Erro ao buscar vítimas associadas.");
+                setVitimas([]);
+              }
+            } else {
+              setVitimas([]);
+            }
+    
+            setError("");
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          } catch (err: unknown) {
+            setError("Evidência não encontrada. Você pode criar o laudo sem evidência associada.");
+            setEvidence(null);
+          } finally {
+            setIsLoading(false);
+          }
+        };
+    
+        const fetchLaudo = async () => {
+          try {
+            const response = await api.get(`/api/laudo?evidencia=${evidenceId}`, {
               headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
             });
-            setVitimas(vitimasResponse.data.data || []);
+    
+            if (response.data.laudos && response.data.laudos.length > 0) {
+              const existingLaudo = response.data.laudos[0];
+              setLaudoDetails(existingLaudo);
+              setFormData({
+                vitimaId: existingLaudo.vitima?._id || "",
+                dadosAntemortem: existingLaudo.dadosAntemortem || "",
+                dadosPostmortem: existingLaudo.dadosPostmortem || "",
+                analiseLesoes: existingLaudo.analiseLesoes || "",
+                conclusao: existingLaudo.conclusao || "",
+              });
+            } else {
+              setLaudoDetails(null);
+            }
+          } catch (err: unknown) {
+            const axiosError = err as AxiosError<{ msg?: string }>;
+            setError(axiosError.response?.data?.msg || "Erro ao buscar dados do laudo.");
           }
-
-          setError("");
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch (err: unknown) {
-          setError("Evidência não encontrada. Você pode criar o laudo sem evidência associada.");
-          setEvidence(null);
-        } finally {
+        };
+    
+        if (evidenceId) {
+          fetchEvidenceAndVictims();
+          fetchLaudo();
+        } else {
           setIsLoading(false);
         }
-      };
-
-      const fetchLaudo = async () => {
-        try {
-          const response = await api.get(`/api/laudo?evidencia=${evidenceId}`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-          });
-
-          if (response.data.laudos && response.data.laudos.length > 0) {
-            const existingLaudo = response.data.laudos[0];
-            setLaudoDetails(existingLaudo);
-            setFormData({
-              vitimaId: existingLaudo.vitima?._id || "",
-              dadosAntemortem: existingLaudo.dadosAntemortem || "",
-              dadosPostmortem: existingLaudo.dadosPostmortem || "",
-              analiseLesoes: existingLaudo.analiseLesoes || "",
-              conclusao: existingLaudo.conclusao || "",
-            });
-          } else {
-            setLaudoDetails(null);
-          }
-        } catch (err: unknown) {
-          const axiosError = err as AxiosError<{ msg?: string }>;
-          setError(axiosError.response?.data?.msg || "Erro ao buscar dados do laudo.");
-        }
-      };
-
-      if (evidenceId) {
-        fetchEvidenceAndVictims();
-        fetchLaudo();
-      } else {
-        setIsLoading(false);
       }
-    }
-  }, [user, authLoading, evidenceId]);
+    }, [user, authLoading, evidenceId]);
 
   const handleChange = (
     e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement | HTMLSelectElement>
@@ -231,315 +237,143 @@ export default function GerarLaudoPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto pt-28 p-4 md:p-8">
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={() => router.back()}
-          className="text-gray-600 hover:text-gray-800 transition p-2"
-          title="Voltar"
+      <div className="max-w-5xl mx-auto pt-28 p-4 md:p-8">
+        <div className="flex items-center gap-4 mb-6">
+          <button
+            onClick={() => router.back()}
+            className="text-gray-600 hover:text-gray-800 transition p-2"
+            title="Voltar"
+          >
+            <FaArrowLeft size={20} />
+          </button>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Gerar Laudo</h1>
+        </div>
+    
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-6 space-y-6"
         >
-          <FaArrowLeft size={20} />
-        </button>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Gerar Laudo</h1>
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-6 space-y-6"
-      >
-        {error && <p className="text-red-500">{error}</p>}
-        {success && (
-          <div className="space-y-4">
-            <p className="text-green-500">{success}</p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={downloadPDF}
-                className="w-full sm:w-auto bg-teal-500 text-white p-3 rounded-md hover:bg-teal-700 transition disabled:opacity-50"
-                disabled={isLoading}
-              >
-                {isLoading ? "Gerando PDF..." : "Baixar PDF do Laudo"}
-              </button>
-              {laudoDetails && !laudoDetails.assinaturaDigital && (
+          {error && <p className="text-red-500">{error}</p>}
+          {success && (
+            <div className="space-y-4">
+              <p className="text-green-500">{success}</p>
+              <div className="flex flex-col sm:flex-row gap-4">
                 <button
-                  onClick={handleSign}
-                  className="w-full sm:w-auto bg-green-500 text-white p-3 rounded-md hover:bg-green-600 transition disabled:opacity-50"
-                  disabled={isSigning}
+                  onClick={downloadPDF}
+                  className="w-full sm:w-auto bg-teal-500 text-white p-3 rounded-md hover:bg-teal-700 transition disabled:opacity-50"
+                  disabled={isLoading}
                 >
-                  {isSigning ? "Assinando..." : "Assinar Digitalmente"}
+                  {isLoading ? "Gerando PDF..." : "Baixar PDF do Laudo"}
                 </button>
-              )}
-              {laudoDetails?.assinaturaDigital && (
-                <p className="text-green-500">Laudo já assinado digitalmente.</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Dados da Evidência */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-700 mb-4">Dados da Evidência</h2>
-          {isLoading ? (
-            <p className="text-gray-600">Carregando detalhes da evidência...</p>
-          ) : evidence ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Caso</label>
-                <input
-                  type="text"
-                  value={evidence.caso || "N/A"}
-                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
-                  disabled
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
-                <input
-                  type="text"
-                  value={evidence.categoria || "N/A"}
-                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
-                  disabled
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Coletado por</label>
-                <input
-                  type="text"
-                  value={evidence.coletadoPor || "N/A"}
-                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
-                  disabled
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Data de Upload</label>
-                <input
-                  type="text"
-                  value={
-                    evidence.dataUpload ? new Date(evidence.dataUpload).toLocaleDateString("pt-BR") : "N/A"
-                  }
-                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
-                  disabled
-                />
-              </div>
-              {evidence.tipo === "texto" && (
-                <div className="col-span-1 md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Conteúdo</label>
-                  <textarea
-                    value={evidence.conteudo || "N/A"}
-                    className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
-                    rows={4}
-                    disabled
-                  />
-                </div>
-              )}
-              {evidence.tipo === "imagem" &&
-                evidence.vitima?.imagens &&
-                evidence.vitima.imagens.length > 0 &&
-                !failedImages.has(evidence._id) && (
-                  <div className="col-span-1 md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Imagem</label>
-                    <Image
-                      src={evidence.vitima.imagens[0]}
-                      alt="Imagem da Evidência"
-                      width={200}
-                      height={200}
-                      className="w-full h-48 object-cover rounded-md"
-                      onError={() => setFailedImages((prev) => new Set(prev).add(evidence._id))}
-                    />
-                  </div>
+                {laudoDetails && !laudoDetails.assinaturaDigital && (
+                  <button
+                    onClick={handleSign}
+                    className="w-full sm:w-auto bg-green-500 text-white p-3 rounded-md hover:bg-green-600 transition disabled:opacity-50"
+                    disabled={isSigning}
+                  >
+                    {isSigning ? "Assinando..." : "Assinar Digitalmente"}
+                  </button>
                 )}
+                {laudoDetails?.assinaturaDigital && (
+                  <p className="text-green-500">Laudo já assinado digitalmente.</p>
+                )}
+              </div>
             </div>
-          ) : (
-            <p className="text-gray-600">Nenhuma evidência associada. Preencha os dados do laudo abaixo.</p>
           )}
-        </div>
-
-        {/* Dados da Vítima */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-700 mb-4 mt-6">Dados da Vítima</h2>
-          {isLoading ? (
-            <p className="text-gray-600">Carregando detalhes da vítima...</p>
-          ) : evidence?.vitima ? (
+    
+          {/* Formulário do Laudo */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <h2 className="text-lg font-semibold text-gray-700 mt-6">Dados do Laudo</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                <input
-                  type="text"
-                  value={evidence.vitima.nome || "Não identificada"}
-                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
-                  disabled
+              <div className="col-span-1 md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Vítima Associada *</label>
+                <select
+                  name="vitimaId"
+                  value={formData.vitimaId}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                  disabled={isLoading}
+                  required
+                >
+                  <option value="">Selecione uma vítima</option>
+                  {vitimas.map((vitima) => (
+                    <option key={vitima._id} value={vitima._id}>
+                      {vitima.nome || "Não identificada"} ({vitima.sexo || "Indeterminado"}, {vitima.estadoCorpo || "N/A"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-span-1 md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Dados Antemortem *</label>
+                <textarea
+                  name="dadosAntemortem"
+                  value={formData.dadosAntemortem}
+                  onChange={handleChange}
+                  placeholder="Descreva os dados antemortem (ex: registros odontológicos, características físicas)"
+                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                  rows={4}
+                  disabled={isLoading}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
-                <input
-                  type="text"
-                  value={evidence.vitima.dataNascimento || "N/A"}
-                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
-                  disabled
+              <div className="col-span-1 md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Dados Postmortem *</label>
+                <textarea
+                  name="dadosPostmortem"
+                  value={formData.dadosPostmortem}
+                  onChange={handleChange}
+                  placeholder="Descreva os dados postmortem (ex: estado da arcada dentária, lesões observadas)"
+                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                  rows={4}
+                  disabled={isLoading}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Idade Aproximada</label>
-                <input
-                  type="text"
-                  value={evidence.vitima.idadeAproximada?.toString() || "N/A"}
-                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
-                  disabled
+              <div className="col-span-1 md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Análise de Lesões *</label>
+                <textarea
+                  name="analiseLesoes"
+                  value={formData.analiseLesoes}
+                  onChange={handleChange}
+                  placeholder="Descreva a análise das lesões (ex: fraturas, marcas de trauma)"
+                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                  rows={4}
+                  disabled={isLoading}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nacionalidade</label>
-                <input
-                  type="text"
-                  value={evidence.vitima.nacionalidade || "N/A"}
-                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
-                  disabled
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
-                <input
-                  type="text"
-                  value={evidence.vitima.cidade || "N/A"}
-                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
-                  disabled
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Sexo</label>
-                <input
-                  type="text"
-                  value={evidence.vitima.sexo || "Indeterminado"}
-                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
-                  disabled
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Estado do Corpo</label>
-                <input
-                  type="text"
-                  value={evidence.vitima.estadoCorpo || "Inteiro"}
-                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
-                  disabled
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Lesões</label>
-                <input
-                  type="text"
-                  value={evidence.vitima.lesoes || "N/A"}
-                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
-                  disabled
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Identificada</label>
-                <input
-                  type="text"
-                  value={evidence.vitima.identificada ? "Sim" : "Não"}
-                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
-                  disabled
+              <div className="col-span-1 md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Conclusão *</label>
+                <textarea
+                  name="conclusao"
+                  value={formData.conclusao}
+                  onChange={handleChange}
+                  placeholder="Descreva a conclusão do laudo (ex: identificação confirmada ou não)"
+                  className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+                  rows={4}
+                  disabled={isLoading}
                 />
               </div>
             </div>
-          ) : (
-            <p className="text-gray-600">Nenhuma vítima associada à evidência.</p>
-          )}
-        </div>
-
-        {/* Formulário do Laudo */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <h2 className="text-lg font-semibold text-gray-700 mt-6">Dados do Laudo</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="col-span-1 md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Vítima Associada *</label>
-              <select
-                name="vitimaId"
-                value={formData.vitimaId}
-                onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+    
+            <div className="flex justify-end gap-4">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="bg-gray-500 text-white py-2 px-6 rounded-md hover:bg-gray-600 transition"
                 disabled={isLoading}
-                required
               >
-                <option value="">Selecione uma vítima</option>
-                {vitimas.map((vitima) => (
-                  <option key={vitima._id} value={vitima._id}>
-                    {vitima.nome || "Não identificada"} ({vitima.sexo || "Indeterminado"}, {vitima.estadoCorpo || "N/A"})
-                  </option>
-                ))}
-              </select>
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="bg-teal-600 text-white py-2 px-6 rounded-md hover:bg-teal-700 transition disabled:opacity-50"
+                disabled={isLoading || !isFormValid}
+              >
+                {isLoading ? "Carregando..." : laudoDetails ? "Atualizar Laudo" : "Criar Laudo"}
+              </button>
             </div>
-            <div className="col-span-1 md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Dados Antemortem *</label>
-              <textarea
-                name="dadosAntemortem"
-                value={formData.dadosAntemortem}
-                onChange={handleChange}
-                placeholder="Descreva os dados antemortem (ex: registros odontológicos, características físicas)"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                rows={4}
-                disabled={isLoading}
-              />
-            </div>
-            <div className="col-span-1 md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Dados Postmortem *</label>
-              <textarea
-                name="dadosPostmortem"
-                value={formData.dadosPostmortem}
-                onChange={handleChange}
-                placeholder="Descreva os dados postmortem (ex: estado da arcada dentária, lesões observadas)"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                rows={4}
-                disabled={isLoading}
-              />
-            </div>
-            <div className="col-span-1 md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Análise de Lesões *</label>
-              <textarea
-                name="analiseLesoes"
-                value={formData.analiseLesoes}
-                onChange={handleChange}
-                placeholder="Descreva a análise das lesões (ex: fraturas, marcas de trauma)"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                rows={4}
-                disabled={isLoading}
-              />
-            </div>
-            <div className="col-span-1 md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Conclusão *</label>
-              <textarea
-                name="conclusao"
-                value={formData.conclusao}
-                onChange={handleChange}
-                placeholder="Descreva a conclusão do laudo (ex: identificação confirmada ou não)"
-                className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-                rows={4}
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="bg-gray-500 text-white py-2 px-6 rounded-md hover:bg-gray-600 transition"
-              disabled={isLoading}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="bg-teal-600 text-white py-2 px-6 rounded-md hover:bg-teal-700 transition disabled:opacity-50"
-              disabled={isLoading || !isFormValid}
-            >
-              {isLoading ? "Carregando..." : laudoDetails ? "Atualizar Laudo" : "Criar Laudo"}
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </div>
-  );
+          </form>
+        </motion.div>
+      </div>
+    );
 }
