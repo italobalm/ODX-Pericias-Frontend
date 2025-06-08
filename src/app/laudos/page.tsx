@@ -21,14 +21,14 @@ export default function GerarLaudoPage() {
 
   const [formData, setFormData] = useState({
     vitimaId: "",
-    peritoNome: "",
+    perito: "",
     dadosAntemortem: "",
     dadosPostmortem: "",
   });
 
   const isFormValid =
     formData.vitimaId &&
-    formData.peritoNome &&
+    formData.perito &&
     formData.dadosAntemortem &&
     formData.dadosPostmortem;
 
@@ -81,7 +81,7 @@ export default function GerarLaudoPage() {
       link.href = url;
       link.download = `laudo-${laudoId}-${new Date().toISOString().slice(0, 10)}.pdf`;
   
-      document.body.appendChild(link); // <-- só vai executar se `document.body` existir
+      document.body.appendChild(link); 
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
@@ -102,7 +102,7 @@ export default function GerarLaudoPage() {
     try {
       const laudoData = {
         vitima: formData.vitimaId,
-        perito: formData.peritoNome,
+        perito: formData.perito,
         dadosAntemortem: formData.dadosAntemortem,
         dadosPostmortem: formData.dadosPostmortem,
       };
@@ -127,7 +127,7 @@ export default function GerarLaudoPage() {
       setError("");
       setFormData({
         vitimaId: "",
-        peritoNome: "",
+        perito: "",
         dadosAntemortem: "",
         dadosPostmortem: "",
       });
@@ -193,14 +193,14 @@ export default function GerarLaudoPage() {
         </div>
 
         <div>
-          <label htmlFor="peritoNome" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="perito" className="block text-sm font-medium text-gray-700 mb-1">
             Nome do Perito *
           </label>
           <input
             type="text"
-            name="peritoNome"
-            id="peritoNome"
-            value={formData.peritoNome}
+            name="perito"
+            id="perito"
+            value={formData.perito}
             onChange={handleChange}
             placeholder="Digite o nome do perito"
             className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
