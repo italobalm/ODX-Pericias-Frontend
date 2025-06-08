@@ -10,6 +10,8 @@ export interface IVitima {
   imagens?: string[]; 
   lesoes?: string;
   identificada: boolean;
+  caso?: string; // Added the 'caso' property
+
 }
 
 export interface VitimaListResponse {
