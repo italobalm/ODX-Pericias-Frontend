@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { FaArrowLeft } from "react-icons/fa";
 import api from "@/lib/axiosConfig";
 import { useAuth } from "../providers/AuthProvider";
-import { EvidenceResponse } from "@/types/Evidence";
+import { EvidenceListResponse } from "@/types/Evidence";
 import { IVitima, VitimaListResponse } from "@/types/Vitima";
 import { AxiosError } from "axios";
 import Image from "next/image";
@@ -176,7 +176,7 @@ export default function NewEvidencePage() {
         formData.append("vitimaId", selectedVitimaId);
       }
 
-      const response = await api.post<EvidenceResponse>("/api/evidence", formData, {
+      const response = await api.post<EvidenceListResponse>("/api/evidence", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
@@ -185,7 +185,7 @@ export default function NewEvidencePage() {
 
       if (response.status >= 200 && response.status < 300) {
         setSubmitted(true);
-        setEvidenceId(response.data.evidence._id);
+        setEvidenceId(response.data.evidencias[0]?._id || null);
         setError("");
         setCasoReferencia("");
         setTipo("texto");
@@ -305,46 +305,36 @@ export default function NewEvidencePage() {
               {/* Seção de Dados da Vítima */}
               <h2 className="text-lg font-semibold text-gray-700 mt-6">Dados da Vítima</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Selecionar Vítima Existente *
-                  </label>
-                  <select
-                    value={selectedVitimaId}
-                    onChange={(e) => {
-                      setSelectedVitimaId(e.target.value);
-                      setCreateNewVitima(false);
-                      setFile(null);
-                      setFilePreview(null);
-                    }}
-                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring focus:ring-teal-300 disabled:opacity-50"
-                    disabled={isLoading || createNewVitima}
-                  >
-                    <option value="">Selecione uma vítima</option>
-                    {vitimas.map((vitima) => (
-                      <option key={vitima._id} value={vitima._id}>
-                        {vitima.nome || "Não identificada"} ({vitima.estadoCorpo || "Inteiro"})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex items-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCreateNewVitima(!createNewVitima);
-                      setSelectedVitimaId("");
-                      if (!createNewVitima) {
-                        setFile(null);
-                        setFilePreview(null);
-                      }
-                    }}
-                    className="bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
-                    disabled={isLoading}
-                  >
-                    {createNewVitima ? "Cancelar Nova Vítima" : "Criar Nova Vítima"}
-                  </button>
-                </div>
+              <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Selecionar Vítima Existente *</label>
+              <select
+                value={selectedVitimaId}
+                onChange={(e) => {
+                  setSelectedVitimaId(e.target.value);
+                  const vitima = vitimas.find((v) => v._id === e.target.value);
+                  if (vitima) {
+                    setVitimaNome(vitima.nome || "");
+                    setVitimaDataNascimento(vitima.dataNascimento || "");
+                    setVitimaIdadeAproximada(vitima.idadeAproximada ? vitima.idadeAproximada.toString() : "");
+                    setVitimaNacionalidade(vitima.nacionalidade || "");
+                    setVitimaCidade(vitima.cidade || "");
+                    setVitimaSexo(vitima.sexo || "masculino");
+                    setVitimaEstadoCorpo(vitima.estadoCorpo || "inteiro");
+                    setVitimaLesoes(vitima.lesoes || "");
+                    setVitimaIdentificada(vitima.identificada || false);
+                  }
+                }}
+                className="w-full p-3 border border-gray-300 rounded-xl focus:ring focus:ring-teal-300 disabled:opacity-50"
+                disabled={isLoading}
+              >
+                <option value="">Selecione uma vítima</option>
+                {vitimas.map((vitima) => (
+                  <option key={vitima._id} value={vitima._id}>
+                    {vitima.nome || "Não identificada"} ({vitima.estadoCorpo || "Inteiro"})
+                  </option>
+                ))}
+              </select>
+            </div>
 
                 {createNewVitima && (
                   <>
