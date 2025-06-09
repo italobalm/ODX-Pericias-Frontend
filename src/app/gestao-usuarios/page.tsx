@@ -53,6 +53,8 @@ export default function UserManagementPage() {
   }, [user]);
 
   const handleSaveUser = async () => {
+
+    //validar campos obrigatórios
     if (!nome || !email || !rg || (!senha && !editingUser)) {
       setErrorMessage("Preencha todos os campos obrigatórios.");
       return;
@@ -61,6 +63,20 @@ export default function UserManagementPage() {
       setErrorMessage("Para o perfil 'Perito', informe o CRO.");
       return;
     }
+
+    //validar email
+      // Validação de e-mail único para novo usuário
+  if (!editingUser) {
+    try {
+      const res = await api.get(`/api/user?email=${email}`);
+      if (res.data.length > 0) {
+        setErrorMessage("E-mail já está em uso.");
+        return;
+      }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
+    }
+  }
 
     const userData = {
       nome,
@@ -169,55 +185,94 @@ export default function UserManagementPage() {
     <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Gestão de Usuários</h1>
   </div>
 
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.3 }}
-    className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-10 space-y-6"
-  >
-    <h2 className="text-lg font-semibold text-gray-700">{editingUser ? "Editar Usuário" : "Adicionar Novo Usuário"}</h2>
-    {(errorMessage || error) && <p className="text-red-500">{errorMessage || error}</p>}
-    {success && <p className="text-green-500">{success}</p>}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.3 }}
+  className="bg-white rounded-xl p-4 md:p-6 shadow-md mb-10 space-y-6"
+>
+  <h2 className="text-lg font-semibold text-gray-700">{editingUser ? "Editar Usuário" : "Adicionar Novo Usuário"}</h2>
+  {(errorMessage || error) && <p className="text-red-500">{errorMessage || error}</p>}
+  {success && <p className="text-green-500">{success}</p>}
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <input
+      type="text"
+      placeholder="Nome *"
+      value={nome}
+      onChange={(e: ChangeEvent<HTMLInputElement>) => setNome(e.target.value)}
+      className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+      disabled={isLoading}
+      required
+    />
+    <input
+      type="email"
+      placeholder="E-mail *"
+      value={email}
+      onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+      className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+      disabled={isLoading}
+      required
+    />
+    {!editingUser && (
       <input
-        type="text"
-        placeholder="Nome *"
-        value={nome}
-        onChange={(e: ChangeEvent<HTMLInputElement>) => setNome(e.target.value)}
+        type="password"
+        placeholder="Senha *"
+        value={senha}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => setSenha(e.target.value)}
         className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
         disabled={isLoading}
+        required
       />
-      {/* Outros inputs semelhantes */}
-      <select
-        value={perfil}
-        onChange={(e: ChangeEvent<HTMLSelectElement>) => setPerfil(e.target.value as Perfil)}
-        className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
-        disabled={isLoading}
-      >
-        <option value="Admin">Administrador</option>
-        <option value="Perito">Perito</option>
-        <option value="Assistente">Assistente</option>
-      </select>
-    </div>
-    <div className="flex justify-end gap-4">
-      {editingUser && (
-        <button
-          onClick={handleCancelEdit}
-          className="bg-gray-500 text-white py-2 px-6 rounded-xl hover:bg-gray-600 transition"
-          disabled={isLoading}
-        >
-          Cancelar
-        </button>
-      )}
+    )}
+    <input
+      type="text"
+      placeholder="RG *"
+      value={rg}
+      onChange={(e: ChangeEvent<HTMLInputElement>) => setRg(e.target.value)}
+      className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+      disabled={isLoading}
+      required
+    />
+    <input
+      type="text"
+      placeholder="CRO (obrigatório para Perito)"
+      value={cro}
+      onChange={(e: ChangeEvent<HTMLInputElement>) => setCro(e.target.value)}
+      className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+      disabled={isLoading}
+      required={perfil === "Perito"}
+    />
+    <select
+      value={perfil}
+      onChange={(e: ChangeEvent<HTMLSelectElement>) => setPerfil(e.target.value as Perfil)}
+      className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 disabled:opacity-50"
+      disabled={isLoading}
+      required
+    >
+      <option value="Admin">Administrador</option>
+      <option value="Perito">Perito</option>
+      <option value="Assistente">Assistente</option>
+    </select>
+  </div>
+  <div className="flex justify-end gap-4">
+    {editingUser && (
       <button
-        onClick={handleSaveUser}
-        className="bg-teal-600 text-white py-2 px-6 rounded-xl hover:bg-teal-700 transition"
+        onClick={handleCancelEdit}
+        className="bg-gray-500 text-white py-2 px-6 rounded-xl hover:bg-gray-600 transition"
         disabled={isLoading}
       >
-        {isLoading ? "Carregando..." : editingUser ? "Salvar Alterações" : "Adicionar Usuário"}
+        Cancelar
       </button>
-    </div>
-  </motion.div>
+    )}
+    <button
+      onClick={handleSaveUser}
+      className="bg-teal-600 text-white py-2 px-6 rounded-xl hover:bg-teal-700 transition"
+      disabled={isLoading}
+    >
+      {isLoading ? "Carregando..." : editingUser ? "Salvar Alterações" : "Adicionar Usuário"}
+    </button>
+  </div>
+</motion.div>
 
   <div className="bg-white rounded-xl p-4 md:p-6 shadow-md">
     <h2 className="text-lg font-semibold text-gray-700 mb-6">Usuários Cadastrados</h2>

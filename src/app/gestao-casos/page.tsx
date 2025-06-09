@@ -75,7 +75,7 @@ export default function CaseManagementPage() {
     setIsLoading(true);
     try {
       if (editingCase) {
-        const updatedCase = await api.put(`/api/cases/${editingCase._id}`, formData).then((res) => res.data.caso);
+        const updatedCase = await api.put(`/api/case/${editingCase._id}`, formData).then((res) => res.data.caso);
 
         setCases((prev) =>
           prev.map((c) => (c._id === editingCase._id ? { ...c, ...updatedCase } : c))
@@ -130,7 +130,7 @@ export default function CaseManagementPage() {
 
     setIsLoading(true);
     try {
-      await api.delete(`/api/cases/${caseId}`);
+      await api.delete(`/api/case/${caseId}`);
       setCases((prev) => prev.filter((c) => c._id !== caseId));
       setSuccess("Caso removido com sucesso.");
     } catch (err) {

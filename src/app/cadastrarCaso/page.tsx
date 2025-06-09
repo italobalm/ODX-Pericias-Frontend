@@ -63,14 +63,14 @@ export default function NewCasePage() {
         setSubmitted(true);
         setError("");
   
-        // Limpa o formulário
-        setTitulo("");
-        setDescricao("");
-        setStatus("");
-        setResponsavel("");
-        setCidade("");
-        setEstado("");
-        // Não limpar casoReferencia aqui, pois será usado no botão de redirecionamento
+        // // Limpa o formulário
+        // setTitulo("");
+        // setDescricao("");
+        // setStatus("");
+        // setResponsavel("");
+        // setCidade("");
+        // setEstado("");
+        // // Não limpar casoReferencia aqui, pois será usado no botão de redirecionamento
       } else {
         setError("Erro ao enviar os dados para o servidor.");
       }

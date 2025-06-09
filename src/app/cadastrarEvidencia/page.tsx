@@ -88,6 +88,7 @@ export default function NewEvidencePage() {
         const filterResponse = await api.get<FilterOptions>("/api/evidence/filters", {
           headers: { Authorization: `Bearer ${token}` },
         });
+        console.log("Resposta de /api/evidence/filters:", filterResponse.data);
         setFilterOptions({
           coletadoPor: Array.isArray(filterResponse.data.coletadoPor) ? filterResponse.data.coletadoPor : [],
           casos: Array.isArray(filterResponse.data.casos) ? filterResponse.data.casos : [],
@@ -307,7 +308,7 @@ export default function NewEvidencePage() {
                   value={coletadoPorNome}
                   onChange={(e) => handleChange(e, setColetadoPorNome)}
                   options={filterOptions.coletadoPor}
-                  disabled={isLoading || filterOptions.coletadoPor.length === 0}
+                  disabled={isLoading}
                 />
                 {tipo === "texto" && (
                   <Textarea

@@ -115,16 +115,25 @@ export default function EvidenceManagementPage() {
       const response = await api.get<FilterOptions>("/api/evidence/filters", {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
+      console.log("Resposta de /api/evidence/filters:", response.data);
       setFilterOptions({
-        coletadoPor: response.data.coletadoPor || [],
-        casos: response.data.casos || [],
-        cidades: response.data.cidades || [],
-        lesoes: response.data.lesoes || [],
-        sexos: response.data.sexos || [],
+        coletadoPor: Array.isArray(response.data.coletadoPor) ? response.data.coletadoPor : [],
+        casos: Array.isArray(response.data.casos) ? response.data.casos : [],
+        cidades: Array.isArray(response.data.cidades) ? response.data.cidades : [],
+        lesoes: Array.isArray(response.data.lesoes) ? response.data.lesoes : [],
+        sexos: Array.isArray(response.data.sexos) ? response.data.sexos : [],
       });
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
+      console.error("Erro ao buscar opções de filtro:", axiosError.response?.data);
       setError(axiosError.response?.data?.msg || "Erro ao buscar opções de filtro.");
+      setFilterOptions({
+        coletadoPor: [],
+        casos: [],
+        cidades: [],
+        lesoes: [],
+        sexos: [],
+      });
     }
   }, []);
 
