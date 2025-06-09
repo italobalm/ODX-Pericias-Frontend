@@ -64,20 +64,6 @@ export default function UserManagementPage() {
       return;
     }
 
-    //validar email
-      // Validação de e-mail único para novo usuário
-  if (!editingUser) {
-    try {
-      const res = await api.get(`/api/user?email=${email}`);
-      if (res.data.length > 0) {
-        setErrorMessage("E-mail já está em uso.");
-        return;
-      }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (err) {
-    }
-  }
-
     const userData = {
       nome,
       email,
