@@ -15,6 +15,7 @@ export interface IVitima {
 }
 
 export interface VitimaListResponse {
+  vitimas: IVitima[];
   data: IVitima[];
   msg?: string;
 }
