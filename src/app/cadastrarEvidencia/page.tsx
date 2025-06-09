@@ -60,7 +60,7 @@ export default function NewEvidencePage() {
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [evidenceId, setEvidenceId] = useState<string | null>(null);
+  const [, setEvidenceId] = useState<string | null>(null);
 
   // Validação do formulário
   const isFormValid =
@@ -458,7 +458,7 @@ export default function NewEvidencePage() {
                 <div className="space-y-4">
                   <p className="text-green-600 text-sm">Evidência cadastrada com sucesso!</p>
                   <button
-                    onClick={() => router.push(evidenceId ? `/laudos/${evidenceId}` : `/laudos/new`)}
+                    onClick={() => router.push(`/laudos`)}
                     className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
                   >
                     Gerar Laudo

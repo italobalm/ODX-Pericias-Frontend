@@ -52,7 +52,7 @@ export default function NewCasePage() {
     try {
       const token = localStorage.getItem('authToken'); 
   
-      const response = await api.post("/api/cases", newCase, {
+      const response = await api.post("/api/case", newCase, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
