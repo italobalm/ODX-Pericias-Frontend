@@ -7,15 +7,13 @@ import api from '@/lib/axiosConfig';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { IVitima } from '@/types/Vitima';
 import { ILaudo } from '@/types/Laudo';
-import { Case } from '@/types/Case'; // Import Case type
-import { Evidence } from '@/types/Evidence'; // Import Evidence type
+import { Case } from '@/types/Case';
+import { Evidence } from '@/types/Evidence';
 import { AxiosError } from 'axios';
 import { motion } from 'framer-motion';
 
 interface FormData {
   vitimaId: string;
-  casoId: string;
-  evidencias: string[];
   dadosAntemortem: string;
   dadosPostmortem: string;
 }
@@ -33,19 +31,19 @@ export default function GerarLaudoPage() {
 
   const [formData, setFormData] = useState<FormData>({
     vitimaId: "",
-    casoId: "",
-    evidencias: [],
     dadosAntemortem: "",
     dadosPostmortem: "",
   });
 
+  // Validate form, ensuring at least one case and one evidence exist
   const isFormValid =
     formData.vitimaId &&
-    formData.casoId &&
-    formData.evidencias.length > 0 &&
     formData.dadosAntemortem &&
-    formData.dadosPostmortem;
+    formData.dadosPostmortem &&
+    casos.length > 0 &&
+    evidencias.length > 0;
 
+  // Fetch victims on mount
   useEffect(() => {
     if (user && !authLoading) {
       const fetchVictims = async () => {
@@ -77,18 +75,27 @@ export default function GerarLaudoPage() {
           // Fetch cases
           const caseResponse = await api.get<{ data: Case[] }>("/api/case", {
             headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-            params: { vitima: formData.vitimaId }, // Filter cases by vitima
+            params: { vitima: formData.vitimaId },
           });
-          setCasos(caseResponse.data.data || []);
+          const fetchedCases = caseResponse.data.data || [];
+          setCasos(fetchedCases);
 
           // Fetch evidences
           const evidenceResponse = await api.get<{ data: Evidence[] }>("/api/evidence", {
             headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-            params: { vitima: formData.vitimaId }, // Filter evidences by vitima
+            params: { vitima: formData.vitimaId },
           });
-          setEvidencias(evidenceResponse.data.data || []);
+          const fetchedEvidences = evidenceResponse.data.data || [];
+          setEvidencias(fetchedEvidences);
 
-          setError("");
+          // Set error if no cases or evidences are found
+          if (fetchedCases.length === 0) {
+            setError("Nenhum caso encontrado para a vítima selecionada.");
+          } else if (fetchedEvidences.length === 0) {
+            setError("Nenhuma evidência encontrada para a vítima selecionada.");
+          } else {
+            setError("");
+          }
         } catch (err: unknown) {
           const axiosError = err as AxiosError<{ msg?: string }>;
           setError(axiosError.response?.data?.msg || "Erro ao buscar casos ou evidências.");
@@ -102,7 +109,6 @@ export default function GerarLaudoPage() {
     } else {
       setCasos([]);
       setEvidencias([]);
-      setFormData((prev) => ({ ...prev, casoId: "", evidencias: [] }));
     }
   }, [formData.vitimaId]);
 
@@ -111,11 +117,6 @@ export default function GerarLaudoPage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleEvidenciasChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const selectedOptions = Array.from(e.target.selectedOptions).map((option) => option.value);
-    setFormData((prev) => ({ ...prev, evidencias: selectedOptions }));
   };
 
   const downloadPDF = (pdfBase64: string, laudoId: string) => {
@@ -144,7 +145,7 @@ export default function GerarLaudoPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!isFormValid) {
-      setError("Preencha todos os campos obrigatórios e selecione pelo menos uma evidência.");
+      setError("Preencha todos os campos obrigatórios e verifique se há casos e evidências associados à vítima.");
       return;
     }
 
@@ -152,11 +153,11 @@ export default function GerarLaudoPage() {
     try {
       const laudoData = {
         vitima: formData.vitimaId,
-        perito: user?.id, // Use logged-in user's ID
+        perito: user?.id,
         dadosAntemortem: formData.dadosAntemortem,
         dadosPostmortem: formData.dadosPostmortem,
-        caso: formData.casoId,
-        evidencias: formData.evidencias,
+        caso: casos[0]._id, // Use the first case's ID
+        evidencias: evidencias.map((ev) => ev._id), // Include all fetched evidences
       };
 
       console.log("Enviando laudoData:", laudoData);
@@ -180,8 +181,6 @@ export default function GerarLaudoPage() {
       setError("");
       setFormData({
         vitimaId: "",
-        casoId: "",
-        evidencias: [],
         dadosAntemortem: "",
         dadosPostmortem: "",
       });
@@ -247,50 +246,28 @@ export default function GerarLaudoPage() {
           </select>
         </div>
 
-        <div>
-          <label htmlFor="casoId" className="block text-sm font-medium text-gray-700 mb-1">
-            Caso *
-          </label>
-          <select
-            name="casoId"
-            id="casoId"
-            value={formData.casoId}
-            onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-            disabled={isLoading || !formData.vitimaId}
-            required
-          >
-            <option value="">Selecione um caso</option>
-            {casos.map((caso) => (
-              <option key={caso._id} value={caso._id}>
-                {caso.titulo || "Caso sem título"} ({caso.casoReferencia || "N/A"})
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Display fetched cases and evidences for user reference */}
+        {formData.vitimaId && casos.length > 0 && (
+          <div className="bg-gray-50 p-4 rounded-md">
+            <h4 className="font-semibold text-gray-700 mb-2">Caso Associado:</h4>
+            <p className="text-gray-600">
+              {casos[0].titulo || "Caso sem título"} ({casos[0].casoReferencia || "N/A"})
+            </p>
+          </div>
+        )}
 
-        <div>
-          <label htmlFor="evidencias" className="block text-sm font-medium text-gray-700 mb-1">
-            Evidências *
-          </label>
-          <select
-            name="evidencias"
-            id="evidencias"
-            multiple
-            value={formData.evidencias}
-            onChange={handleEvidenciasChange}
-            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-            disabled={isLoading || !formData.vitimaId}
-            required
-          >
-            {evidencias.map((evidencia) => (
-              <option key={evidencia._id} value={evidencia._id}>
-                {evidencia.categoria} ({evidencia.tipo}, {evidencia.conteudo || "N/A"})
-              </option>
-            ))}
-          </select>
-          <p className="text-sm text-gray-500 mt-1">Segure Ctrl (ou Cmd) para selecionar múltiplas evidências.</p>
-        </div>
+        {formData.vitimaId && evidencias.length > 0 && (
+          <div className="bg-gray-50 p-4 rounded-md">
+            <h4 className="font-semibold text-gray-700 mb-2">Evidências Associadas:</h4>
+            <ul className="list-disc pl-5 text-gray-600">
+              {evidencias.map((evidencia) => (
+                <li key={evidencia._id}>
+                  {evidencia.categoria} ({evidencia.tipo}, {evidencia.conteudo || "N/A"})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Dados Antemortem *</label>
