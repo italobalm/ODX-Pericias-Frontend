@@ -13,6 +13,7 @@
     "axios": "^1.8.4",
     "framer-motion": "^12.5.0",
     "jspdf": "^3.0.1",
+    "moment": "^2.30.1",
     "next": "^15.2.3",
     "odx-pericias": "file:",
     "react": "^19.0.0",
