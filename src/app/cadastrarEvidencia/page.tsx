@@ -204,6 +204,14 @@ export default function NewEvidencePage() {
       }
 
 
+    await api.post("/api/evidence", formData, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+
       setSuccess("Evidência cadastrada com sucesso!");
       setError("");
       setCasoReferencia("");
