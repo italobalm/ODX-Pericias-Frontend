@@ -34,7 +34,7 @@ export default function NewEvidencePage() {
   });
   const [tipo, setTipo] = useState<"imagem" | "texto">("texto");
   const [categoria, setCategoria] = useState("");
-  const [coletadoPorNome, setColetadoPorNome] = useState("");
+  const [coletadoPor, setColetadoPor] = useState("");
   const [texto, setTexto] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
@@ -65,7 +65,7 @@ export default function NewEvidencePage() {
   const isFormValid =
     casoReferencia &&
     categoria &&
-    coletadoPorNome &&
+    coletadoPor &&
     (tipo === "texto" ? texto : file) &&
     (createNewVitima
       ? vitimaSexo && vitimaEstadoCorpo
@@ -185,7 +185,7 @@ export default function NewEvidencePage() {
       formData.append("casoReferencia", casoReferencia);
       formData.append("tipo", tipo);
       formData.append("categoria", categoria);
-      formData.append("coletadoPorNome", coletadoPorNome);
+      formData.append("coletadoPor", coletadoPor);
       if (tipo === "texto" && texto) formData.append("texto", texto);
       if (tipo === "imagem" && file) formData.append("file", file);
 
@@ -209,7 +209,7 @@ export default function NewEvidencePage() {
       setCasoReferencia("");
       setTipo("texto");
       setCategoria("");
-      setColetadoPorNome("");
+      setColetadoPor("");
       setTexto("");
       setFile(null);
       setFilePreview(null);
@@ -305,8 +305,8 @@ export default function NewEvidencePage() {
                 />
                 <Select
                   label="Coletado por (Nome) *"
-                  value={coletadoPorNome}
-                  onChange={(e) => handleChange(e, setColetadoPorNome)}
+                  value={coletadoPor}
+                  onChange={(e) => handleChange(e, setColetadoPor)}
                   options={filterOptions.coletadoPor}
                   disabled={isLoading}
                 />
