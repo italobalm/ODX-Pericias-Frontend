@@ -1,628 +1,347 @@
 "use client";
 
-import { useState, ChangeEvent, FormEvent, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { FaArrowLeft } from "react-icons/fa";
-import api from "@/lib/axiosConfig";
-import { useAuth } from "../providers/AuthProvider";
-import { Evidence, EvidenceListResponse } from "@/types/Evidence";
-import { IVitima, VitimaListResponse } from "@/types/Vitima";
-import { AxiosError } from "axios";
-import Image from "next/image";
+import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import { FaArrowLeft } from 'react-icons/fa';
+import api from '@/lib/axiosConfig';
+import { useAuth } from '@/app/providers/AuthProvider';
+import { IVitima } from '@/types/Vitima';
+import { ILaudo } from '@/types/Laudo';
+import { Case } from '@/types/Case';
+import { Evidence } from '@/types/Evidence';
+import { AxiosError } from 'axios';
+import { motion } from 'framer-motion';
 
-interface FilterOptions {
-  coletadoPor: string[];
-  casos: string[];
-  cidades: string[];
-  lesoes: string[];
-  sexos: string[];
+interface FormData {
+  vitimaId: string;
+  casoId: string;
+  dadosAntemortem: string;
+  dadosPostmortem: string;
 }
 
-export default function NewEvidencePage() {
+export default function GerarLaudoPage() {
   const router = useRouter();
   const { user, loading: authLoading, error: authError } = useAuth();
 
-  // Estados para a evidência
-  const [casoReferencia, setCasoReferencia] = useState("");
-  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
-    coletadoPor: [],
-    casos: [],
-    cidades: [],
-    lesoes: [],
-    sexos: [],
-  });
-  const [tipo, setTipo] = useState<"imagem" | "texto">("texto");
-  const [categoria, setCategoria] = useState("");
-  const [coletadoPorNome, setColetadoPorNome] = useState("");
-  const [texto, setTexto] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
-
-  // Estados para a vítima
   const [vitimas, setVitimas] = useState<IVitima[]>([]);
-  const [selectedVitimaId, setSelectedVitimaId] = useState<string>("");
-  const [createNewVitima, setCreateNewVitima] = useState(false);
-  const [vitimaNome, setVitimaNome] = useState("");
-  const [vitimaDataNascimento, setVitimaDataNascimento] = useState("");
-  const [vitimaIdadeAproximada, setVitimaIdadeAproximada] = useState("");
-  const [vitimaNacionalidade, setVitimaNacionalidade] = useState("");
-  const [vitimaCidade, setVitimaCidade] = useState("");
-  const [vitimaSexo, setVitimaSexo] = useState<"masculino" | "feminino" | "indeterminado">("masculino");
-  const [vitimaEstadoCorpo, setVitimaEstadoCorpo] = useState<
-    "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto"
-  >("inteiro");
-  const [vitimaLesoes, setVitimaLesoes] = useState("");
-  const [vitimaIdentificada, setVitimaIdentificada] = useState(false);
-  const [existingEvidences, setExistingEvidences] = useState<Evidence[]>([]);
-
-  // Estados gerais
+  const [casos, setCasos] = useState<Case[]>([]);
+  const [evidencias, setEvidencias] = useState<Evidence[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Validação do formulário
+  const [formData, setFormData] = useState<FormData>({
+    vitimaId: "",
+    casoId: "",
+    dadosAntemortem: "",
+    dadosPostmortem: "",
+  });
+
+  // Validate form
   const isFormValid =
-    casoReferencia &&
-    categoria &&
-    coletadoPorNome &&
-    (tipo === "texto" ? texto : file) &&
-    (createNewVitima
-      ? vitimaSexo && vitimaEstadoCorpo
-      : selectedVitimaId);
+    formData.vitimaId &&
+    formData.casoId &&
+    formData.dadosAntemortem &&
+    formData.dadosPostmortem &&
+    evidencias.length > 0;
 
-  // Buscar vítimas, opções de filtro e evidências existentes
+  // Fetch victims on mount
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const token = localStorage.getItem("authToken");
-
-        // Buscar vítimas
-        const vitimaResponse = await api.get<VitimaListResponse>("/api/vitima", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setVitimas(vitimaResponse.data.data || []);
-
-        // Buscar opções de filtro
-        const filterResponse = await api.get<FilterOptions>("/api/evidence/filters", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setFilterOptions({
-          coletadoPor: Array.isArray(filterResponse.data.coletadoPor) ? filterResponse.data.coletadoPor : [],
-          casos: Array.isArray(filterResponse.data.casos) ? filterResponse.data.casos : [],
-          cidades: Array.isArray(filterResponse.data.cidades) ? filterResponse.data.cidades : [],
-          lesoes: Array.isArray(filterResponse.data.lesoes) ? filterResponse.data.lesoes : [],
-          sexos: Array.isArray(filterResponse.data.sexos) ? filterResponse.data.sexos : [],
-        });
-
-        setError("");
-      } catch (err: unknown) {
-        const axiosError = err as AxiosError<{ msg?: string }>;
-        setError(axiosError.response?.data?.msg || "Erro ao buscar dados (vítimas ou filtros).");
-        setVitimas([]);
-        setFilterOptions({
-          coletadoPor: [],
-          casos: [],
-          cidades: [],
-          lesoes: [],
-          sexos: [],
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     if (user && !authLoading) {
-      fetchData();
-    }
-  }, [user, authLoading]);
-
-  // Buscar evidências existentes quando vítima é selecionada
-  useEffect(() => {
-    const fetchEvidences = async () => {
-      if (selectedVitimaId && !createNewVitima) {
+      const fetchVictims = async () => {
         setIsLoading(true);
         try {
-          const response = await api.get<EvidenceListResponse>("/api/evidence", {
+          const response = await api.get<{ data: IVitima[] }>("/api/vitima", {
             headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-            params: { vitima: selectedVitimaId },
           });
-          setExistingEvidences(response.data.evidencias || []);
+          setVitimas(response.data.data || []);
           setError("");
         } catch (err: unknown) {
           const axiosError = err as AxiosError<{ msg?: string }>;
-          setError(axiosError.response?.data?.msg || "Erro ao buscar evidências existentes.");
-          setExistingEvidences([]);
+          setError(axiosError.response?.data?.msg || "Erro ao buscar vítimas.");
+          setVitimas([]);
         } finally {
           setIsLoading(false);
         }
-      } else {
-        setExistingEvidences([]);
-      }
-    };
-    fetchEvidences();
-  }, [selectedVitimaId, createNewVitima]);
+      };
+      fetchVictims();
+    }
+  }, [user, authLoading]);
 
-  // Limpar filePreview quando o componente for desmontado ou o formulário for resetado
+  // Fetch cases and evidences when vitimaId changes
   useEffect(() => {
-    return () => {
-      if (filePreview) {
-        URL.revokeObjectURL(filePreview);
-      }
-    };
-  }, [filePreview]);
+    if (formData.vitimaId) {
+      const fetchCasesAndEvidences = async () => {
+        setIsLoading(true);
+        try {
+          // Fetch cases
+          const caseResponse = await api.get<{ data: Case[] }>("/api/case", {
+            headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+            params: { vitima: formData.vitimaId },
+          });
+          const fetchedCases = caseResponse.data.data || [];
+          setCasos(fetchedCases);
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files ? e.target.files[0] : null;
-    if (selectedFile) {
-      if (!selectedFile.type.startsWith("image/")) {
-        setError("Por favor, selecione um arquivo de imagem válido.");
-        setFile(null);
-        setFilePreview(null);
-        return;
-      }
-      setFile(selectedFile);
-      setFilePreview(URL.createObjectURL(selectedFile));
-      setError("");
+          // Fetch evidences
+          const evidenceResponse = await api.get<{ data: Evidence[] }>("/api/evidence", {
+            headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+            params: { vitima: formData.vitimaId },
+          });
+          const fetchedEvidences = evidenceResponse.data.data || [];
+          setEvidencias(fetchedEvidences);
+
+          // Set error if no cases or evidences are found
+          if (fetchedCases.length === 0) {
+            setError("Nenhum caso encontrado para a vítima selecionada.");
+          } else if (fetchedEvidences.length === 0) {
+            setError("Nenhuma evidência encontrada para a vítima selecionada.");
+          } else {
+            setError("");
+          }
+        } catch (err: unknown) {
+          const axiosError = err as AxiosError<{ msg?: string }>;
+          setError(axiosError.response?.data?.msg || "Erro ao buscar casos ou evidências.");
+          setCasos([]);
+          setEvidencias([]);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchCasesAndEvidences();
     } else {
-      setFile(null);
-      setFilePreview(null);
+      setCasos([]);
+      setEvidencias([]);
+      setFormData((prev) => ({ ...prev, casoId: "" }));
+    }
+  }, [formData.vitimaId]);
+
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const downloadPDF = (pdfBase64: string, laudoId: string) => {
+    try {
+      const byteCharacters = atob(pdfBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `laudo-${laudoId}-${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError("Erro ao baixar o PDF.");
+      console.error("Erro ao baixar PDF:", err);
     }
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!isFormValid) {
-      setError("Preencha todos os campos obrigatórios.");
+      setError("Preencha todos os campos obrigatórios e verifique se há um caso e evidências associados à vítima.");
       return;
     }
 
     setIsLoading(true);
     try {
-      const formData = new FormData();
-      formData.append("casoReferencia", casoReferencia);
-      formData.append("tipo", tipo);
-      formData.append("categoria", categoria);
-      formData.append("coletadoPorNome", coletadoPorNome);
-      if (tipo === "texto" && texto) formData.append("texto", texto);
-      if (tipo === "imagem" && file) formData.append("file", file);
+      const laudoData = {
+        vitima: formData.vitimaId,
+        perito: user?.id,
+        dadosAntemortem: formData.dadosAntemortem,
+        dadosPostmortem: formData.dadosPostmortem,
+        caso: formData.casoId,
+        evidencias: evidencias.map((ev) => ev._id),
+      };
 
-      if (createNewVitima) {
-        if (vitimaNome) formData.append("nome", vitimaNome);
-        if (vitimaDataNascimento) formData.append("dataNascimento", vitimaDataNascimento);
-        if (vitimaIdadeAproximada) formData.append("idadeAproximada", vitimaIdadeAproximada);
-        if (vitimaNacionalidade) formData.append("nacionalidade", vitimaNacionalidade);
-        if (vitimaCidade) formData.append("cidade", vitimaCidade);
-        formData.append("sexo", vitimaSexo);
-        formData.append("estadoCorpo", vitimaEstadoCorpo);
-        if (vitimaLesoes) formData.append("lesoes", vitimaLesoes);
-        formData.append("identificada", vitimaIdentificada.toString());
+      console.log("Enviando laudoData:", laudoData);
+
+      const createResponse = await api.post<{ msg: string; laudo: ILaudo; pdf: string }>(
+        "/api/laudo",
+        laudoData,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+        }
+      );
+      const { laudo: createdLaudo, pdf: signedPdf } = createResponse.data;
+
+      if (createdLaudo._id) {
+        downloadPDF(signedPdf, createdLaudo._id);
       } else {
-        formData.append("vitimaId", selectedVitimaId);
+        setError("Erro: ID do laudo não encontrado.");
       }
 
-
-      setSuccess("Evidência cadastrada com sucesso!");
+      setSuccess("Laudo criado, assinado e PDF baixado com sucesso.");
       setError("");
-      setCasoReferencia("");
-      setTipo("texto");
-      setCategoria("");
-      setColetadoPorNome("");
-      setTexto("");
-      setFile(null);
-      setFilePreview(null);
-      setSelectedVitimaId("");
-      setCreateNewVitima(false);
-      setVitimaNome("");
-      setVitimaDataNascimento("");
-      setVitimaIdadeAproximada("");
-      setVitimaNacionalidade("");
-      setVitimaCidade("");
-      setVitimaSexo("masculino");
-      setVitimaEstadoCorpo("inteiro");
-      setVitimaLesoes("");
-      setVitimaIdentificada(false);
-      setExistingEvidences([]);
+      setFormData({
+        vitimaId: "",
+        casoId: "",
+        dadosAntemortem: "",
+        dadosPostmortem: "",
+      });
+      setCasos([]);
+      setEvidencias([]);
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
-      setError(axiosError.response?.data?.msg || "Erro ao cadastrar evidência.");
-      console.error("Erro ao processar evidência:", axiosError.response?.data);
+      const errorMsg = axiosError.response?.data?.msg || "Erro ao criar ou assinar o laudo.";
+      setError(errorMsg);
+      console.error("Erro ao processar laudo:", axiosError.response?.data);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-    setter: React.Dispatch<React.SetStateAction<string>>
-  ) => {
-    setter(e.target.value);
-  };
-
-  if (authLoading) {
-    return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
-  }
-
-  if (authError) {
-    return (
-      <div className="text-center mt-20 text-red-500">
-        Erro de autenticação: {authError}. Por favor, tente fazer login novamente.
-      </div>
-    );
-  }
-
-  if (!user || !["admin", "perito", "assistente"].includes(user.perfil.toLowerCase())) {
+  if (authLoading) return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
+  if (authError)
+    return <div className="text-center mt-20 text-red-500">Erro de autenticação: {authError}</div>;
+  if (!user || !["admin", "perito"].includes(user.perfil.toLowerCase())) {
     router.push("/initialScreen");
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-white p-6 sm:p-12">
-      <header className="w-full flex items-center justify-start mb-6">
+    <div className="max-w-5xl mx-auto pt-28 p-4 md:p-8">
+      <div className="flex items-center gap-4 mb-6">
         <button
           onClick={() => router.back()}
-          className="text-gray-700 hover:text-gray-500 transition mr-3"
+          className="text-gray-600 hover:text-gray-800 transition p-2"
+          title="Voltar"
         >
-          <FaArrowLeft className="text-2xl" />
+          <FaArrowLeft size={20} />
         </button>
-        <h1 className="text-3xl font-bold text-gray-800">Nova Evidência</h1>
-      </header>
-
-      <div className="flex justify-center">
-        <div className="w-full max-w-3xl">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="bg-white rounded-xl p-6 shadow-md"
-          >
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              {/* Seção de Dados da Evidência */}
-              <h2 className="text-lg font-semibold text-gray-700">Dados da Evidência</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Select
-                  label="Tipo de Evidência *"
-                  value={tipo}
-                  onChange={(e) => setTipo(e.target.value as "imagem" | "texto")}
-                  options={["texto", "imagem"]}
-                  disabled={isLoading}
-                />
-                <Select
-                  label="Caso (Referência) *"
-                  value={casoReferencia}
-                  onChange={(e) => handleChange(e, setCasoReferencia)}
-                  options={filterOptions.casos}
-                  disabled={isLoading || filterOptions.casos.length === 0}
-                />
-                <Input
-                  label="Categoria *"
-                  value={categoria}
-                  placeholder="Ex: Radiografia Panorâmica"
-                  onChange={(e) => handleChange(e, setCategoria)}
-                  disabled={isLoading}
-                />
-                <Select
-                  label="Coletado por (Nome) *"
-                  value={coletadoPorNome}
-                  onChange={(e) => handleChange(e, setColetadoPorNome)}
-                  options={filterOptions.coletadoPor}
-                  disabled={isLoading || filterOptions.coletadoPor.length === 0}
-                />
-                {tipo === "texto" && (
-                  <Textarea
-                    label="Texto *"
-                    value={texto}
-                    placeholder="Relatório textual sobre a arcada dentária"
-                    onChange={(e) => handleChange(e, setTexto)}
-                    disabled={isLoading}
-                  />
-                )}
-                {tipo === "imagem" && (
-                  <div className="col-span-1 md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Arquivo (Imagem) *
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="w-full p-3 border border-gray-300 rounded-xl"
-                      disabled={isLoading}
-                    />
-                    {filePreview && (
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Prévia da Imagem
-                        </label>
-                        <Image
-                          src={filePreview}
-                          alt="Prévia da Imagem"
-                          width={200}
-                          height={200}
-                          className="w-full max-w-xs h-48 object-cover rounded-md"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Seção de Dados da Vítima */}
-              <h2 className="text-lg font-semibold text-gray-700 mt-6">Dados da Vítima</h2>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <input
-                    type="checkbox"
-                    checked={createNewVitima}
-                    onChange={(e) => setCreateNewVitima(e.target.checked)}
-                    className="mr-2"
-                    disabled={isLoading}
-                  />
-                  Criar nova vítima
-                </label>
-              </div>
-
-              {!createNewVitima && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Selecionar Vítima Existente *
-                  </label>
-                  <select
-                    value={selectedVitimaId}
-                    onChange={(e) => {
-                      setSelectedVitimaId(e.target.value);
-                      const vitima = vitimas.find((v) => v._id === e.target.value);
-                      if (vitima) {
-                        setVitimaNome(vitima.nome || "");
-                        setVitimaDataNascimento(vitima.dataNascimento || "");
-                        setVitimaIdadeAproximada(vitima.idadeAproximada ? vitima.idadeAproximada.toString() : "");
-                        setVitimaNacionalidade(vitima.nacionalidade || "");
-                        setVitimaCidade(vitima.cidade || "");
-                        setVitimaSexo(vitima.sexo || "masculino");
-                        setVitimaEstadoCorpo(vitima.estadoCorpo || "inteiro");
-                        setVitimaLesoes(vitima.lesoes || "");
-                        setVitimaIdentificada(vitima.identificada || false);
-                      }
-                    }}
-                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring focus:ring-teal-300 disabled:opacity-50"
-                    disabled={isLoading}
-                  >
-                    <option value="">Selecione uma vítima</option>
-                    {vitimas.map((vitima) => (
-                      <option key={vitima._id} value={vitima._id}>
-                        {vitima.nome || "Não identificada"} ({vitima.estadoCorpo || "Inteiro"})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {createNewVitima && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Input
-                    label="Nome da Vítima"
-                    value={vitimaNome}
-                    placeholder="Ex: João Silva"
-                    onChange={(e) => handleChange(e, setVitimaNome)}
-                    disabled={isLoading}
-                  />
-                  <Input
-                    label="Data de Nascimento"
-                    value={vitimaDataNascimento}
-                    type="date"
-                    onChange={(e) => handleChange(e, setVitimaDataNascimento)}
-                    disabled={isLoading}
-                  />
-                  <Input
-                    label="Idade Aproximada"
-                    value={vitimaIdadeAproximada}
-                    type="number"
-                    placeholder="Ex: 30"
-                    onChange={(e) => handleChange(e, setVitimaIdadeAproximada)}
-                    disabled={isLoading}
-                  />
-                  <Input
-                    label="Nacionalidade"
-                    value={vitimaNacionalidade}
-                    placeholder="Ex: Brasileira"
-                    onChange={(e) => handleChange(e, setVitimaNacionalidade)}
-                    disabled={isLoading}
-                  />
-                  <Input
-                    label="Cidade"
-                    value={vitimaCidade}
-                    placeholder="Ex: São Paulo"
-                    onChange={(e) => handleChange(e, setVitimaCidade)}
-                    disabled={isLoading}
-                  />
-                  <Select
-                    label="Sexo *"
-                    value={vitimaSexo}
-                    onChange={(e) =>
-                      setVitimaSexo(e.target.value as "masculino" | "feminino" | "indeterminado")
-                    }
-                    options={["masculino", "feminino", "indeterminado"]}
-                    disabled={isLoading}
-                  />
-                  <Select
-                    label="Estado do Corpo *"
-                    value={vitimaEstadoCorpo}
-                    onChange={(e) =>
-                      setVitimaEstadoCorpo(
-                        e.target.value as "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto"
-                      )
-                    }
-                    options={["inteiro", "fragmentado", "carbonizado", "putrefacto", "esqueleto"]}
-                    disabled={isLoading}
-                  />
-                  <Input
-                    label="Lesões"
-                    value={vitimaLesoes}
-                    placeholder="Ex: Fratura no osso maxilar"
-                    onChange={(e) => handleChange(e, setVitimaLesoes)}
-                    disabled={isLoading}
-                  />
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Identificada</label>
-                    <input
-                      type="checkbox"
-                      checked={vitimaIdentificada}
-                      onChange={(e) => setVitimaIdentificada(e.target.checked)}
-                      className="p-3 border border-gray-300 rounded-xl"
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {selectedVitimaId && existingEvidences.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold text-gray-700">Evidências Existentes</h3>
-                  <ul className="list-disc pl-5 text-gray-600">
-                    {existingEvidences.map((evidencia) => (
-                      <li key={evidencia._id}>
-                        {evidencia.categoria} ({evidencia.tipo}, {evidencia.texto || evidencia.imagem || "N/A"}) - 
-                        Coletado por: {evidencia.coletadoPor}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {error && <p className="text-red-500 text-sm">{error}</p>}
-              {success && <p className="text-green-600 text-sm">{success}</p>}
-
-              <div className="flex justify-end gap-4">
-                <button
-                  type="button"
-                  onClick={() => router.back()}
-                  className="bg-gray-500 text-white py-2 px-6 rounded-md hover:bg-gray-600 transition disabled:opacity-50"
-                  disabled={isLoading}
-                >
-                  Cancelar
-                </button>
-                <PrimaryButton
-                  text={isLoading ? "Carregando..." : "Cadastrar Evidência"}
-                  disabled={isLoading || !isFormValid}
-                  type="submit"
-                />
-              </div>
-            </form>
-          </motion.div>
-        </div>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Criar Novo Laudo</h1>
       </div>
-    </div>
-  );
-}
 
-function Input({
-  label,
-  value,
-  placeholder,
-  onChange,
-  type = "text",
-  disabled = false,
-}: {
-  label: string;
-  value: string;
-  placeholder?: string;
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  type?: string;
-  disabled?: boolean;
-}) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-        disabled={disabled}
-      />
-    </div>
-  );
-}
-
-function Textarea({
-  label,
-  value,
-  placeholder,
-  onChange,
-  disabled = false,
-}: {
-  label: string;
-  value: string;
-  placeholder?: string;
-  onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <div className="col-span-1 md:col-span-2">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <textarea
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className="w-full p-3 border border-gray-300 text-gray-800 rounded-xl focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-        rows={4}
-        disabled={disabled}
-      />
-    </div>
-  );
-}
-
-function Select({
-  label,
-  value,
-  onChange,
-  options,
-  disabled = false,
-}: {
-  label: string;
-  value: string;
-  onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
-  options: string[];
-  disabled?: boolean;
-}) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <select
-        value={value}
-        onChange={onChange}
-        className="w-full p-3 border text-gray-800 rounded-xl focus:ring focus:ring-teal-300 disabled:opacity-50"
-        disabled={disabled}
+      <motion.form
+        onSubmit={handleSubmit}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-white rounded-xl p-4 md:p-6 shadow-md space-y-6"
       >
-        <option value="">Selecione uma opção</option>
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
+        {error && <p className="text-red-500">{error}</p>}
+        {success && <p className="text-green-500">{success}</p>}
 
-function PrimaryButton({
-  text,
-  disabled,
-  type = "button",
-}: {
-  text: string;
-  disabled?: boolean;
-  type?: "button" | "submit";
-}) {
-  return (
-    <button
-      type={type}
-      disabled={disabled}
-      className="bg-teal-500 text-white py-2 px-6 rounded-md hover:bg-teal-700 transition disabled:opacity-50"
-    >
-      {text}
-    </button>
+        <div>
+          <label htmlFor="vitimaId" className="block text-sm font-medium text-gray-700 mb-1">
+            Vítima *
+          </label>
+          <select
+            name="vitimaId"
+            id="vitimaId"
+            value={formData.vitimaId}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+            disabled={isLoading}
+            required
+          >
+            <option value="">Selecione uma vítima</option>
+            {vitimas.map((vitima) => (
+              <option key={vitima._id} value={vitima._id}>
+                {vitima.nome || "Não identificada"} ({vitima.sexo || "Indeterminado"}, {vitima.estadoCorpo || "N/A"})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="casoId" className="block text-sm font-medium text-gray-700 mb-1">
+            Caso *
+          </label>
+          <select
+            name="casoId"
+            id="casoId"
+            value={formData.casoId}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+            disabled={isLoading || casos.length === 0}
+            required
+          >
+            <option value="">Selecione um caso</option>
+            {casos.map((caso) => (
+              <option key={caso._id} value={caso._id}>
+                {caso.titulo || "Caso sem título"} ({caso.casoReferencia || "N/A"})
+              </option>
+            ))}
+          </select>
+          {formData.vitimaId && casos.length === 0 && (
+            <p className="text-red-500 text-sm mt-1">Nenhum caso associado à vítima selecionada.</p>
+          )}
+        </div>
+
+        {formData.vitimaId && evidencias.length > 0 && (
+          <div className="bg-gray-50 p-4 rounded-md">
+            <h4 className="font-semibold text-gray-700 mb-2">Evidências Associadas:</h4>
+            <ul className="list-disc pl-5 text-gray-600">
+              {evidencias.map((evidencia) => (
+                <li key={evidencia._id}>
+                  {evidencia.categoria} ({evidencia.tipo},{' '}
+                  {evidencia.tipo === 'texto' ? evidencia.texto || 'N/A' : evidencia.imagem ? 'Imagem' : 'N/A'})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Dados Antemortem *</label>
+          <textarea
+            name="dadosAntemortem"
+            value={formData.dadosAntemortem}
+            onChange={handleChange}
+            placeholder="Descreva os dados antemortem (ex: registros odontológicos, características físicas)"
+            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+            rows={4}
+            disabled={isLoading}
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Dados Postmortem *</label>
+          <textarea
+            name="dadosPostmortem"
+            value={formData.dadosPostmortem}
+            onChange={handleChange}
+            placeholder="Descreva os dados postmortem (ex: estado da arcada dentária, lesões observadas)"
+            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+            rows={4}
+            disabled={isLoading}
+            required
+          />
+        </div>
+
+        <div className="text-sm text-gray-600 italic">
+          A análise de lesões e a conclusão serão geradas automaticamente pela inteligência artificial.
+        </div>
+
+        <div className="flex justify-end gap-4">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="bg-gray-500 text-white py-2 px-6 rounded-md hover:bg-gray-600 transition disabled:opacity-50"
+            disabled={isLoading}
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            className="bg-teal-600 text-white py-2 px-6 rounded-md hover:bg-teal-700 transition disabled:opacity-50"
+            disabled={isLoading || !isFormValid}
+          >
+            {isLoading ? "Criando e assinando..." : "Criar e Assinar Laudo"}
+          </button>
+        </div>
+      </motion.form>
+    </div>
   );
 }

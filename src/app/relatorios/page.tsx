@@ -53,7 +53,7 @@ export default function ReportRegisterPage() {
   useEffect(() => {
     async function fetchCasos() {
       try {
-        const response = await api.get<CaseListResponse>("/api/cases");
+        const response = await api.get<CaseListResponse>("/api/case");
         setCasosDisponiveis(response.data.casos);
       } catch (error) {
         setError("Erro ao buscar casos.");
