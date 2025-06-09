@@ -11,7 +11,7 @@ import { IVitima, VitimaListResponse } from "@/types/Vitima";
 import { AxiosError } from "axios";
 import Image from "next/image";
 
-// Define the type for filter options (same as used in EvidenceManagementPage)
+// Define the type for filter options
 interface FilterOptions {
   coletadoPor: string[];
   casos: string[];
@@ -82,16 +82,30 @@ export default function NewEvidencePage() {
         const vitimaResponse = await api.get<VitimaListResponse>("/api/vitima", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setVitimas(vitimaResponse.data.vitimas);
+        setVitimas(Array.isArray(vitimaResponse.data.vitimas) ? vitimaResponse.data.vitimas : []);
 
-        // Fetch filter options (includes casos)
+        // Fetch filter options
         const filterResponse = await api.get<FilterOptions>("/api/evidence/filters", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setFilterOptions(filterResponse.data);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (err) {
-        setError("Erro ao buscar dados (vítimas ou filtros).");
+        setFilterOptions({
+          coletadoPor: Array.isArray(filterResponse.data.coletadoPor) ? filterResponse.data.coletadoPor : [],
+          casos: Array.isArray(filterResponse.data.casos) ? filterResponse.data.casos : [],
+          cidades: Array.isArray(filterResponse.data.cidades) ? filterResponse.data.cidades : [],
+          lesoes: Array.isArray(filterResponse.data.lesoes) ? filterResponse.data.lesoes : [],
+          sexos: Array.isArray(filterResponse.data.sexos) ? filterResponse.data.sexos : [],
+        });
+      } catch (err: unknown) {
+        const axiosError = err as AxiosError<{ msg?: string }>;
+        setError(axiosError.response?.data?.msg || "Erro ao buscar dados (vítimas ou filtros).");
+        setVitimas([]);
+        setFilterOptions({
+          coletadoPor: [],
+          casos: [],
+          cidades: [],
+          lesoes: [],
+          sexos: [],
+        });
       }
     };
 
@@ -140,7 +154,7 @@ export default function NewEvidencePage() {
 
       // Criar FormData para enviar todos os dados em uma única requisição
       const formData = new FormData();
-      formData.append("casoReferencia", casoReferencia); 
+      formData.append("casoReferencia", casoReferencia);
       formData.append("tipo", tipo);
       formData.append("categoria", categoria);
       formData.append("coletadoPor", coletadoPorNome);
@@ -261,7 +275,7 @@ export default function NewEvidencePage() {
                   value={casoReferencia}
                   onChange={(e) => handleChange(e, setCasoReferencia)}
                   options={filterOptions.casos}
-                  disabled={isLoading || filterOptions.casos.length === 0}
+                  disabled={isLoading || !Array.isArray(filterOptions.casos) || filterOptions.casos.length === 0}
                 />
                 <Input
                   label="Categoria *"
@@ -309,7 +323,7 @@ export default function NewEvidencePage() {
                     <option value="">Selecione uma vítima</option>
                     {vitimas.map((vitima) => (
                       <option key={vitima._id} value={vitima._id}>
-                        {vitima.nome || "Não identificada"} ({vitima.estadoCorpo})
+                        {vitima.nome || "Não identificada"} ({vitima.estadoCorpo || "Inteiro"})
                       </option>
                     ))}
                   </select>
@@ -545,11 +559,12 @@ function Select({
         disabled={disabled}
       >
         <option value="">Selecione uma opção</option>
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
+        {Array.isArray(options) &&
+          options.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
       </select>
     </div>
   );

@@ -118,7 +118,14 @@ export default function EvidenceManagementPage() {
       const response = await api.get<FilterOptions>("/api/evidence/filters", {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
-      setFilterOptions(response.data);
+      // Ensure arrays are always set, even if API returns undefined or null
+      setFilterOptions({
+        coletadoPor: response.data.coletadoPor || [],
+        casos: response.data.casos || [],
+        cidades: response.data.cidades || [],
+        lesoes: response.data.lesoes || [],
+        sexos: response.data.sexos || [],
+      });
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
       setError(axiosError.response?.data?.msg || "Erro ao buscar opções de filtro.");
@@ -149,13 +156,19 @@ export default function EvidenceManagementPage() {
         params,
       });
 
-      console.log("Fetched evidences:", response.data.evidencias); // Debug log
-      setEvidences(response.data.evidencias);
-      setPagination(response.data.paginacao);
+      // Ensure evidences is always an array
+      setEvidences(Array.isArray(response.data.evidencias) ? response.data.evidencias : []);
+      setPagination(response.data.paginacao || {
+        total: 0,
+        paginaAtual: 1,
+        porPagina: 10,
+        totalPaginas: 0,
+      });
       setError("");
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
       setError(axiosError.response?.data?.msg || "Erro ao buscar evidências.");
+      setEvidences([]); // Reset to empty array on error
     } finally {
       setIsLoading(false);
     }
@@ -178,10 +191,11 @@ export default function EvidenceManagementPage() {
       const response = await api.get<VitimaListResponse>("/api/vitima", {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
-      setVitimas(response.data.vitimas);
+      setVitimas(Array.isArray(response.data.vitimas) ? response.data.vitimas : []);
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
       setError(axiosError.response?.data?.msg || "Erro ao buscar vítimas.");
+      setVitimas([]); // Reset to empty array on error
     }
   }, []);
 
@@ -190,7 +204,7 @@ export default function EvidenceManagementPage() {
       const response = await api.get<LaudoListResponse>(`/api/laudo?evidencias=${evidenceId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
-      if (response.data.laudos && response.data.laudos.length > 0) {
+      if (Array.isArray(response.data.laudos) && response.data.laudos.length > 0) {
         setLaudoDetails(response.data.laudos[0]);
       } else {
         setLaudoDetails(null);
@@ -206,7 +220,6 @@ export default function EvidenceManagementPage() {
       const response = await api.get<Evidence & { vitima?: IVitima }>(`/api/evidence/${evidenceId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
-      console.log("Fetched evidence by ID:", response.data); // Debug log
       return response.data;
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
@@ -224,7 +237,6 @@ export default function EvidenceManagementPage() {
   }, [user, authLoading, fetchEvidences, fetchVitimas, fetchFilterOptions]);
 
   const handleEditEvidence = async (evidence: Evidence & { vitima?: IVitima }) => {
-    console.log("Attempting to edit evidence with ID:", evidence._id); // Debug log
     const freshEvidence = await fetchEvidenceById(evidence._id);
     if (!freshEvidence) {
       setError("Evidência não encontrada ao tentar editar.");
@@ -369,7 +381,6 @@ export default function EvidenceManagementPage() {
         });
       }
 
-      console.log("Submit response:", response.data); // Debug log
       setSuccess(editingEvidence ? "Evidência atualizada com sucesso." : "Evidência adicionada com sucesso.");
       setSubmittedEvidenceId(editingEvidence ? editingEvidence._id : response.data._id);
       await fetchEvidences();
@@ -377,7 +388,6 @@ export default function EvidenceManagementPage() {
       handleCancelEdit();
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
-      console.error("Submit error:", axiosError.response?.data); // Debug log
       setError(axiosError.response?.data?.msg || `Erro ao ${editingEvidence ? "atualizar" : "adicionar"} a evidência.`);
     } finally {
       setIsLoading(false);
@@ -482,11 +492,12 @@ export default function EvidenceManagementPage() {
                 disabled={isLoading}
               >
                 <option value="">Selecione um caso</option>
-                {filterOptions.casos.map((caso) => (
-                  <option key={caso} value={caso}>
-                    {caso}
-                  </option>
-                ))}
+                {Array.isArray(filterOptions.casos) &&
+                  filterOptions.casos.map((caso) => (
+                    <option key={caso} value={caso}>
+                      {caso}
+                    </option>
+                  ))}
               </select>
             </div>
             <div>
@@ -557,7 +568,7 @@ export default function EvidenceManagementPage() {
                 <option value="">Selecione uma vítima</option>
                 {vitimas.map((vitima) => (
                   <option key={vitima._id} value={vitima._id}>
-                    {vitima.nome || "Não identificada"} ({vitima.estadoCorpo})
+                    {vitima.nome || "Não identificada"} ({vitima.estadoCorpo || "Inteiro"})
                   </option>
                 ))}
               </select>
@@ -676,6 +687,7 @@ export default function EvidenceManagementPage() {
                   <div className="col-span-1 md:col-span-2">
                     {editingVitimaId &&
                       editingEvidence?.vitima?.imagens &&
+                      Array.isArray(editingEvidence.vitima.imagens) &&
                       editingEvidence.vitima.imagens.length > 0 &&
                       !failedImages.has(editingEvidence._id) && (
                         <div className="mb-4">
@@ -726,7 +738,7 @@ export default function EvidenceManagementPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Data de Criação</label>
                   <input
                     type="text"
-                    value={new Date(laudoDetails.dataCriacao).toLocaleDateString("pt-BR")}
+                    value={laudoDetails.dataCriacao ? new Date(laudoDetails.dataCriacao).toLocaleDateString("pt-BR") : "N/A"}
                     className="w-full p-3 border border-gray-300 rounded-md text-gray-800 bg-gray-100"
                     disabled
                   />
@@ -798,11 +810,12 @@ export default function EvidenceManagementPage() {
               className="w-full p-3 border border-gray-300 rounded-md"
             >
               <option value="">Todos</option>
-              {filterOptions.coletadoPor.map((nome) => (
-                <option key={nome} value={nome}>
-                  {nome}
-                </option>
-              ))}
+              {Array.isArray(filterOptions.coletadoPor) &&
+                filterOptions.coletadoPor.map((nome) => (
+                  <option key={nome} value={nome}>
+                    {nome}
+                  </option>
+                ))}
             </select>
           </div>
           <div>
@@ -813,11 +826,12 @@ export default function EvidenceManagementPage() {
               className="w-full p-3 border border-gray-300 rounded-md"
             >
               <option value="">Todos</option>
-              {filterOptions.casos.map((caso) => (
-                <option key={caso} value={caso}>
-                  {caso}
-                </option>
-              ))}
+              {Array.isArray(filterOptions.casos) &&
+                filterOptions.casos.map((caso) => (
+                  <option key={caso} value={caso}>
+                    {caso}
+                  </option>
+                ))}
             </select>
           </div>
           <div>
@@ -828,11 +842,12 @@ export default function EvidenceManagementPage() {
               className="w-full p-3 border border-gray-300 rounded-md"
             >
               <option value="">Todos</option>
-              {filterOptions.cidades.map((cidade) => (
-                <option key={cidade} value={cidade}>
-                  {cidade}
-                </option>
-              ))}
+              {Array.isArray(filterOptions.cidades) &&
+                filterOptions.cidades.map((cidade) => (
+                  <option key={cidade} value={cidade}>
+                    {cidade}
+                  </option>
+                ))}
             </select>
           </div>
           <div>
@@ -862,11 +877,12 @@ export default function EvidenceManagementPage() {
               className="w-full p-3 border border-gray-300 rounded-md"
             >
               <option value="">Todos</option>
-              {filterOptions.lesoes.map((lesao) => (
-                <option key={lesao} value={lesao}>
-                  {lesao}
-                </option>
-              ))}
+              {Array.isArray(filterOptions.lesoes) &&
+                filterOptions.lesoes.map((lesao) => (
+                  <option key={lesao} value={lesao}>
+                    {lesao}
+                  </option>
+                ))}
             </select>
           </div>
           <div>
@@ -879,11 +895,12 @@ export default function EvidenceManagementPage() {
               className="w-full p-3 border border-gray-300 rounded-md"
             >
               <option value="">Todos</option>
-              {filterOptions.sexos.map((sexo) => (
-                <option key={sexo} value={sexo}>
-                  {sexo}
-                </option>
-              ))}
+              {Array.isArray(filterOptions.sexos) &&
+                filterOptions.sexos.map((sexo) => (
+                  <option key={sexo} value={sexo}>
+                    {sexo}
+                  </option>
+                ))}
             </select>
           </div>
         </div>
@@ -924,10 +941,10 @@ export default function EvidenceManagementPage() {
                     className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
                   >
                     <p className="text-gray-700">
-                      <strong>Caso:</strong> {item.caso}
+                      <strong>Caso:</strong> {item.caso || "N/A"}
                     </p>
                     <p className="text-gray-700">
-                      <strong>Categoria:</strong> {item.categoria}
+                      <strong>Categoria:</strong> {item.categoria || "N/A"}
                     </p>
                     <p className="text-gray-700">
                       <strong>Conteúdo:</strong>{" "}
@@ -938,7 +955,7 @@ export default function EvidenceManagementPage() {
                     </p>
                     <p className="text-gray-700">
                       <strong>Data de Upload:</strong>{" "}
-                      {new Date(item.dataUpload).toLocaleDateString("pt-BR")}
+                      {item.dataUpload ? new Date(item.dataUpload).toLocaleDateString("pt-BR") : "N/A"}
                     </p>
                     <p className="text-gray-700">
                       <strong>Vítima:</strong> {item.vitima?.nome || "Não identificada"}
@@ -983,7 +1000,7 @@ export default function EvidenceManagementPage() {
                     transition={{ duration: 0.3 }}
                     className="p-6 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
                   >
-                    {item.vitima?.imagens && item.vitima.imagens.length > 0 && !failedImages.has(item._id) ? (
+                    {item.vitima?.imagens && Array.isArray(item.vitima.imagens) && item.vitima.imagens.length > 0 && !failedImages.has(item._id) ? (
                       <Image
                         src={item.vitima.imagens[0]}
                         alt="Evidência"
@@ -998,17 +1015,17 @@ export default function EvidenceManagementPage() {
                       <p className="text-gray-600 mb-4">Imagem não disponível</p>
                     )}
                     <p className="text-gray-700">
-                      <strong>Caso:</strong> {item.caso}
+                      <strong>Caso:</strong> {item.caso || "N/A"}
                     </p>
                     <p className="text-gray-700">
-                      <strong>Categoria:</strong> {item.categoria}
+                      <strong>Categoria:</strong> {item.categoria || "N/A"}
                     </p>
                     <p className="text-gray-700">
                       <strong>Coletado por:</strong> {item.coletadoPor || "N/A"}
                     </p>
                     <p className="text-gray-700">
                       <strong>Data de Upload:</strong>{" "}
-                      {new Date(item.dataUpload).toLocaleDateString("pt-BR")}
+                      {item.dataUpload ? new Date(item.dataUpload).toLocaleDateString("pt-BR") : "N/A"}
                     </p>
                     <p className="text-gray-700">
                       <strong>Vítima:</strong> {item.vitima?.nome || "Não identificada"}

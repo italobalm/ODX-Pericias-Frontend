@@ -7,28 +7,42 @@ import api from '@/lib/axiosConfig';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { IVitima } from '@/types/Vitima';
 import { ILaudo } from '@/types/Laudo';
+import { Case } from '@/types/Case'; // Import Case type
+import { Evidence } from '@/types/Evidence'; // Import Evidence type
 import { AxiosError } from 'axios';
 import { motion } from 'framer-motion';
+
+interface FormData {
+  vitimaId: string;
+  casoId: string;
+  evidencias: string[];
+  dadosAntemortem: string;
+  dadosPostmortem: string;
+}
 
 export default function GerarLaudoPage() {
   const router = useRouter();
   const { user, loading: authLoading, error: authError } = useAuth();
 
   const [vitimas, setVitimas] = useState<IVitima[]>([]);
+  const [casos, setCasos] = useState<Case[]>([]);
+  const [evidencias, setEvidencias] = useState<Evidence[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     vitimaId: "",
-    perito: "",
+    casoId: "",
+    evidencias: [],
     dadosAntemortem: "",
     dadosPostmortem: "",
   });
 
   const isFormValid =
     formData.vitimaId &&
-    formData.perito &&
+    formData.casoId &&
+    formData.evidencias.length > 0 &&
     formData.dadosAntemortem &&
     formData.dadosPostmortem;
 
@@ -40,13 +54,11 @@ export default function GerarLaudoPage() {
           const response = await api.get<{ data: IVitima[] }>("/api/vitima", {
             headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
           });
-          console.log("Resposta de /api/vitima:", response.data); // Depuração
           setVitimas(response.data.data || []);
           setError("");
         } catch (err: unknown) {
           const axiosError = err as AxiosError<{ msg?: string }>;
           setError(axiosError.response?.data?.msg || "Erro ao buscar vítimas.");
-          console.error("Erro ao buscar vítimas:", axiosError);
           setVitimas([]);
         } finally {
           setIsLoading(false);
@@ -56,18 +68,58 @@ export default function GerarLaudoPage() {
     }
   }, [user, authLoading]);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  // Fetch cases and evidences when vitimaId changes
+  useEffect(() => {
+    if (formData.vitimaId) {
+      const fetchCasesAndEvidences = async () => {
+        setIsLoading(true);
+        try {
+          // Fetch cases
+          const caseResponse = await api.get<{ data: Case[] }>("/api/case", {
+            headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+            params: { vitima: formData.vitimaId }, // Filter cases by vitima
+          });
+          setCasos(caseResponse.data.data || []);
+
+          // Fetch evidences
+          const evidenceResponse = await api.get<{ data: Evidence[] }>("/api/evidence", {
+            headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+            params: { vitima: formData.vitimaId }, // Filter evidences by vitima
+          });
+          setEvidencias(evidenceResponse.data.data || []);
+
+          setError("");
+        } catch (err: unknown) {
+          const axiosError = err as AxiosError<{ msg?: string }>;
+          setError(axiosError.response?.data?.msg || "Erro ao buscar casos ou evidências.");
+          setCasos([]);
+          setEvidencias([]);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchCasesAndEvidences();
+    } else {
+      setCasos([]);
+      setEvidencias([]);
+      setFormData((prev) => ({ ...prev, casoId: "", evidencias: [] }));
+    }
+  }, [formData.vitimaId]);
+
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEvidenciasChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const selectedOptions = Array.from(e.target.selectedOptions).map((option) => option.value);
+    setFormData((prev) => ({ ...prev, evidencias: selectedOptions }));
   };
 
   const downloadPDF = (pdfBase64: string, laudoId: string) => {
     try {
-      if (typeof window === "undefined" || !document.body) {
-        console.error("DOM ainda não está disponível.");
-        return;
-      }
-  
       const byteCharacters = atob(pdfBase64);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -75,13 +127,11 @@ export default function GerarLaudoPage() {
       }
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: "application/pdf" });
-  
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       link.download = `laudo-${laudoId}-${new Date().toISOString().slice(0, 10)}.pdf`;
-  
-      document.body.appendChild(link); 
+      document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
@@ -89,12 +139,12 @@ export default function GerarLaudoPage() {
       setError("Erro ao baixar o PDF.");
       console.error("Erro ao baixar PDF:", err);
     }
-  };  
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!isFormValid) {
-      setError("Preencha todos os campos obrigatórios.");
+      setError("Preencha todos os campos obrigatórios e selecione pelo menos uma evidência.");
       return;
     }
 
@@ -102,34 +152,36 @@ export default function GerarLaudoPage() {
     try {
       const laudoData = {
         vitima: formData.vitimaId,
-        perito: formData.perito,
+        perito: user?.id, // Use logged-in user's ID
         dadosAntemortem: formData.dadosAntemortem,
         dadosPostmortem: formData.dadosPostmortem,
-        analiseLesoes: "",
-        conclusao: "",
+        caso: formData.casoId,
+        evidencias: formData.evidencias,
       };
 
-      console.log("Enviando laudoData:", laudoData); // Depuração
+      console.log("Enviando laudoData:", laudoData);
 
-      // Criar o laudo
-      const createResponse = await api.post<{ laudo: ILaudo; pdf: string }>("/api/laudo", laudoData, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-      });
+      const createResponse = await api.post<{ laudo: ILaudo; pdf: string }>(
+        "/api/laudo",
+        laudoData,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+        }
+      );
       const { laudo: createdLaudo, pdf: signedPdf } = createResponse.data;
 
-      // Baixar o PDF assinado
       if (createdLaudo._id) {
         downloadPDF(signedPdf, createdLaudo._id);
       } else {
         setError("Erro: ID do laudo não encontrado.");
-        console.error("Erro: ID do laudo não encontrado.");
       }
 
       setSuccess("Laudo criado, assinado e PDF baixado com sucesso.");
       setError("");
       setFormData({
         vitimaId: "",
-        perito: "",
+        casoId: "",
+        evidencias: [],
         dadosAntemortem: "",
         dadosPostmortem: "",
       });
@@ -143,7 +195,8 @@ export default function GerarLaudoPage() {
   };
 
   if (authLoading) return <div className="text-center mt-20 text-gray-600">Carregando...</div>;
-  if (authError) return <div className="text-center mt-20 text-red-500">Erro de autenticação: {authError}</div>;
+  if (authError)
+    return <div className="text-center mt-20 text-red-500">Erro de autenticação: {authError}</div>;
   if (!user || !["admin", "perito"].includes(user.perfil.toLowerCase())) {
     router.push("/initialScreen");
     return null;
@@ -195,20 +248,48 @@ export default function GerarLaudoPage() {
         </div>
 
         <div>
-          <label htmlFor="perito" className="block text-sm font-medium text-gray-700 mb-1">
-            Nome do Perito *
+          <label htmlFor="casoId" className="block text-sm font-medium text-gray-700 mb-1">
+            Caso *
           </label>
-          <input
-            type="text"
-            name="perito"
-            id="perito"
-            value={formData.perito}
+          <select
+            name="casoId"
+            id="casoId"
+            value={formData.casoId}
             onChange={handleChange}
-            placeholder="Digite o nome do perito"
             className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-            disabled={isLoading}
+            disabled={isLoading || !formData.vitimaId}
             required
-          />
+          >
+            <option value="">Selecione um caso</option>
+            {casos.map((caso) => (
+              <option key={caso._id} value={caso._id}>
+                {caso.titulo || "Caso sem título"} ({caso.casoReferencia || "N/A"})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="evidencias" className="block text-sm font-medium text-gray-700 mb-1">
+            Evidências *
+          </label>
+          <select
+            name="evidencias"
+            id="evidencias"
+            multiple
+            value={formData.evidencias}
+            onChange={handleEvidenciasChange}
+            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
+            disabled={isLoading || !formData.vitimaId}
+            required
+          >
+            {evidencias.map((evidencia) => (
+              <option key={evidencia._id} value={evidencia._id}>
+                {evidencia.categoria} ({evidencia.tipo}, {evidencia.conteudo || "N/A"})
+              </option>
+            ))}
+          </select>
+          <p className="text-sm text-gray-500 mt-1">Segure Ctrl (ou Cmd) para selecionar múltiplas evidências.</p>
         </div>
 
         <div>
