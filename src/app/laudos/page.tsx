@@ -35,13 +35,12 @@ export default function GerarLaudoPage() {
     dadosPostmortem: "",
   });
 
-  // Validate form, ensuring at least one case and one evidence exist
+  // Validate form
   const isFormValid =
     formData.vitimaId &&
     formData.dadosAntemortem &&
     formData.dadosPostmortem &&
-    casos.length > 0 &&
-    evidencias.length > 0;
+    casos.length > 0; // Removed evidencias.length > 0 for now
 
   // Fetch victims on mount
   useEffect(() => {
@@ -73,11 +72,22 @@ export default function GerarLaudoPage() {
         setIsLoading(true);
         try {
           // Fetch cases
-          const caseResponse = await api.get<{ data: Case[] }>("/api/case", {
+          const caseResponse = await api.get("/api/case", {
             headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
             params: { vitima: formData.vitimaId },
           });
-          const fetchedCases = caseResponse.data.data || [];
+          // Log response for debugging
+          console.log("Case Response:", caseResponse.data);
+
+          // Handle different response structures
+          let fetchedCases: Case[] = [];
+          if (Array.isArray(caseResponse.data)) {
+            fetchedCases = caseResponse.data;
+          } else if (caseResponse.data.data) {
+            fetchedCases = caseResponse.data.data;
+          } else if (caseResponse.data.cases) {
+            fetchedCases = caseResponse.data.cases;
+          }
           setCasos(fetchedCases);
 
           // Fetch evidences
@@ -88,17 +98,16 @@ export default function GerarLaudoPage() {
           const fetchedEvidences = evidenceResponse.data.data || [];
           setEvidencias(fetchedEvidences);
 
-          // Set error if no cases or evidences are found
+          // Set error if no cases are found
           if (fetchedCases.length === 0) {
             setError("Nenhum caso encontrado para a vítima selecionada.");
-          } else if (fetchedEvidences.length === 0) {
-            setError("Nenhuma evidência encontrada para a vítima selecionada.");
           } else {
             setError("");
           }
         } catch (err: unknown) {
           const axiosError = err as AxiosError<{ msg?: string }>;
           setError(axiosError.response?.data?.msg || "Erro ao buscar casos ou evidências.");
+          console.error("Fetch Error:", axiosError);
           setCasos([]);
           setEvidencias([]);
         } finally {
@@ -145,7 +154,7 @@ export default function GerarLaudoPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!isFormValid) {
-      setError("Preencha todos os campos obrigatórios e verifique se há casos e evidências associados à vítima.");
+      setError("Preencha todos os campos obrigatórios e verifique se há casos associados à vítima.");
       return;
     }
 
@@ -156,8 +165,8 @@ export default function GerarLaudoPage() {
         perito: user?.id,
         dadosAntemortem: formData.dadosAntemortem,
         dadosPostmortem: formData.dadosPostmortem,
-        caso: casos[0]._id, // Use the first case's ID
-        evidencias: evidencias.map((ev) => ev._id), // Include all fetched evidences
+        caso: casos[0]._id,
+        evidencias: evidencias.map((ev) => ev._id) || [], // Allow empty evidences
       };
 
       console.log("Enviando laudoData:", laudoData);

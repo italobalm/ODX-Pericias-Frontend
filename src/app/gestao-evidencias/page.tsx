@@ -7,8 +7,8 @@ import { FaArrowLeft, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import api from "@/lib/axiosConfig";
 import { useAuth } from "../providers/AuthProvider";
 import { Evidence, EvidenceListResponse } from "@/types/Evidence";
-import { IVitima, VitimaListResponse } from "@/types/Vitima";
-import { ILaudo, LaudoListResponse } from "@/types/Laudo";
+import { IVitima, } from "@/types/Vitima";
+import { ILaudo, } from "@/types/Laudo";
 import { AxiosError } from "axios";
 import Image from "next/image";
 
@@ -188,30 +188,33 @@ export default function EvidenceManagementPage() {
 
   const fetchVitimas = useCallback(async () => {
     try {
-      const response = await api.get<VitimaListResponse>("/api/vitima", {
+      const response = await api.get("/api/vitima", {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
-      setVitimas(Array.isArray(response.data.vitimas) ? response.data.vitimas : []);
-    } catch (err: unknown) {
-      const axiosError = err as AxiosError<{ msg?: string }>;
-      setError(axiosError.response?.data?.msg || "Erro ao buscar vítimas.");
-      setVitimas([]); // Reset to empty array on error
-    }
-  }, []);
-
-  const fetchLaudo = useCallback(async (evidenceId: string) => {
-    try {
-      const response = await api.get<LaudoListResponse>(`/api/laudo?evidencias=${evidenceId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-      });
-      if (Array.isArray(response.data.laudos) && response.data.laudos.length > 0) {
-        setLaudoDetails(response.data.laudos[0]);
+      // Log response for debugging
+      console.log("Vitima Response:", response.data);
+  
+      // Handle different response structures
+      let fetchedVitimas: IVitima[] = [];
+      if (Array.isArray(response.data)) {
+        fetchedVitimas = response.data;
+      } else if (response.data.vitimas) {
+        fetchedVitimas = Array.isArray(response.data.vitimas) ? response.data.vitimas : [];
+      } else if (response.data.data) {
+        fetchedVitimas = Array.isArray(response.data.data) ? response.data.data : [];
+      }
+      setVitimas(fetchedVitimas);
+  
+      if (fetchedVitimas.length === 0) {
+        setError("Nenhuma vítima encontrada na resposta da API.");
       } else {
-        setLaudoDetails(null);
+        setError("");
       }
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
-      setError(axiosError.response?.data?.msg || "Erro ao buscar dados do laudo.");
+      console.error("Fetch Vitimas Error:", axiosError);
+      setError(axiosError.response?.data?.msg || "Erro ao buscar vítimas.");
+      setVitimas([]);
     }
   }, []);
 
@@ -1081,4 +1084,9 @@ export default function EvidenceManagementPage() {
       )}
     </div>
   );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function fetchLaudo(_id: string) {
+  throw new Error("Function not implemented.");
 }
