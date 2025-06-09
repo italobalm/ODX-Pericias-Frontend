@@ -14,7 +14,6 @@ const geistSans = Geist({
 export const metadata: Metadata = {
   title: "ODX Perícias",
   description: "A solução ideal para laudos rápidos e confiáveis",
-  themeColor: "#5ed8b1",
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -31,6 +30,11 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
 };
+
+export const viewport = {
+  themeColor: "#5ed8b1",
+};
+
 
 export default function RootLayout({
   children,

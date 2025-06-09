@@ -1,19 +1,24 @@
-import { IVitima } from "../types/Vitima";
-import { Evidence } from "../types/Evidence";
-import { User } from "../types/User";
+import { IVitima } from "./Vitima";
+import { Evidence } from "./Evidence";
+import { User } from "./User";
+import { Case } from "./Case";
 
 export interface ILaudo {
   _id?: string;
   evidencias: Array<string | Evidence>;
   vitima: string | IVitima;
+  caso: string | Case;
   perito: string | User;
   dadosAntemortem: string;
   dadosPostmortem: string;
   analiseLesoes: string;
   conclusao: string;
   dataCriacao: string | Date;
-  assinaturaDigital?: string;
+  assinaturaDigital?: string | null;
 }
-export interface LaudoListResponse {
-  laudos: ILaudo[];
+
+export interface LaudoResponse {
+  msg: string;
+  laudo: ILaudo;
+  pdf: string;
 }

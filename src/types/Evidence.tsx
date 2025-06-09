@@ -1,20 +1,22 @@
 import { IVitima } from "./Vitima";
+import { Case } from "./Case";
 
-// Interface ajustada para corresponder ao IEvidence do backend
 export interface Evidence {
   _id: string;
-  caso: string; // ObjectId será tratado como string no frontend
+  caso: string | Case;
+  vitima: string | IVitima;
   tipo: "imagem" | "texto";
   categoria: string;
-  dataUpload: string; // Date será tratado como string no frontend
+  dataUpload: string | Date;
   coletadoPor: string;
-  conteudo?: string;
-  vitima?: IVitima; // Para dados populados da vítima
+  texto?: string;
+  imagem?: string;
 }
 
 export interface EvidenceResponse {
   msg: string;
   evidence: Evidence;
+  vitima: IVitima;
 }
 
 export interface EvidenceListResponse {
