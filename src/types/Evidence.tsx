@@ -4,13 +4,13 @@ import { Case } from "./Case";
 export interface Evidence {
   _id: string;
   caso: string | Case;
-  vitima: string | IVitima;
+  vitima?: IVitima | undefined; // Reflects populated state
   tipo: "imagem" | "texto";
   categoria: string;
-  dataUpload: string | Date;
-  coletadoPor: string;
-  texto?: string;
-  imagem?: string;
+  dataUpload: string | Date | null;
+  coletadoPor: string; // Nome do usuário
+  texto?: string | null;
+  imagem?: string | null;
 }
 
 export interface EvidenceResponse {

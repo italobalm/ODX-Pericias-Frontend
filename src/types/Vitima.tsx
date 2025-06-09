@@ -1,21 +1,20 @@
+import { Case } from "./Case";
+
 export interface IVitima {
   _id: string;
-  nome?: string;
-  dataNascimento?: string;
-  idadeAproximada?: number;
-  nacionalidade?: string;
-  cidade?: string;
+  nome?: string | null;
+  dataNascimento?: string | null;
+  idadeAproximada?: number | null;
+  nacionalidade?: string | null;
+  cidade?: string | null;
   sexo: "masculino" | "feminino" | "indeterminado";
   estadoCorpo: "inteiro" | "fragmentado" | "carbonizado" | "putrefacto" | "esqueleto";
-  imagens?: string[]; 
-  lesoes?: string;
+  lesoes?: string | null;
   identificada: boolean;
-  caso?: string; // Added the 'caso' property
-
+  caso?: string | Case | null;
 }
 
 export interface VitimaListResponse {
   data: IVitima[];
   msg?: string;
-  vitimas: IVitima[];
 }

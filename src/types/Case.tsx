@@ -17,7 +17,8 @@ export interface CaseResponse {
 }
 
 export interface CaseListResponse {
-  casos: Case[]; // Adjusted to match the backend response structure
+  casos: Case[]
   msg?: string;
   success?: boolean;
 }
+
