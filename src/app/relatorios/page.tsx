@@ -74,18 +74,21 @@ export default function ReportRegisterPage() {
           `/api/evidence?caso=${casoReferencia}&populate=vitima`
         );
         const fetchedEvidencias = evidenciasResponse.data.evidencias || [];
+        console.log("Evidências recebidas:", fetchedEvidencias.map(e => ({ _id: e._id, categoria: e.categoria, vitima: e.vitima })));
         setEvidencias(fetchedEvidencias);
-
+  
         const vitimaIds = Array.from(new Set(fetchedEvidencias.map((e) => e.vitima)));
         const vitimasResponse = await api.get<{ vitimas: IVitima[] }>(
           `/api/vitima?ids=${vitimaIds.join(",")}`
         );
+        console.log("Vítimas recebidas:", vitimasResponse.data.vitimas.map(v => ({ _id: v._id, nome: v.nome })));
         setVitimas(vitimasResponse.data.vitimas || []);
-
-        const evidenciaIds = fetchedEvidencias.map((e) => e._id);
+  
+        // Buscar laudos associados às vítimas
         const laudosResponse = await api.get<{ laudos: ILaudo[] }>(
-          `/api/laudo?evidencias=${evidenciaIds.join(",")}`
+          `/api/laudo?vitima=${vitimaIds.join(",")}`
         );
+        console.log("Laudos recebidos:", laudosResponse.data.laudos.map(l => ({ _id: l._id, vitima: l.vitima, caso: l.caso })));
         setLaudos(laudosResponse.data.laudos || []);
       } catch (error) {
         setError("Erro ao buscar dados do caso (evidências, vítimas ou laudos).");
@@ -131,7 +134,7 @@ export default function ReportRegisterPage() {
   
     try {
       const formData = new FormData();
-      formData.append("titulo", titulo.trim()); // Corrigido: usar o estado titulo
+      formData.append("titulo", titulo.trim());
       formData.append("descricao", descricao.trim());
       formData.append("objetoPericia", objetoPericia.trim());
       formData.append("metodoUtilizado", metodoUtilizado.trim());
