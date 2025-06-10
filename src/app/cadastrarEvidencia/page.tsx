@@ -516,6 +516,14 @@ export default function NewEvidencePage() {
                   disabled={isLoading || !isFormValid}
                   type="submit"
                 />
+                  <button
+                    type="button"
+                    onClick={() => router.push("/laudos")} // Redireciona para a página de gerar laudo
+                    className="bg-blue-500 text-white py-2 px-6 rounded-md hover:bg-blue-600 transition disabled:opacity-50"
+                    disabled={isLoading}
+                  >
+                    Gerar Laudo
+                  </button>
               </div>
             </form>
           </motion.div>
