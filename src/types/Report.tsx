@@ -15,10 +15,10 @@ export interface Report {
   consideracoesTecnicoPericiais: string;
   conclusaoTecnica: string;
   caso: string; // ID do caso
-  evidencias: string[] | Evidence[]; // Array de IDs ou objetos Evidence
-  vitimas: string[] | IVitima[]; // Array de IDs ou objetos Vitima
-  laudos: string[] | ILaudo[]; // Array de IDs ou objetos Laudo
-  audioURL?: string; // URL do áudio
+  evidencias: string[] | Evidence[];
+  vitimas: string[] | IVitima[];
+  laudos: string[] | ILaudo[];
+  audioURL?: string;
   criadoEm: string;
   assinadoDigitalmente: boolean;
 }
@@ -27,8 +27,8 @@ export interface ReportResponse {
   data: Report;
   msg?: string;
   success?: boolean;
-  report?: Report; // Para compatibilidade com a resposta do backend
-  pdf?: string; // PDF em base64 retornado pelo backend
+  report?: Report; 
+  pdf?: string; 
 }
 
 export interface ReportListResponse {

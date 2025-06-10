@@ -129,12 +129,10 @@ export default function ReportRegisterPage() {
       return;
     }
   
-    console.log("Submitting form with casoReferencia:", casoReferencia);
-  
     try {
       const formData = new FormData();
-      formData.append("titulo", casoReferencia.trim());
-      formData.append("descripcion", descricao.trim());
+      formData.append("titulo", titulo.trim()); // Corrigido: usar o estado titulo
+      formData.append("descricao", descricao.trim());
       formData.append("objetoPericia", objetoPericia.trim());
       formData.append("metodoUtilizado", metodoUtilizado.trim());
       formData.append("destinatario", destinatario.trim());
@@ -190,7 +188,7 @@ export default function ReportRegisterPage() {
       }
     }
   };
-  
+
   const handleSign = async () => {
     if (!reportId) {
       setError("Nenhum relatório gerado para assinar.");
