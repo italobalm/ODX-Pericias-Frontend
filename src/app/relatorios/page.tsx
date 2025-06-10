@@ -115,13 +115,26 @@ export default function ReportRegisterPage() {
     setError("");
     if (!isFormValid) {
       setError("Todos os campos obrigatórios devem ser preenchidos.");
+      console.log("Form is invalid:", {
+        casoReferencia,
+        titulo,
+        descricao,
+        objetoPericia,
+        metodoUtilizado,
+        destinatario,
+        materiaisUtilizados,
+        examesRealizados,
+        consideracoesTecnicoPericiais,
+      });
       return;
     }
-
+  
+    console.log("Submitting form with casoReferencia:", casoReferencia);
+  
     try {
       const formData = new FormData();
-      formData.append("titulo", titulo.trim());
-      formData.append("descricao", descricao.trim());
+      formData.append("titulo", casoReferencia.trim());
+      formData.append("descripcion", descricao.trim());
       formData.append("objetoPericia", objetoPericia.trim());
       formData.append("metodoUtilizado", metodoUtilizado.trim());
       formData.append("destinatario", destinatario.trim());
@@ -132,24 +145,29 @@ export default function ReportRegisterPage() {
       if (audioFile) {
         formData.append("audio", audioFile);
       }
-
+  
+      // Logar o conteúdo do FormData
+      for (const [key, value] of formData.entries()) {
+        console.log(`FormData ${key}:`, value);
+      }
+  
       const response = await api.post<ReportResponse>("/api/report", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-
+  
       const { report, pdf } = response.data;
-
+  
       if (report) {
         setReportId(report._id);
       }
-
+  
       if (!pdf || typeof pdf !== "string") {
         setError("Erro: O PDF retornado pelo servidor é inválido ou não foi fornecido.");
         return;
       }
-
+  
       const byteCharacters = atob(pdf);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -158,20 +176,21 @@ export default function ReportRegisterPage() {
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
-
+  
       console.log("PDF URL:", url);
       setPdfUrl(url);
       setSubmitted(true);
     } catch (err: unknown) {
       if (isAxiosError(err)) {
         setError(err.response?.data?.msg || "Erro ao gerar o relatório.");
+        console.error("Axios error:", err.response?.data);
       } else {
         setError("Erro ao gerar o relatório.");
+        console.error("Unknown error:", err);
       }
-      console.error(err);
     }
   };
-
+  
   const handleSign = async () => {
     if (!reportId) {
       setError("Nenhum relatório gerado para assinar.");
