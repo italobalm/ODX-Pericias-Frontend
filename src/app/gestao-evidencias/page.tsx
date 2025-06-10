@@ -194,13 +194,16 @@ export default function EvidenceManagementPage() {
     try {
       const response = await api.get<VitimaListResponse>("/api/vitima", {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+        params: { populate: "caso" }, // Popula o campo 'caso'
       });
       setVitimas(response.data.data || []);
+      setFilteredVitimas(response.data.data || []);
       setError("");
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
       setError(axiosError.response?.data?.msg || "Erro ao buscar vítimas.");
       setVitimas([]);
+      setFilteredVitimas([]);
     }
   }, []);
 
@@ -1086,3 +1089,8 @@ export default function EvidenceManagementPage() {
 function fetchLaudo(_id: string) {
   throw new Error("Function not implemented.");
 }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function setFilteredVitimas(arg0: IVitima[]) {
+  throw new Error("Function not implemented.");
+}
+
