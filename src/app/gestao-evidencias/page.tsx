@@ -51,7 +51,6 @@ export default function EvidenceManagementPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [editingEvidence, setEditingEvidence] = useState<Evidence | null>(null);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
-  const [submittedEvidenceId, setSubmittedEvidenceId] = useState<string | null>(null);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     coletadoPor: [],
     casos: [],
@@ -115,7 +114,6 @@ export default function EvidenceManagementPage() {
       const response = await api.get<FilterOptions>("/api/evidence/filters", {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
-      console.log("Resposta de /api/evidence/filters:", response.data);
       setFilterOptions({
         coletadoPor: Array.isArray(response.data.coletadoPor) ? response.data.coletadoPor : [],
         casos: Array.isArray(response.data.casos) ? response.data.casos : [],
@@ -125,7 +123,6 @@ export default function EvidenceManagementPage() {
       });
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
-      console.error("Erro ao buscar opções de filtro:", axiosError.response?.data);
       setError(axiosError.response?.data?.msg || "Erro ao buscar opções de filtro.");
       setFilterOptions({
         coletadoPor: [],
@@ -194,16 +191,14 @@ export default function EvidenceManagementPage() {
     try {
       const response = await api.get<VitimaListResponse>("/api/vitima", {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-        params: { populate: "caso" }, // Popula o campo 'caso'
+        params: { populate: "caso" },
       });
       setVitimas(response.data.data || []);
-      setFilteredVitimas(response.data.data || []);
       setError("");
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
       setError(axiosError.response?.data?.msg || "Erro ao buscar vítimas.");
       setVitimas([]);
-      setFilteredVitimas([]);
     }
   }, []);
 
@@ -227,6 +222,17 @@ export default function EvidenceManagementPage() {
       fetchFilterOptions();
     }
   }, [user, authLoading, fetchEvidences, fetchVitimas, fetchFilterOptions]);
+
+  useEffect(() => {
+    // Clear success/error messages after 5 seconds
+    if (success || error) {
+      const timer = setTimeout(() => {
+        setSuccess("");
+        setError("");
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, error]);
 
   const handleEditEvidence = async (evidence: Evidence & { vitima?: IVitima }) => {
     const freshEvidence = await fetchEvidenceById(evidence._id);
@@ -336,12 +342,15 @@ export default function EvidenceManagementPage() {
     }
 
     setIsLoading(true);
+    setError("");
+    setSuccess("");
+
     try {
       const data = new FormData();
       data.append("casoReferencia", formData.casoReferencia);
       data.append("tipo", formData.tipo);
       data.append("categoria", formData.categoria);
-      data.append("coletadoPorNome", formData.coletadoPorNome);
+      data.append("coletadoPor", formData.coletadoPorNome);
       if (formData.tipo === "texto" && formData.texto) data.append("texto", formData.texto);
       if (formData.tipo === "imagem" && formData.file) data.append("file", formData.file);
 
@@ -370,16 +379,17 @@ export default function EvidenceManagementPage() {
         data.append("vitimaId", selectedVitimaId);
       }
 
-      let response;
       if (editingEvidence) {
-        response = await api.put<EvidenceResponse>(`/api/evidence/${editingEvidence._id}`, data, {
+        console.log("Enviando atualização para evidência:", { evidenceId: editingEvidence._id, data: Object.fromEntries(data) });
+        await api.put<EvidenceResponse>(`/api/evidence/${editingEvidence._id}`, data, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
             "Content-Type": "multipart/form-data",
           },
         });
       } else {
-        response = await api.post<EvidenceResponse>("/api/evidence", data, {
+        console.log("Criando nova evidência:", { data: Object.fromEntries(data) });
+        await api.post<EvidenceResponse>("/api/evidence", data, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
             "Content-Type": "multipart/form-data",
@@ -388,12 +398,12 @@ export default function EvidenceManagementPage() {
       }
 
       setSuccess(editingEvidence ? "Evidência atualizada com sucesso." : "Evidência adicionada com sucesso.");
-      setSubmittedEvidenceId(editingEvidence ? editingEvidence._id : response.data.evidence._id);
       await fetchEvidences();
       await fetchVitimas();
       handleCancelEdit();
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
+      console.error("Erro ao processar a evidência:", axiosError.response?.data);
       setError(axiosError.response?.data?.msg || `Erro ao ${editingEvidence ? "atualizar" : "adicionar"} a evidência.`);
     } finally {
       setIsLoading(false);
@@ -461,17 +471,7 @@ export default function EvidenceManagementPage() {
           </button>
         </div>
         {error && <p className="text-red-500">{error}</p>}
-        {success && submittedEvidenceId && (
-          <div className="space-y-4">
-            <p className="text-green-500">{success}</p>
-            <button
-              onClick={() => router.push(`/gerar-laudo/${submittedEvidenceId}`)}
-              className="w-full bg-teal-500 text-white p-3 rounded-xl hover:bg-teal-700 transition"
-            >
-              Gerar Laudo
-            </button>
-          </div>
-        )}
+        {success && <p className="text-green-500">{success}</p>}
         <form className="space-y-4" onSubmit={handleSubmit}>
           <h2 className="text-lg font-semibold text-gray-700">Dados da Evidência</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1084,13 +1084,3 @@ export default function EvidenceManagementPage() {
     </div>
   );
 }
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function fetchLaudo(_id: string) {
-  throw new Error("Function not implemented.");
-}
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function setFilteredVitimas(arg0: IVitima[]) {
-  throw new Error("Function not implemented.");
-}
-
