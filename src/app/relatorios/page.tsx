@@ -1,3 +1,4 @@
+// Remover estados e inputs de analiseTecnica e conclusaoTecnica
 "use client";
 
 import api from "@/lib/axiosConfig";
@@ -18,13 +19,11 @@ export default function ReportRegisterPage() {
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [objetoPericia, setObjetoPericia] = useState("");
-  const [analiseTecnica, setAnaliseTecnica] = useState("");
   const [metodoUtilizado, setMetodoUtilizado] = useState("");
   const [destinatario, setDestinatario] = useState("");
   const [materiaisUtilizados, setMateriaisUtilizados] = useState("");
   const [examesRealizados, setExamesRealizados] = useState("");
   const [consideracoesTecnicoPericiais, setConsideracoesTecnicoPericiais] = useState("");
-  const [conclusaoTecnica, setConclusaoTecnica] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [evidencias, setEvidencias] = useState<Evidence[]>([]);
   const [vitimas, setVitimas] = useState<IVitima[]>([]);
@@ -41,13 +40,11 @@ export default function ReportRegisterPage() {
     titulo &&
     descricao &&
     objetoPericia &&
-    analiseTecnica &&
     metodoUtilizado &&
     destinatario &&
     materiaisUtilizados &&
     examesRealizados &&
-    consideracoesTecnicoPericiais &&
-    conclusaoTecnica;
+    consideracoesTecnicoPericiais;
 
   // Buscar casos disponíveis
   useEffect(() => {
@@ -73,21 +70,18 @@ export default function ReportRegisterPage() {
         return;
       }
       try {
-        // Buscar evidências
         const evidenciasResponse = await api.get<{ evidencias: Evidence[] }>(
           `/api/evidence?caso=${casoReferencia}&populate=vitima`
         );
         const fetchedEvidencias = evidenciasResponse.data.evidencias || [];
         setEvidencias(fetchedEvidencias);
 
-        // Buscar vítimas associadas às evidências
         const vitimaIds = Array.from(new Set(fetchedEvidencias.map((e) => e.vitima)));
         const vitimasResponse = await api.get<{ vitimas: IVitima[] }>(
           `/api/vitima?ids=${vitimaIds.join(",")}`
         );
         setVitimas(vitimasResponse.data.vitimas || []);
 
-        // Buscar laudos associados às evidências
         const evidenciaIds = fetchedEvidencias.map((e) => e._id);
         const laudosResponse = await api.get<{ laudos: ILaudo[] }>(
           `/api/laudo?evidencias=${evidenciaIds.join(",")}`
@@ -120,7 +114,7 @@ export default function ReportRegisterPage() {
     e.preventDefault();
     setError("");
     if (!isFormValid) {
-      setError("Todos os campos devem ser preenchidos.");
+      setError("Todos os campos obrigatórios devem ser preenchidos.");
       return;
     }
 
@@ -129,13 +123,11 @@ export default function ReportRegisterPage() {
       formData.append("titulo", titulo.trim());
       formData.append("descricao", descricao.trim());
       formData.append("objetoPericia", objetoPericia.trim());
-      formData.append("analiseTecnica", analiseTecnica.trim());
       formData.append("metodoUtilizado", metodoUtilizado.trim());
       formData.append("destinatario", destinatario.trim());
       formData.append("materiaisUtilizados", materiaisUtilizados.trim());
       formData.append("examesRealizados", examesRealizados.trim());
       formData.append("consideracoesTecnicoPericiais", consideracoesTecnicoPericiais.trim());
-      formData.append("conclusaoTecnica", conclusaoTecnica.trim());
       formData.append("casoReferencia", casoReferencia.trim());
       if (audioFile) {
         formData.append("audio", audioFile);
@@ -153,13 +145,11 @@ export default function ReportRegisterPage() {
         setReportId(report._id);
       }
 
-      // Verificar se pdf é uma string antes de usar atob
       if (!pdf || typeof pdf !== "string") {
         setError("Erro: O PDF retornado pelo servidor é inválido ou não foi fornecido.");
         return;
       }
 
-      // Converter base64 para Blob
       const byteCharacters = atob(pdf);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -191,13 +181,11 @@ export default function ReportRegisterPage() {
       const response = await api.post<ReportResponse>(`/api/report/sign/${reportId}`);
       const { pdf } = response.data;
 
-      // Verificar se pdf é uma string antes de usar atob
       if (!pdf || typeof pdf !== "string") {
         setError("Erro: O PDF assinado retornado pelo servidor é inválido ou não foi fornecido.");
         return;
       }
 
-      // Converter base64 para Blob
       const byteCharacters = atob(pdf);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -231,7 +219,6 @@ export default function ReportRegisterPage() {
 
   return (
     <div className="max-w-5xl mx-auto pt-28 p-4 md:p-8">
-      {/* Cabeçalho com seta de voltar e título */}
       <div className="flex items-center gap-4 mb-6">
         <button
           onClick={() => router.back()}
@@ -243,7 +230,6 @@ export default function ReportRegisterPage() {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Relatórios</h1>
       </div>
 
-      {/* Bloco de erro */}
       {error && (
         <div className="bg-red-100 text-red-500 p-4 rounded-xl mb-6">{error}</div>
       )}
@@ -339,13 +325,14 @@ export default function ReportRegisterPage() {
               required
             />
 
-            <textarea
-              placeholder="Análise Técnica *"
-              value={analiseTecnica}
-              onChange={(e) => setAnaliseTecnica(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500"
-              required
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Análise Técnica
+              </label>
+              <p className="text-gray-500 italic">
+                Este campo será preenchido automaticamente pela inteligência artificial com base nas informações do caso.
+              </p>
+            </div>
 
             <textarea
               placeholder="Método Utilizado *"
@@ -387,13 +374,14 @@ export default function ReportRegisterPage() {
               required
             />
 
-            <textarea
-              placeholder="Conclusão Técnica *"
-              value={conclusaoTecnica}
-              onChange={(e) => setConclusaoTecnica(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-xl text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500"
-              required
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Conclusão Técnica
+              </label>
+              <p className="text-gray-500 italic">
+                Este campo será preenchido automaticamente pela inteligência artificial com base nas informações do caso.
+              </p>
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
