@@ -14,6 +14,7 @@ import {
   Line,
   PieChart,
   Pie,
+  Legend,
 } from "recharts";
 
 type FiltroKey = "vitima" | "sexo" | "estado" | "lesoes" | "cidade";
@@ -54,6 +55,7 @@ export default function VisaoGeral() {
       setError(null);
       try {
         const res = await api.get("/api/dashboard");
+        console.log("Dados recebidos do dashboard:", res.data); // Log para depuração
         setDados(res.data);
       } catch (err) {
         console.error("Erro ao buscar dados:", err);
@@ -86,7 +88,11 @@ export default function VisaoGeral() {
   }
 
   if (!dados) {
-    return null; // Ou mensagem "Nenhum dado disponível"
+    return (
+      <div className="p-4 text-center">
+        <p className="text-lg text-gray-500">Nenhum dado disponível</p>
+      </div>
+    );
   }
 
   return (
@@ -136,7 +142,7 @@ export default function VisaoGeral() {
       </div>
 
       <div className="flex flex-col xl:flex-row gap-6">
-        <section className="xl:w-1/2 w-full h-80 bg-white rounded-xl shadow p-6 flex flex-col">
+        <section className="xl:w-1/2 w-full h-[400px] bg-white rounded-xl shadow p-6 flex flex-col">
           <h2 className="font-semibold mb-4 text-center xl:text-left text-gray-700">Comparações</h2>
           <ResponsiveContainer width="100%" height="100%">
             {tipoGrafico === "pizza" ? (
@@ -145,13 +151,20 @@ export default function VisaoGeral() {
                   data={dadosAtuais}
                   dataKey="quantidade"
                   nameKey="categoria"
-                  outerRadius={90}
+                  outerRadius={120}
                   fill="#3b82f6"
                   label={({ name, percent }) =>
                     `${name} (${(percent * 100).toFixed(0)}%)`
                   }
+                  labelLine={false}
                 />
                 <Tooltip formatter={(value: number) => value.toLocaleString()} />
+                <Legend
+                  layout="vertical"
+                  align="right"
+                  verticalAlign="middle"
+                  wrapperStyle={{ paddingLeft: "20px" }}
+                />
               </PieChart>
             ) : (
               <BarChart
