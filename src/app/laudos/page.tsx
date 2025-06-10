@@ -14,7 +14,6 @@ import { motion } from 'framer-motion';
 
 interface FormData {
   vitimaId: string;
-  casoId: string;
   dadosAntemortem: string;
   dadosPostmortem: string;
 }
@@ -24,7 +23,7 @@ export default function GerarLaudoPage() {
   const { user, loading: authLoading, error: authError } = useAuth();
 
   const [vitimas, setVitimas] = useState<IVitima[]>([]);
-  const [casos, setCasos] = useState<Case[]>([]);
+  const [caso, setCaso] = useState<Case | null>(null); // Single case instead of array
   const [evidencias, setEvidencias] = useState<Evidence[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -32,7 +31,6 @@ export default function GerarLaudoPage() {
 
   const [formData, setFormData] = useState<FormData>({
     vitimaId: "",
-    casoId: "",
     dadosAntemortem: "",
     dadosPostmortem: "",
   });
@@ -40,9 +38,9 @@ export default function GerarLaudoPage() {
   // Validate form
   const isFormValid =
     formData.vitimaId &&
-    formData.casoId &&
     formData.dadosAntemortem &&
     formData.dadosPostmortem &&
+    caso !== null && // Ensure a case exists
     evidencias.length > 0;
 
   // Fetch victims on mount
@@ -53,6 +51,7 @@ export default function GerarLaudoPage() {
         try {
           const response = await api.get<{ data: IVitima[] }>("/api/vitima", {
             headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+            params: { populate: "caso" }, // Populate caso field
           });
           setVitimas(response.data.data || []);
           setError("");
@@ -68,57 +67,77 @@ export default function GerarLaudoPage() {
     }
   }, [user, authLoading]);
 
-  // Fetch cases and evidences when vitimaId changes
+  // Fetch case and evidences when vitimaId changes
   useEffect(() => {
     if (formData.vitimaId) {
-      const fetchCasesAndEvidences = async () => {
+      const fetchCaseAndEvidences = async () => {
         setIsLoading(true);
+        setError("");
         try {
-          // Fetch cases
-          const caseResponse = await api.get<{ data: Case[] }>("/api/case", {
+          // Find the victim to get the associated case
+          const vitimaResponse = await api.get<{ data: IVitima }>(`/api/vitima/${formData.vitimaId}`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-            params: { vitima: formData.vitimaId },
+            params: { populate: "caso" },
           });
-          const fetchedCases = caseResponse.data.data || [];
-          setCasos(fetchedCases);
+          const vitima = vitimaResponse.data.data;
+          console.log("Vítima encontrada:", vitima); // Debug log
 
-          // Fetch evidences
-          const evidenceResponse = await api.get<{ data: Evidence[] }>("/api/evidence", {
+          // Check if victim has an associated case
+          if (!vitima.caso) {
+            setError("Nenhum caso associado à vítima selecionada.");
+            setCaso(null);
+            setEvidencias([]);
+            setIsLoading(false);
+            return;
+          }
+
+          // Set the case
+          setCaso(vitima.caso as Case);
+
+          // Fetch evidences for the victim
+          const evidenceResponse = await api.get<{ evidencias: Evidence[] }>("/api/evidence", {
             headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-            params: { vitima: formData.vitimaId },
+            params: { vitima: formData.vitimaId, populate: "caso coletadoPor" },
           });
-          const fetchedEvidences = evidenceResponse.data.data || [];
+          const fetchedEvidences = evidenceResponse.data.evidencias || [];
           setEvidencias(fetchedEvidences);
 
-          // Set error if no cases or evidences are found
-          if (fetchedCases.length === 0) {
-            setError("Nenhum caso encontrado para a vítima selecionada.");
-          } else if (fetchedEvidences.length === 0) {
+          // Set error if no evidences are found
+          if (fetchedEvidences.length === 0) {
             setError("Nenhuma evidência encontrada para a vítima selecionada.");
-          } else {
-            setError("");
           }
         } catch (err: unknown) {
           const axiosError = err as AxiosError<{ msg?: string }>;
-          setError(axiosError.response?.data?.msg || "Erro ao buscar casos ou evidências.");
-          setCasos([]);
+          setError(axiosError.response?.data?.msg || "Erro ao buscar caso ou evidências.");
+          setCaso(null);
           setEvidencias([]);
         } finally {
           setIsLoading(false);
         }
       };
-      fetchCasesAndEvidences();
+      fetchCaseAndEvidences();
     } else {
-      setCasos([]);
+      setCaso(null);
       setEvidencias([]);
-      setFormData((prev) => ({ ...prev, casoId: "" }));
     }
   }, [formData.vitimaId]);
+
+  // Clear success/error messages after 5 seconds
+  useEffect(() => {
+    if (success || error) {
+      const timer = setTimeout(() => {
+        setSuccess("");
+        setError("");
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, error]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    console.log(`Campo alterado: ${name} = ${value}`); // Debug log
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -159,7 +178,7 @@ export default function GerarLaudoPage() {
         perito: user?.id,
         dadosAntemortem: formData.dadosAntemortem,
         dadosPostmortem: formData.dadosPostmortem,
-        caso: formData.casoId,
+        caso: (caso as Case)._id, // Use the fetched case ID
         evidencias: evidencias.map((ev) => ev._id),
       };
 
@@ -184,11 +203,10 @@ export default function GerarLaudoPage() {
       setError("");
       setFormData({
         vitimaId: "",
-        casoId: "",
         dadosAntemortem: "",
         dadosPostmortem: "",
       });
-      setCasos([]);
+      setCaso(null);
       setEvidencias([]);
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ msg?: string }>;
@@ -253,30 +271,14 @@ export default function GerarLaudoPage() {
           </select>
         </div>
 
-        <div>
-          <label htmlFor="casoId" className="block text-sm font-medium text-gray-700 mb-1">
-            Caso *
-          </label>
-          <select
-            name="casoId"
-            id="casoId"
-            value={formData.casoId}
-            onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-md text-gray-800 focus:ring focus:ring-teal-300 placeholder-gray-500 disabled:opacity-50"
-            disabled={isLoading || casos.length === 0}
-            required
-          >
-            <option value="">Selecione um caso</option>
-            {casos.map((caso) => (
-              <option key={caso._id} value={caso._id}>
-                {caso.titulo || "Caso sem título"} ({caso.casoReferencia || "N/A"})
-              </option>
-            ))}
-          </select>
-          {formData.vitimaId && casos.length === 0 && (
-            <p className="text-red-500 text-sm mt-1">Nenhum caso associado à vítima selecionada.</p>
-          )}
-        </div>
+        {formData.vitimaId && caso && (
+          <div className="bg-gray-50 p-4 rounded-md">
+            <h4 className="font-semibold text-gray-700 mb-2">Caso Associado:</h4>
+            <p className="text-gray-600">
+              {caso.titulo || "Caso sem título"} ({caso.casoReferencia || "N/A"})
+            </p>
+          </div>
+        )}
 
         {formData.vitimaId && evidencias.length > 0 && (
           <div className="bg-gray-50 p-4 rounded-md">
