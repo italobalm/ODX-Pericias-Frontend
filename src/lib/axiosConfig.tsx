@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// Instância para a API de dashboard
+// Instância para a API de dashboard (também usada como export padrão 'api')
 const apiDashboard = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL, // Ex.: https://odx-pericias-back.onrender.com
 });
@@ -10,7 +10,7 @@ const apiPredicao = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_PREDICAO_URL, // Ex.: https://modelo-ml-gxi9.onrender.com
 });
 
-// Adiciona o token automaticamente para a API de dashboard (se necessário)
+// Adiciona o token automaticamente para a API de dashboard
 apiDashboard.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
@@ -72,4 +72,10 @@ apiPredicao.interceptors.response.use(
   }
 );
 
+// Export padrão 'api' para compatibilidade com arquivos existentes
+const api = apiDashboard;
+
+// Exportações nomeadas para uso em componentes que precisam de ambas as APIs
 export { apiDashboard, apiPredicao };
+// Export padrão
+export default api;
