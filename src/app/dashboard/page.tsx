@@ -1,6 +1,6 @@
 "use client";
 
-import { apiDashboard, apiPredicao } from "@/lib/axiosConfig"; // Importar as duas instâncias do Axios
+import { apiDashboard, apiPredicao } from "@/lib/axiosConfig"; // Importar instâncias nomeadas
 import { useEffect, useState } from "react";
 import {
   BarChart,
@@ -84,6 +84,14 @@ export default function VisaoGeral() {
   // Função para realizar a predição
   const handlePredicao = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (parseInt(formData.idade) <= 0) {
+      setPredicaoError("A idade deve ser um número positivo.");
+      return;
+    }
+    if (!["masculino", "feminino"].includes(formData.sexo)) {
+      setPredicaoError("O sexo deve ser 'masculino' ou 'feminino'.");
+      return;
+    }
     setPredicaoLoading(true);
     setPredicaoError(null);
     try {
